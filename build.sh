@@ -3546,14 +3546,24 @@ phase6_build() {
     [ "$JOBS" -ge 1 ] || JOBS=1
     info "  Using -j${JOBS} (hw.ncpu=${NCPUS})"
     local BUILD_LOG="$BUILD_DIR/ninja-build.log"
+    rm -f "$BUILD_LOG"
+
+    # Run ninja, capture full output to log, show progress lines.
+    # Use a temp file for the exit code since PIPESTATUS is fragile.
+    local RC_FILE="$BUILD_DIR/ninja-rc"
+    rm -f "$RC_FILE"
     set +e
-    ninja -j"$JOBS" 2>&1 | tee "$BUILD_LOG" | grep --line-buffered -E "^\[|error:|fatal error:|FAILED:|ld: |Linking|ninja: build stopped" || true
-    local NINJA_RC=${PIPESTATUS[0]:-0}
+    { ninja -j"$JOBS" 2>&1; echo $? > "$RC_FILE"; } | tee "$BUILD_LOG" | grep --line-buffered -E "^\[|error:|fatal error:|FAILED:|ld: |Linking|ninja: build stopped" || true
     set -e
+
+    local NINJA_RC=$(cat "$RC_FILE" 2>/dev/null || echo 1)
+    rm -f "$RC_FILE"
 
     if [ "$NINJA_RC" -ne 0 ]; then
         err "Ninja build failed (exit code $NINJA_RC)"
-        tail -30 "$BUILD_LOG"
+        # Show last 50 lines of full log to capture the actual error
+        err "--- Last 50 lines of build log ---"
+        tail -50 "$BUILD_LOG"
         exit 1
     fi
 
@@ -3564,9 +3574,6 @@ phase6_build() {
         err "Build completed with $FAIL_COUNT errors"
         tail -30 "$BUILD_LOG"
         exit 1
-        echo ""
-        info "Last 30 lines of build log:"
-        tail -30 "$BUILD_LOG"
     else
         ok "Build complete"
     fi
