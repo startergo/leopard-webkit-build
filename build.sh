@@ -2000,6 +2000,16 @@ DIFF_EOF
         info "  Guarded setVolatile in ViewGestureControllerMac.mm"
     fi
 
+    # ── parser.rb — Fix Ruby 3.x compatibility (Object#=~ removed) ──
+    # In Ruby 3.x, Object#=~ was removed. The offlineasm parser tries
+    # annotation_object =~ final_regexp which fails with NoMethodError.
+    # Guard the =~ call with is_a?(String).
+    local PARSER_RB="$SOURCE_DIR/Source/JavaScriptCore/offlineasm/parser.rb"
+    if [ -f "$PARSER_RB" ] && ! grep -q 'is_a?(String) and @tokens\[@idx\] =~ final' "$PARSER_RB" 2>/dev/null; then
+        sed -i '' 's/(final and @tokens\[@idx\] =~ final)/(final and @tokens[@idx].is_a?(String) and @tokens[@idx] =~ final)/' "$PARSER_RB"
+        info "  Patched parser.rb for Ruby 3.x compatibility"
+    fi
+
     ok "Source patches applied"
 }
 
