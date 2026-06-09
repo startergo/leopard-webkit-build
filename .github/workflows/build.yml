@@ -58,7 +58,13 @@ jobs:
           restore-keys: stamps-${{ runner.os }}-
 
       - name: Install build tools
-        run: brew install cmake ninja
+        run: brew install cmake ninja pyenv
+
+      - name: Install Python 2.7
+        run: |
+          pyenv install 2.7.18
+          pyenv global 2.7.18
+          echo "$HOME/.pyenv/shims" >> "$GITHUB_PATH"
 
       - name: Build
         run: ./build.sh
