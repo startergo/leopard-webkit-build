@@ -3525,13 +3525,24 @@ phase6_build() {
     [ "$JOBS" -ge 1 ] || JOBS=1
     info "  Using -j${JOBS} (hw.ncpu=${NCPUS})"
     local BUILD_LOG="$BUILD_DIR/ninja-build.log"
+    set +e
     ninja -j"$JOBS" 2>&1 | tee "$BUILD_LOG" | grep --line-buffered -E "^\[|error:|fatal error:|FAILED:|ld: |Linking|ninja: build stopped" || true
+    local NINJA_RC=${PIPESTATUS[0]:-0}
+    set -e
+
+    if [ "$NINJA_RC" -ne 0 ]; then
+        err "Ninja build failed (exit code $NINJA_RC)"
+        tail -30 "$BUILD_LOG"
+        exit 1
+    fi
 
     local FAIL_COUNT=$(grep -c 'error:' "$BUILD_LOG" 2>/dev/null || true)
     FAIL_COUNT="${FAIL_COUNT:-0}"
     FAIL_COUNT=$(echo "$FAIL_COUNT" | tr -d '[:space:]')
     if [ "${FAIL_COUNT:-0}" -gt 0 ]; then
-        warn "Build completed with $FAIL_COUNT errors"
+        err "Build completed with $FAIL_COUNT errors"
+        tail -30 "$BUILD_LOG"
+        exit 1
         echo ""
         info "Last 30 lines of build log:"
         tail -30 "$BUILD_LOG"
@@ -3585,7 +3596,8 @@ phase7_verify() {
     if $ALL_OK; then
         ok "All frameworks built successfully for x86_64!"
     else
-        warn "Some frameworks failed to build. Check ninja output above."
+        err "Some frameworks failed to build. Check ninja output above."
+        exit 1
     fi
 }
 
