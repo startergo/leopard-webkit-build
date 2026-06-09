@@ -1,0 +1,30 @@
+# Build outputs
+build/
+dist/
+bin/
+
+# Downloads — archives and extracted dirs (NOT submodules)
+downloads/*.tar.xz
+downloads/*.tgz
+downloads/*.tar.bz2
+downloads/*.dmg
+downloads/icu-release-*/
+downloads/libcxx*.src/
+downloads/libcxxabi*.src/
+downloads/MacOSX*/
+downloads/patches-602/
+# Keep: downloads/patches-604/ (patches), downloads/icu/ (submodule), downloads/llvm-project/ (submodule)
+
+# SDKs — submodule tracked, symlinks ignored
+sdk/MacOSX10.6.sdk
+
+# IDE / tooling
+.claude/
+.agora-code/
+.vscode/
+*.swp
+.mcp.json
+.DS_Store
+
+# Compiled objects
+*.o

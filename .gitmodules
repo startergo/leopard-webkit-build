@@ -1,0 +1,14 @@
+[submodule "sdk/MacOSX-SDKs"]
+	path = sdk/MacOSX-SDKs
+	url = https://github.com/phracker/MacOSX-SDKs.git
+
+[submodule "source/webkit"]
+	path = source/webkit
+	url = https://github.com/WebKit/WebKit.git
+	branch = Safari-604.5.6
+[submodule "downloads/icu"]
+	path = downloads/icu
+	url = https://github.com/unicode-org/icu.git
+[submodule "downloads/llvm-project"]
+	path = downloads/llvm-project
+	url = https://github.com/llvm/llvm-project.git
