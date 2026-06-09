@@ -8,9 +8,10 @@ Cross-compilation of WebKit 604.5.6 (Safari 11 era) from Apple Silicon macOS tar
 |-----------|------|-------|
 | JavaScriptCore.framework | ~40 MB | JavaScript engine |
 | WebCore.framework | ~65 MB | HTML/CSS/DOM/WebGL rendering |
+| WebKit.framework | ~8.7 MB | WebKit2 multi-process API |
 | WebKitLegacy.framework | ~3.6 MB | Legacy WebKit API (WebView) |
 
-WebKit2 (the multi-process WebKit framework) compiles 97.6% of files but cannot link due to 6 core IPC files requiring XPC (introduced in 10.7). See [WebKit2 Status](#webkit2-status) below.
+WebKit.framework (WebKit2, the multi-process architecture) builds successfully after removing XPC-dependent IPC source files from the CMake configuration. See [WebKit2 Status](#webkit2-status) below.
 
 ## Prerequisites
 

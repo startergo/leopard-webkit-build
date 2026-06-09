@@ -1,6 +1,6 @@
 /*
  * Compat stubs for APIs unavailable in the macOS 10.6 SDK runtime.
- * These provide minimal implementations so WebKit 602 can link.
+ * These provide minimal implementations so WebKit 604 can link.
  *
  * Missing symbols:
  *   _Block_has_signature, _Block_signature   (10.7+)

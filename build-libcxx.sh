@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-BASEDIR="/Users/macbookpro/camino/leopard-webkit-build"
+BASEDIR="$(cd "$(dirname "$0")" && pwd)"
 SDKROOT="$BASEDIR/sdk/MacOSX10.6.sdk"
 LIBCXX_SRC="$BASEDIR/downloads/libcxx-5.0.1.src"
 LIBCXXABI_SRC="$BASEDIR/downloads/libcxxabi-5.0.1.src"

@@ -2253,7 +2253,7 @@ void dispatch_io_write(dispatch_io_t channel, off_t offset, dispatch_data_t data
 #define VM_PROT_IS_MASK 0x40
 #endif
 #ifndef MAP_MEM_VM_SHARE
-#define MAP_MEM_VM_SHARE 0x10
+#define MAP_MEM_VM_SHARE 0x400000
 #endif
 
 /* dispatch_barrier_async / dispatch_barrier_sync (introduced 10.7) */
@@ -2873,9 +2873,9 @@ typedef NSInteger NSCorrectionResponse;
 #define kCATransactionPhasePostCommit 2
 #endif
 
-/* NSViewNoInstrinsicMetric (introduced 10.7) */
-#ifndef NSViewNoInstrinsicMetric
-#define NSViewNoInstrinsicMetric -1.0
+/* NSViewNoIntrinsicMetric (introduced 10.7) */
+#ifndef NSViewNoIntrinsicMetric
+#define NSViewNoIntrinsicMetric -1.0
 #endif
 
 /* NSWindow notification constants (10.7+) */
@@ -3173,70 +3173,6 @@ typedef NSUInteger NSURLSessionResponsePolicy;
 #endif
 HEADER_EOF
 
-    # ─── sdk_stubs.c ───
-    info "  Writing sdk_stubs.c..."
-    cat > "$OVERLAY_DIR/sdk_stubs.c" << 'C_EOF'
-/*
- * sdk_stubs.c - Missing symbols for MacOSX 10.6 SDK.
- * Compile: clang -target x86_64-apple-macos10.6 -arch x86_64 -c sdk_stubs.c -o sdk_stubs.o
- */
-
-#include <CoreFoundation/CoreFoundation.h>
-#include <stdlib.h>
-#include <string.h>
-
-/* Private CoreFoundation XPC functions */
-CFTypeRef __CFXPCCreateCFObjectFromXPCMessage(void *xpc_message) {
-    (void)xpc_message; return NULL;
-}
-
-CFTypeRef __CFXPCCreateXPCMessageWithCFObject(CFTypeRef cf) {
-    (void)cf; return NULL;
-}
-
-/* XPC functions (XPC introduced in 10.7) */
-typedef void *xpc_object_t;
-typedef struct _xpc_connection_s xpc_connection_t;
-typedef void (^xpc_handler_t)(xpc_object_t);
-
-static int _xpc_type_dictionary_val = 0;
-static int _xpc_type_error_val = 0;
-static int _xpc_error_connection_invalid_val = 0;
-
-void *_xpc_type_dictionary = &_xpc_type_dictionary_val;
-void *_xpc_type_error = &_xpc_type_error_val;
-void *_xpc_error_connection_invalid = &_xpc_error_connection_invalid_val;
-
-xpc_object_t xpc_dictionary_create(const char * const *keys, const xpc_object_t *values, size_t count) {
-    (void)keys; (void)values; (void)count; return NULL;
-}
-void *xpc_dictionary_get_value(xpc_object_t xdict, const char *key) {
-    (void)xdict; (void)key; return NULL;
-}
-void xpc_dictionary_set_value(xpc_object_t xdict, const char *key, xpc_object_t value) {
-    (void)xdict; (void)key; (void)value;
-}
-void *xpc_get_type(xpc_object_t obj) { (void)obj; return NULL; }
-void xpc_retain(xpc_object_t obj) { (void)obj; }
-void xpc_release(xpc_object_t obj) { (void)obj; }
-xpc_connection_t *xpc_connection_create_mach_service(const char *name, dispatch_queue_t targetq, uint64_t flags) {
-    (void)name; (void)targetq; (void)flags; return NULL;
-}
-void xpc_connection_set_event_handler(xpc_connection_t *conn, xpc_handler_t handler) {
-    (void)conn; (void)handler;
-}
-void xpc_connection_resume(xpc_connection_t *conn) { (void)conn; }
-void xpc_connection_cancel(xpc_connection_t *conn) { (void)conn; }
-void xpc_connection_send_message(xpc_connection_t *conn, xpc_object_t msg) { (void)conn; (void)msg; }
-void xpc_connection_set_target_queue(xpc_connection_t *conn, dispatch_queue_t queue) { (void)conn; (void)queue; }
-
-/* Sandbox functions */
-typedef int sandbox_filter_type;
-int sandbox_check(int pid, const char *operation, sandbox_filter_type type, ...) {
-    (void)pid; (void)operation; (void)type; return 0;
-}
-C_EOF
-
     # ─── sdk_stubs.mm ───
     info "  Writing sdk_stubs.mm..."
     cat > "$OVERLAY_DIR/sdk_stubs.mm" << 'MM_EOF'
@@ -3278,8 +3214,8 @@ void *xpc_dictionary_get_value(xpc_object_t xdict, const char *key) {
 void xpc_dictionary_set_value(xpc_object_t xdict, const char *key, xpc_object_t value) {
     (void)xdict; (void)key; (void)value;
 }
-void *xpc_get_type(xpc_object_t obj) { (void)obj; return NULL; }
-void xpc_retain(xpc_object_t obj) { (void)obj; }
+xpc_object_t xpc_get_type(xpc_object_t obj) { (void)obj; return NULL; }
+xpc_object_t xpc_retain(xpc_object_t obj) { return obj; }
 void xpc_release(xpc_object_t obj) { (void)obj; }
 void *xpc_connection_create_mach_service(const char *name, dispatch_queue_t targetq, uint64_t flags) {
     (void)name; (void)targetq; (void)flags; return NULL;
@@ -3307,13 +3243,13 @@ void xpc_connection_set_target_queue(struct _xpc_connection_s *conn, struct disp
 }
 
 extern "C" {
-void objc_initWeak(id *addr, id val) { *addr = val; }
+id objc_initWeak(id *addr, id val) { *addr = val; return val; }
 void objc_destroyWeak(id *addr) { *addr = nil; }
 }
 
 extern "C" {
 int _Block_has_signature(void *block) { (void)block; return 0; }
-const char *_Block_signature(void *block) { (void)block; return ""; }
+const char *_Block_signature(void *block) { (void)block; return NULL; }
 }
 
 extern "C" {
@@ -3616,6 +3552,7 @@ phase7_verify() {
     local FRAMEWORKS=(
         "JavaScriptCore"
         "WebCore"
+        "WebKit"
         "WebKitLegacy"
     )
 
