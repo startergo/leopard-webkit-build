@@ -2001,13 +2001,23 @@ DIFF_EOF
     fi
 
     # ── parser.rb — Fix Ruby 3.x compatibility (Object#=~ removed) ──
-    # In Ruby 3.x, Object#=~ was removed. The offlineasm parser tries
-    # annotation_object =~ final_regexp which fails with NoMethodError.
-    # Guard the =~ call with is_a?(String).
+    # Ruby 3.x removed Object#=~ (previously returned nil for non-strings).
+    # The offlineasm Annotation class doesn't define =~, so annotation_object =~ regexp
+    # raises NoMethodError. Add =~ to Annotation that returns nil (same as Ruby 2.x).
+    # Token already has its own =~ that delegates to @string.
     local PARSER_RB="$SOURCE_DIR/Source/JavaScriptCore/offlineasm/parser.rb"
-    if [ -f "$PARSER_RB" ] && ! grep -q 'is_a?(String) and @tokens\[@idx\] =~ final' "$PARSER_RB" 2>/dev/null; then
-        sed -i '' 's/(final and @tokens\[@idx\] =~ final)/(final and @tokens[@idx].is_a?(String) and @tokens[@idx] =~ final)/' "$PARSER_RB"
-        info "  Patched parser.rb for Ruby 3.x compatibility"
+    if [ -f "$PARSER_RB" ] && ! grep -q 'def =~' <(grep -A5 'class Annotation' "$PARSER_RB") 2>/dev/null; then
+        # Revert the line 583 guard if it was applied by a previous run
+        sed -i '' 's/(final and @tokens\[@idx\]\.is_a?(String) and @tokens\[@idx\] =~ final)/(final and @tokens[@idx] =~ final)/' "$PARSER_RB" 2>/dev/null || true
+        # Add =~ method to Annotation class (returns nil, same as Ruby 2.x Object#=~).
+        # The class-level end has no indent (/^end$/); method-level ends are indented.
+        # Insert =~ before the first unindented end after "class Annotation".
+        awk '
+        /class Annotation/ { in_annot=1 }
+        in_annot && /^end$/ { print "    def =~(other)"; print "        nil"; print "    end"; in_annot=0 }
+        { print }
+        ' "$PARSER_RB" > "${PARSER_RB}.tmp" && mv "${PARSER_RB}.tmp" "$PARSER_RB"
+        info "  Patched parser.rb: added =~ to Annotation class for Ruby 3.x"
     fi
 
     ok "Source patches applied"
