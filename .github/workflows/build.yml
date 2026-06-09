@@ -50,13 +50,6 @@ jobs:
             dist/crt
           key: deps-${{ runner.os }}-${{ hashFiles('build.sh') }}
 
-      - name: Cache build stamps
-        uses: actions/cache@v4
-        with:
-          path: build/stamps
-          key: stamps-${{ runner.os }}-${{ github.sha }}
-          restore-keys: stamps-${{ runner.os }}-
-
       - name: Install build tools
         run: brew install cmake ninja pyenv
 

@@ -150,7 +150,11 @@ phase0_prerequisites() {
 
 phase1_icu() {
     local stamp="$STAMP_DIR/icu-built"
-    [ -f "$stamp" ] && { info "ICU: already built (stamp exists)"; return 0; }
+    if [ -f "$stamp" ] && [ -f "$ICU_DIST/lib/libicuuc.a" ]; then
+        info "ICU: already built (stamp exists)"
+        return 0
+    fi
+    rm -f "$stamp"
 
     info "Phase 1a: Building ICU 55 for x86_64..."
     mkdir -p "$ICU_DIST"
@@ -205,7 +209,11 @@ phase1_icu() {
 
 phase1_libcxx() {
     local stamp="$STAMP_DIR/libcxx-built"
-    [ -f "$stamp" ] && { info "libc++: already built (stamp exists)"; return 0; }
+    if [ -f "$stamp" ] && [ -f "$LIBCXX_DIST/lib/libc++.1.dylib" ]; then
+        info "libc++: already built (stamp exists)"
+        return 0
+    fi
+    rm -f "$stamp"
 
     info "Phase 1b: Building libc++abi 5.0.1..."
     mkdir -p "$LIBCXX_DIST/lib" "$LIBCXX_DIST/include"
@@ -3308,7 +3316,11 @@ CPP_EOF
 
 phase4_cmake() {
     local stamp="$STAMP_DIR/cmake-configured"
-    [ -f "$stamp" ] && { info "CMake: already configured (stamp exists)"; return 0; }
+    if [ -f "$stamp" ] && [ -f "$BUILD_DIR/build.ninja" ]; then
+        info "CMake: already configured (stamp exists)"
+        return 0
+    fi
+    rm -f "$stamp"
 
     info "Phase 4: CMake configure..."
 
@@ -3397,6 +3409,11 @@ phase4_cmake() {
         -DENABLE_CANVAS_PROXY=OFF \
         "$SOURCE_DIR"
 
+    if [ ! -f "$BUILD_DIR/build.ninja" ]; then
+        err "CMake failed: build.ninja not generated"
+        exit 1
+    fi
+
     touch "$stamp"
     ok "CMake configured"
 }
@@ -3405,7 +3422,11 @@ phase4_cmake() {
 
 phase5_post_cmake() {
     local stamp="$STAMP_DIR/post-cmake-fixed"
-    [ -f "$stamp" ] && { info "Post-cmake: already fixed (stamp exists)"; return 0; }
+    if [ -f "$stamp" ] && [ -f "$BUILD_DIR/DerivedSources/JavaScriptCore/WebKit_Config.h" ]; then
+        info "Post-cmake: already fixed (stamp exists)"
+        return 0
+    fi
+    rm -f "$stamp"
 
     info "Phase 5: Post-cmake fixes..."
 
