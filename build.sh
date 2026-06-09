@@ -797,7 +797,7 @@ SBEOF
     while IFS= read -r f; do
         sed -i '' 's/__MAC_OS_X_VERSION_MIN_REQUIRED == 1050/__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060/g' "$f"
         VER_GUARD_COUNT=$((VER_GUARD_COUNT + 1))
-    done < <(grep -rl '__MAC_OS_X_VERSION_MIN_REQUIRED == 1050' "$WK/" 2>/dev/null | grep -v '\.orig\|\.rej\|ForwardingHeaders\|ThirdParty')
+    done < <(grep -rl '__MAC_OS_X_VERSION_MIN_REQUIRED == 1050' "$WK/" 2>/dev/null | grep -v '\.orig\|\.rej\|ForwardingHeaders\|ThirdParty\|/Gradient\.h$\|/Gradient\.cpp$')
     info "    Patched $VER_GUARD_COUNT files"
 
     # ─── NSScrollerImp — Lower version guards from >= 1070 to >= 1060 ───
