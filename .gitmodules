@@ -9,6 +9,8 @@
 [submodule "downloads/icu"]
 	path = downloads/icu
 	url = https://github.com/unicode-org/icu.git
+	branch = release-55-1
 [submodule "downloads/llvm-project"]
 	path = downloads/llvm-project
 	url = https://github.com/llvm/llvm-project.git
+	branch = release/5.x

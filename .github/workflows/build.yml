@@ -1,0 +1,47 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [development]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Install build tools
+        run: brew install cmake ninja
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Package frameworks
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          ARCHIVE="webkit-604-snowleopard-${SHORT_SHA}.tar.gz"
+          tar -czf "$ARCHIVE" -C build/lib \
+            JavaScriptCore.framework \
+            WebCore.framework \
+            WebKit.framework \
+            WebKitLegacy.framework
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=$SHORT_SHA" >> "$GITHUB_ENV"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ env.SHORT_SHA }}
+          name: WebKit 604 — ${{ env.SHORT_SHA }}
+          prerelease: true
+          files: ${{ env.ARCHIVE }}
