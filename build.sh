@@ -4223,8 +4223,16 @@ PLIST_EOF
 #!/bin/bash
 cd "$(dirname "$0")"
 OS_X_VERSION=$(sw_vers -productVersion | cut -d. -f1,2)
-export DYLD_LIBRARY_PATH="$PWD/../Frameworks/$OS_X_VERSION:$DYLD_LIBRARY_PATH"
-export DYLD_FRAMEWORK_PATH="$PWD/../Frameworks/$OS_X_VERSION:$DYLD_FRAMEWORK_PATH"
+FW_DIR="$PWD/../Frameworks/$OS_X_VERSION"
+
+# On 10.6, DYLD_FRAMEWORK_PATH overrides framework search for all processes.
+# Set it as the primary framework search path so Safari loads our custom
+# JavaScriptCore, WebCore, and WebKit frameworks instead of the system ones.
+export DYLD_FRAMEWORK_PATH="$FW_DIR"
+export DYLD_LIBRARY_PATH="$FW_DIR"
+export DYLD_FALLBACK_FRAMEWORK_PATH="/System/Library/Frameworks:/Library/Frameworks"
+export DYLD_FALLBACK_LIBRARY_PATH="/usr/lib:/usr/local/lib"
+
 exec "/Applications/Safari.app/Contents/MacOS/Safari"
 LAUNCHER_EOF
     chmod +x "$MACOS_DIR/WebKit"
@@ -4239,7 +4247,7 @@ LAUNCHER_EOF
         fi
     done
 
-    # ── Strip frameworks ──
+    # ── Strip frameworks (remove debug info only, preserve LC_ID_DYLIB) ──
     info "  Stripping frameworks..."
     for FW in JavaScriptCore WebCore WebKit WebKitLegacy; do
         local FW_BIN="$FW_DIR/$FW.framework/Versions/A/$FW"
@@ -4247,8 +4255,32 @@ LAUNCHER_EOF
             FW_BIN="$FW_DIR/$FW.framework/$FW"
         fi
         if [ -f "$FW_BIN" ]; then
-            strip -x "$FW_BIN" 2>/dev/null || true
+            # Remove debug sections but keep all symbol tables and load commands
+            strip -r "$FW_BIN" 2>/dev/null || true
         fi
+    done
+
+    # ── Fix install names: change @rpath to /System/Library paths ──
+    # Safari on 10.6 loads frameworks by absolute path. DYLD_FRAMEWORK_PATH
+    # intercepts absolute paths but NOT @rpath lookups. Change all @rpath
+    # references in our frameworks to /System/Library/Frameworks/... so that
+    # DYLD_FRAMEWORK_PATH can redirect them at runtime.
+    info "  Fixing install names for DYLD_FRAMEWORK_PATH compatibility..."
+    for FW in JavaScriptCore WebCore WebKit WebKitLegacy; do
+        local FW_BIN="$FW_DIR/$FW.framework/Versions/A/$FW"
+        [ -f "$FW_BIN" ] || FW_BIN="$FW_DIR/$FW.framework/$FW"
+        [ -f "$FW_BIN" ] || continue
+
+        # Change ID: @rpath/X.framework → /System/Library/Frameworks/X.framework
+        install_name_tool -id "/System/Library/Frameworks/$FW.framework/Versions/A/$FW" "$FW_BIN"
+
+        # Change all @rpath deps to /System/Library/Frameworks
+        for DEP_FW in JavaScriptCore WebCore WebKit WebKitLegacy; do
+            install_name_tool -change \
+                "@rpath/$DEP_FW.framework/Versions/A/$DEP_FW" \
+                "/System/Library/Frameworks/$DEP_FW.framework/Versions/A/$DEP_FW" \
+                "$FW_BIN" 2>/dev/null || true
+        done
     done
 
     # ── Copy our custom libc++ and ICU dylibs ──
