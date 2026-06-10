@@ -3814,6 +3814,69 @@ void initializePoison() {}
 @end
 @implementation CABackdropLayer
 @end
+
+// CAFilter is a private QuartzCore class (10.7+) used for layer filters.
+// Used by PlatformCAFiltersCocoa.mm: [CAFilter filterWithType:...]
+@interface CAFilter : NSObject <NSCopying, NSMutableCopying>
++ (CAFilter *)filterWithType:(NSString *)type;
+@property (copy) NSString *name;
+@property (retain) id inputKeys;
+@end
+@implementation CAFilter
++ (CAFilter *)filterWithType:(NSString *)type { return [[CAFilter alloc] init]; }
+- (id)copyWithZone:(NSZone *)zone { return self; }
+- (id)mutableCopyWithZone:(NSZone *)zone { return self; }
+@end
+
+// NSScrollerImp and NSScrollerImpPair are 10.7+ overlay scrollbar classes.
+// ScrollAnimatorMac.mm uses them for overlay scrollbar animation.
+typedef NSInteger NSScrollerStyle;
+
+@interface NSScrollerImp : NSResponder
+@property (assign) id delegate;
+@property CGFloat knobAlpha;
+@property CGFloat trackAlpha;
+@property CGFloat uiStateTransitionProgress;
+@property CGFloat expansionTransitionProgress;
+@property BOOL usePresentationValue;
+@property (retain) CALayer *layer;
+@property BOOL needsDisplay;
+@property BOOL tracking;
+- (NSRect)rectForPart:(NSInteger)part;
+- (void)mouseEnteredScroller;
+- (void)mouseExitedScroller;
+@end
+@implementation NSScrollerImp
+@end
+
+@protocol NSScrollerImpPairDelegate <NSObject>
+@optional
+- (NSRect)contentAreaRectForScrollerImpPair:(id)scrollerImpPair;
+- (BOOL)inLiveResizeForScrollerImpPair:(id)scrollerImpPair;
+- (NSPoint)mouseLocationInContentAreaForScrollerImpPair:(id)scrollerImpPair;
+- (NSPoint)scrollerImpPair:(id)pair convertContentPoint:(NSPoint)point toScrollerImp:(id)imp;
+- (void)scrollerImpPair:(id)pair setContentAreaNeedsDisplayInRect:(NSRect)rect;
+- (void)scrollerImpPair:(id)pair updateScrollerStyleForNewRecommendedScrollerStyle:(NSScrollerStyle)style;
+@end
+
+@interface NSScrollerImpPair : NSObject <NSScrollerImpPairDelegate>
+@property (assign) id<NSScrollerImpPairDelegate> delegate;
+@property NSScrollerStyle scrollerStyle;
+@property (retain) NSScrollerImp *verticalScrollerImp;
+@property (retain) NSScrollerImp *horizontalScrollerImp;
+- (void)flashScrollers;
+- (void)hideOverlayScrollers;
+- (void)beginScrollGesture;
+- (void)endScrollGesture;
+- (void)contentAreaDidResize;
+- (void)contentAreaScrolled;
+- (void)contentAreaScrolledInDirection:(NSPoint)direction;
+- (void)contentAreaWillDraw;
+- (void)beginLiveResize;
+- (void)endLiveResize;
+@end
+@implementation NSScrollerImpPair
+@end
 MM_EOF
 
     # ─── WebCoreStubs.cpp ───
