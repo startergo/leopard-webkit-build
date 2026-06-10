@@ -4437,20 +4437,18 @@ REQUIREMENTS
 - Safari 5.1.x installed
 README_EOF
 
-    # Create DMG (UDRW first, then convert to UDZO for 10.6 compatibility)
-    # Modern hdiutil creates UDZO images that 10.6 can't mount directly.
-    # Create as raw read-write first, then convert with compatible options.
+    # Create DMG using makehybrid for 10.6 compatibility.
+    # Modern hdiutil creates APFS/GPT images that 10.6 can't mount.
+    # makehybrid produces Apple partition scheme + HFS+ which works on 10.5+.
     info "  Creating disk image..."
-    local RAW_DMG="$BUILD_DIR/${DMG_NAME}_raw.dmg"
-    rm -f "$RAW_DMG"
-    hdiutil create -volname "WebKit Snow Leopard" \
-        -srcfolder "$DMG_STAGING" \
-        -ov -format UDRW \
-        "$RAW_DMG"
-    hdiutil convert "$RAW_DMG" \
+    local HYBRID_DMG="$BUILD_DIR/${DMG_NAME}_hybrid.dmg"
+    rm -f "$HYBRID_DMG" "$DMG_PATH"
+    hdiutil makehybrid -hfs -hfs-volume-name "WebKit Snow Leopard" \
+        -o "$HYBRID_DMG" "$DMG_STAGING"
+    hdiutil convert "$HYBRID_DMG" \
         -format UDZO -o "$DMG_PATH" \
         -imagekey zlib-level=9
-    rm -f "$RAW_DMG"
+    rm -f "$HYBRID_DMG"
 
     # Clean up staging
     rm -rf "$DMG_STAGING"
