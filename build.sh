@@ -4437,12 +4437,20 @@ REQUIREMENTS
 - Safari 5.1.x installed
 README_EOF
 
-    # Create DMG
+    # Create DMG (UDRW first, then convert to UDZO for 10.6 compatibility)
+    # Modern hdiutil creates UDZO images that 10.6 can't mount directly.
+    # Create as raw read-write first, then convert with compatible options.
     info "  Creating disk image..."
+    local RAW_DMG="$BUILD_DIR/${DMG_NAME}_raw.dmg"
+    rm -f "$RAW_DMG"
     hdiutil create -volname "WebKit Snow Leopard" \
         -srcfolder "$DMG_STAGING" \
-        -ov -format UDZO \
-        "$DMG_PATH"
+        -ov -format UDRW \
+        "$RAW_DMG"
+    hdiutil convert "$RAW_DMG" \
+        -format UDZO -o "$DMG_PATH" \
+        -imagekey zlib-level=9
+    rm -f "$RAW_DMG"
 
     # Clean up staging
     rm -rf "$DMG_STAGING"
@@ -4514,8 +4522,11 @@ main() {
         echo ""
     fi
 
-    # Phase 0: Prerequisites
-    phase0_prerequisites
+    if $PACKAGE_ONLY; then
+        info "Skipping phases 0-7 (--package-only)"
+    else
+        # Phase 0: Prerequisites
+        phase0_prerequisites
 
     # Phase 1: Dependencies
     phase1_icu
@@ -4549,9 +4560,7 @@ main() {
     # Phase 7: Verify
     phase7_verify
 
-    if $PACKAGE_ONLY; then
-        info "Skipping phases 0-7 (--package-only)"
-    fi
+    fi  # end PACKAGE_ONLY else block
 
     # Phase 8: Package into app bundle
     phase8_package
