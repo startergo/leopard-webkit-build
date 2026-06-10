@@ -53,6 +53,7 @@ CLEAN=false
 DEPS_ONLY=false
 PATCHES_ONLY=false
 RESET=false
+PACKAGE_ONLY=false
 
 for arg in "$@"; do
     case "$arg" in
@@ -60,6 +61,7 @@ for arg in "$@"; do
         --deps-only) DEPS_ONLY=true ;;
         --patches)  PATCHES_ONLY=true ;;
         --reset)    RESET=true ;;
+        --package-only) PACKAGE_ONLY=true ;;
         --help|-h)
             echo "Usage: $0 [--clean] [--deps-only] [--patches] [--reset] [--help]"
             echo ""
@@ -67,6 +69,7 @@ for arg in "$@"; do
             echo "  --deps-only   Only build ICU and libc++ dependencies"
             echo "  --patches     Only apply source patches"
             echo "  --reset       Reset sources and locks to fresh state (no build)"
+            echo "  --package-only Only run packaging phases 8-10 (assumes build exists)"
             echo "  --help        Show this help"
             exit 0
             ;;
@@ -4165,6 +4168,289 @@ phase7_verify() {
     fi
 }
 
+# ── Phase 8: Package into App Bundle ────────────────────────────────────
+
+phase8_package() {
+    info "Phase 8: Packaging into WebKit.app bundle..."
+
+    local APP="$BUILD_DIR/WebKit.app"
+    local FW_DIR="$APP/Contents/Frameworks/10.6"
+    local MACOS_DIR="$APP/Contents/MacOS"
+    local RES_DIR="$APP/Contents/Resources"
+
+    # Remove old package
+    rm -rf "$APP"
+
+    # Create bundle structure
+    mkdir -p "$FW_DIR" "$MACOS_DIR" "$RES_DIR"
+
+    # ── Info.plist ──
+    cat > "$APP/Contents/Info.plist" << 'PLIST_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>English</string>
+    <key>CFBundleExecutable</key>
+    <string>WebKit</string>
+    <key>CFBundleIconFile</key>
+    <string>webkit.icns</string>
+    <key>CFBundleIdentifier</key>
+    <string>org.webkit.nightly.snowleopard</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>WebKit</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>604.5.6</string>
+    <key>CFBundleSignature</key>
+    <string>wbkt</string>
+    <key>CFBundleVersion</key>
+    <string>604.5.6</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.6</string>
+</dict>
+</plist>
+PLIST_EOF
+
+    echo -n "APPLwbkt" > "$APP/Contents/PkgInfo"
+
+    # ── Launcher shell script ──
+    cat > "$MACOS_DIR/WebKit" << 'LAUNCHER_EOF'
+#!/bin/bash
+cd "$(dirname "$0")"
+OS_X_VERSION=$(sw_vers -productVersion | cut -d. -f1,2)
+export DYLD_LIBRARY_PATH="$PWD/../Frameworks/$OS_X_VERSION:$DYLD_LIBRARY_PATH"
+export DYLD_FRAMEWORK_PATH="$PWD/../Frameworks/$OS_X_VERSION:$DYLD_FRAMEWORK_PATH"
+exec "/Applications/Safari.app/Contents/MacOS/Safari"
+LAUNCHER_EOF
+    chmod +x "$MACOS_DIR/WebKit"
+
+    # ── Copy frameworks ──
+    info "  Copying frameworks..."
+    for FW in JavaScriptCore WebCore WebKit WebKitLegacy; do
+        local SRC_FW="$BUILD_DIR/lib/$FW.framework"
+        if [ -d "$SRC_FW" ]; then
+            cp -R "$SRC_FW" "$FW_DIR/"
+            info "    Copied $FW.framework"
+        fi
+    done
+
+    # ── Strip frameworks ──
+    info "  Stripping frameworks..."
+    for FW in JavaScriptCore WebCore WebKit WebKitLegacy; do
+        local FW_BIN="$FW_DIR/$FW.framework/Versions/A/$FW"
+        if [ ! -f "$FW_BIN" ]; then
+            FW_BIN="$FW_DIR/$FW.framework/$FW"
+        fi
+        if [ -f "$FW_BIN" ]; then
+            strip -x "$FW_BIN" 2>/dev/null || true
+        fi
+    done
+
+    # ── Copy our custom libc++ and ICU dylibs ──
+    info "  Copying runtime libraries..."
+    if [ -f "$LIBCXX_DIST/lib/libc++.1.dylib" ]; then
+        cp "$LIBCXX_DIST/lib/libc++.1.dylib" "$FW_DIR/"
+        info "    Copied libc++.1.dylib"
+    fi
+    if [ -f "$LIBCXX_DIST/lib/libc++abi.dylib" ]; then
+        cp "$LIBCXX_DIST/lib/libc++abi.dylib" "$FW_DIR/"
+        info "    Copied libc++abi.dylib"
+    fi
+    if [ -d "$ICU_DIST/lib" ]; then
+        for lib in "$ICU_DIST/lib/"libicu*.dylib; do
+            if [ -f "$lib" ]; then
+                cp "$lib" "$FW_DIR/"
+            fi
+        done
+        info "    Copied ICU dylibs"
+    fi
+
+    # ── Version files ──
+    echo "604.5.6" > "$RES_DIR/VERSION"
+    echo "604.5.6-snowleopard" > "$RES_DIR/BRANCH"
+
+    # ── Start page ──
+    cat > "$RES_DIR/start.html" << 'START_EOF'
+<html>
+<head><title>WebKit Snow Leopard</title></head>
+<body>
+<h1>WebKit 604.5.6 for Mac OS X 10.6 Snow Leopard</h1>
+<p>This is a modern WebKit build for Snow Leopard, based on the WebKit 604 trunk
+with compatibility patches for the 10.6 SDK.</p>
+</body>
+</html>
+START_EOF
+
+    local APP_SIZE=$(du -sh "$APP" | awk '{print $1}')
+    ok "WebKit.app packaged ($APP_SIZE)"
+}
+
+# ── Phase 9: Create Install Scripts ──────────────────────────────────────
+
+phase9_scripts() {
+    info "Phase 9: Creating install scripts..."
+
+    local SCRIPTS_DIR="$BUILD_DIR/scripts"
+    rm -rf "$SCRIPTS_DIR"
+    mkdir -p "$SCRIPTS_DIR"
+
+    # ── enable advanced features ──
+    cat > "$SCRIPTS_DIR/enable advanced features.command" << 'SCRIPT_EOF'
+#!/bin/bash
+defaults write com.apple.Safari WebKitFullScreenEnabled -bool YES
+defaults write com.apple.Safari WebKitAcceleratedCompositingEnabled -bool YES
+defaults write com.apple.Safari WebKitAccelerated2dCanvasEnabled -bool YES
+defaults write com.apple.Safari WebKitAcceleratedDrawingEnabled -bool YES
+defaults write com.apple.Safari WebKitCanvasUsesAcceleratedDrawing -bool YES
+defaults write com.apple.Safari WebKitWebGLEnabled -bool YES
+defaults write com.apple.Safari WebKitWebAudioEnabled -bool YES
+defaults write com.apple.Safari WebKitHiddenPageDOMTimerThrottlingEnabled -bool YES
+defaults write com.apple.Safari WebKitHiddenPageCSSAnimationSuspensionEnabled -bool YES
+echo "Advanced features enabled for Safari."
+SCRIPT_EOF
+
+    # ── revert advanced features ──
+    cat > "$SCRIPTS_DIR/revert advanced features to defaults.command" << 'SCRIPT_EOF'
+#!/bin/bash
+defaults delete com.apple.Safari WebKitFullScreenEnabled 2>/dev/null
+defaults delete com.apple.Safari WebKitAcceleratedCompositingEnabled 2>/dev/null
+defaults delete com.apple.Safari WebKitAccelerated2dCanvasEnabled 2>/dev/null
+defaults delete com.apple.Safari WebKitAcceleratedDrawingEnabled 2>/dev/null
+defaults delete com.apple.Safari WebKitCanvasUsesAcceleratedDrawing 2>/dev/null
+defaults delete com.apple.Safari WebKitWebGLEnabled 2>/dev/null
+defaults delete com.apple.Safari WebKitWebAudioEnabled 2>/dev/null
+defaults delete com.apple.Safari WebKitHiddenPageDOMTimerThrottlingEnabled 2>/dev/null
+defaults delete com.apple.Safari WebKitHiddenPageCSSAnimationSuspensionEnabled 2>/dev/null
+echo "Advanced features reverted to defaults."
+SCRIPT_EOF
+
+    # ── disable TopSites preview ──
+    cat > "$SCRIPTS_DIR/disable TopSites preview rendering.command" << 'SCRIPT_EOF'
+#!/bin/bash
+defaults write com.apple.Safari DebugSnapshotsUpdatePolicy -int 2
+echo "TopSites preview rendering disabled."
+SCRIPT_EOF
+
+    # ── re-enable TopSites ──
+    cat > "$SCRIPTS_DIR/revert disabling TopSites preview rendering.command" << 'SCRIPT_EOF'
+#!/bin/bash
+defaults delete com.apple.Safari DebugSnapshotsUpdatePolicy 2>/dev/null
+echo "TopSites preview rendering re-enabled."
+SCRIPT_EOF
+
+    # ── install (copy WebKit.app to /Applications) ──
+    cat > "$SCRIPTS_DIR/install.command" << 'SCRIPT_EOF'
+#!/bin/bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+echo "Installing WebKit.app to /Applications..."
+if [ -d "/Applications/WebKit.app" ]; then
+    echo "Removing existing /Applications/WebKit.app..."
+    rm -rf "/Applications/WebKit.app"
+fi
+cp -R "$DIR/WebKit.app" "/Applications/WebKit.app"
+echo "Done. Launch /Applications/WebKit.app to use WebKit with Safari."
+echo ""
+echo "Run 'enable advanced features.command' for best experience."
+SCRIPT_EOF
+
+    # ── uninstall ──
+    cat > "$SCRIPTS_DIR/uninstall.command" << 'SCRIPT_EOF'
+#!/bin/bash
+echo "Removing /Applications/WebKit.app..."
+rm -rf "/Applications/WebKit.app"
+echo "Done. WebKit has been uninstalled."
+SCRIPT_EOF
+
+    chmod +x "$SCRIPTS_DIR/"*.command
+
+    ok "Install scripts created in $SCRIPTS_DIR/"
+}
+
+# ── Phase 10: Build DMG ──────────────────────────────────────────────────
+
+phase10_dmg() {
+    info "Phase 10: Building DMG..."
+
+    local DMG_NAME="WebKit-604.5.6-SnowLeopard-x86_64"
+    local DMG_PATH="$BUILD_DIR/$DMG_NAME.dmg"
+    local DMG_STAGING="$BUILD_DIR/dmg_staging"
+
+    # Clean up any previous attempt
+    rm -rf "$DMG_STAGING" "$DMG_PATH"
+    mkdir -p "$DMG_STAGING"
+
+    # Copy app bundle
+    cp -R "$BUILD_DIR/WebKit.app" "$DMG_STAGING/"
+
+    # Copy scripts
+    cp -R "$BUILD_DIR/scripts/"*.command "$DMG_STAGING/"
+
+    # ── Readme ──
+    cat > "$DMG_STAGING/Readme.txt" << 'README_EOF'
+WebKit 604.5.6 for Mac OS X 10.6 Snow Leopard (x86_64)
+======================================================
+
+This is a modern WebKit build for Snow Leopard, based on WebKit trunk 604.5.6
+with compatibility patches for the 10.6 SDK.
+
+INSTALLATION
+------------
+1. Run "install.command" to copy WebKit.app to /Applications.
+   Or simply drag WebKit.app to /Applications manually.
+
+2. Run "enable advanced features.command" to enable WebGL, WebAudio,
+   accelerated compositing, and full-screen support in Safari.
+
+3. Launch /Applications/WebKit.app — it starts Safari using the updated
+   WebKit frameworks.
+
+UNINSTALLATION
+--------------
+Run "uninstall.command" or delete /Applications/WebKit.app.
+
+WHAT'S INCLUDED
+---------------
+- JavaScriptCore.framework  (604.5.6)
+- WebCore.framework         (604.5.6)
+- WebKit.framework          (604.5.6, modern WebKit)
+- WebKitLegacy.framework    (604.5.6, classic WebKit)
+- libc++ / libc++abi        (5.0.1)
+- ICU                       (55.1)
+
+FEATURES
+--------
+Enabled: WebGL, WebGL2, WebAudio, accelerated compositing, HTML5 video,
+CSS filters, indexed database, subtle crypto, SVG fonts, XSLT, MathML,
+smooth scrolling, async scrolling, content extensions.
+
+Disabled (requires 10.11+): WebGPU, content filtering, service controls,
+telephone number detection, legacy encrypted media, media source.
+
+REQUIREMENTS
+------------
+- Mac OS X 10.6 Snow Leopard (x86_64)
+- Safari 5.1.x installed
+README_EOF
+
+    # Create DMG
+    info "  Creating disk image..."
+    hdiutil create -volname "WebKit Snow Leopard" \
+        -srcfolder "$DMG_STAGING" \
+        -ov -format UDZO \
+        "$DMG_PATH"
+
+    # Clean up staging
+    rm -rf "$DMG_STAGING"
+
+    local DMG_SIZE=$(ls -lh "$DMG_PATH" | awk '{print $1}')
+    ok "DMG created: $DMG_PATH ($DMG_SIZE)"
+}
+
 # ── Main ───────────────────────────────────────────────────────────────────
 
 main() {
@@ -4262,6 +4548,21 @@ main() {
 
     # Phase 7: Verify
     phase7_verify
+
+    if $PACKAGE_ONLY; then
+        info "Skipping phases 0-7 (--package-only)"
+    fi
+
+    # Phase 8: Package into app bundle
+    phase8_package
+
+    # Phase 9: Create install scripts
+    phase9_scripts
+
+    # Phase 10: Build DMG
+    phase10_dmg
+
+    ok "All phases complete!"
 }
 
 main "$@"

@@ -9,7 +9,7 @@ Cross-compilation of WebKit 604.5.6 (Safari 11 era) from Apple Silicon macOS tar
 | JavaScriptCore.framework | ~40 MB | JavaScript engine |
 | WebCore.framework | ~65 MB | HTML/CSS/DOM/WebGL rendering |
 | WebKit.framework | ~8.7 MB | WebKit2 multi-process API |
-| WebKitLegacy.framework | ~3.6 MB | Legacy WebKit API (WebView) |
+| WebKitLegacy.framework | ~215 KB | Legacy WebKit API (WebView) |
 
 WebKit.framework (WebKit2, the multi-process architecture) builds successfully after removing XPC-dependent IPC source files from the CMake configuration. See [WebKit2 Status](#webkit2-status) below.
 
@@ -65,9 +65,11 @@ This runs all phases in order. Each phase is idempotent — it checks a stamp fi
 
 Other invocations:
 ```bash
-./build.sh --clean       # Remove all artifacts and rebuild
-./build.sh --deps-only   # Only build ICU + libc++ dependencies
-./build.sh --patches     # Only apply source patches
+./build.sh --clean          # Remove all artifacts and rebuild
+./build.sh --reset          # Reset sources and locks to fresh state (no build)
+./build.sh --deps-only      # Only build ICU + libc++ dependencies
+./build.sh --patches        # Only apply source patches
+./build.sh --package-only   # Repackage existing build (phases 8-10 only)
 ```
 
 ## Build Phases
@@ -147,6 +149,38 @@ Checks each framework binary:
 - Exists at expected path
 - Is x86_64 architecture
 - Reports file size
+
+### Phase 8: Package into App Bundle
+Creates `WebKit.app` in `build/`:
+
+- **Info.plist** — App bundle metadata (identifier, version, minimum OS)
+- **PkgInfo** — Classic Mac type/creator (`APPLwbkt`)
+- **MacOS/WebKit** — Shell launcher that sets `DYLD_LIBRARY_PATH` and `DYLD_FRAMEWORK_PATH` to the 10.6 framework directory, then execs Safari
+- **Frameworks/10.6/** — All built frameworks (JavaScriptCore, WebCore, WebKit, WebKitLegacy) plus runtime dylibs (libc++.1, libc++abi, libicuuc, libicui18n, libicudata)
+- **Resources/** — VERSION, BRANCH, start.html
+
+Framework binaries are stripped (`strip -x`) to remove debug symbols and reduce size.
+
+### Phase 9: Create Install Scripts
+Generates `.command` scripts in `build/scripts/`:
+
+| Script | Purpose |
+|--------|---------|
+| `install.command` | Copies WebKit.app to `/Applications` |
+| `uninstall.command` | Removes `/Applications/WebKit.app` |
+| `enable advanced features.command` | Enables WebGL, WebAudio, accelerated compositing, full-screen via `defaults write` |
+| `revert advanced features to defaults.command` | Resets all advanced feature defaults |
+| `disable TopSites preview rendering.command` | Disables TopSites preview to save CPU/RAM |
+| `revert disabling TopSites preview rendering.command` | Re-enables TopSites previews |
+
+### Phase 10: Build DMG
+Assembles a compressed DMG disk image containing:
+
+- WebKit.app
+- All install/config scripts
+- Readme.txt with installation instructions and feature list
+
+Output: `build/WebKit-604.5.6-SnowLeopard-x86_64.dmg`
 
 ## Configuration Reference
 

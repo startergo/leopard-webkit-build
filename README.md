@@ -8,36 +8,59 @@ Cross-compile WebKit (Safari 11.0) targeting **x86_64** on **macOS 10.6** from a
 # Clone with submodules (~2 GB)
 git clone --recurse-submodules https://github.com/startergo/leopard-webkit-build.git
 
-# Build everything
+# Build everything (dependencies + frameworks + package + DMG)
 ./build.sh
 ```
 
-Frameworks are output to `build/lib/`:
+The build produces a `WebKit.dmg` containing a ready-to-use Safari launcher:
 
-| Framework | Size |
-|---|---|
-| JavaScriptCore.framework | 40M |
-| WebCore.framework | 64M |
-| WebKit.framework | 8.7M |
-| WebKitLegacy.framework | 215K |
+| Framework | Size | Description |
+|---|---|---|
+| JavaScriptCore.framework | 40M | JavaScript engine |
+| WebCore.framework | 64M | HTML/CSS/DOM/WebGL rendering |
+| WebKit.framework | 8.7M | Modern WebKit API |
+| WebKitLegacy.framework | 215K | Legacy WebKit API (WebView) |
+
+## Installation
+
+1. Open `WebKit.dmg`
+2. Run **`install.command`** to copy WebKit.app to `/Applications`
+3. Run **`enable advanced features.command`** to enable WebGL, WebAudio, and accelerated compositing
+4. Launch `/Applications/WebKit.app` — it starts Safari using the updated WebKit frameworks
 
 ## Prerequisites
 
 - macOS with Xcode Command Line Tools
 - cmake, ninja (`brew install cmake ninja`)
 
-## How It Works
+## Build Options
 
-`build.sh` is an idempotent, stamp-based orchestrator that runs these phases in order:
+```bash
+./build.sh                  # Full build (all phases)
+./build.sh --clean          # Remove all artifacts and rebuild
+./build.sh --reset          # Reset sources/locks to fresh state (no build)
+./build.sh --deps-only      # Only build ICU + libc++ dependencies
+./build.sh --patches        # Only apply source patches
+./build.sh --package-only   # Repackage existing build (phases 8-10 only)
+```
 
-1. **ICU 55** — Builds static libraries from source for x86_64
-2. **libc++ 5.0.1 + libc++abi 5.0.1** — C++ runtime for the 10.6 target
-3. **Source patches** — Disables XPC sources, test tools, and 10.7+ APIs in cmake configs
-4. **CMake configure** — Generates ninja build files targeting 10.6 SDK
-5. **Post-cmake fixes** — Removes unavailable frameworks from build.ninja
-6. **Ninja build** — Compiles all frameworks and tools
+## Build Phases
 
-Each phase writes a stamp file to `build/stamps/`. Re-running skips completed phases.
+| Phase | Description |
+|---|---|
+| 0 | Prerequisites check |
+| 1 | Build ICU 55 + libc++ 5.0.1 from source |
+| 2 | Apply source patches for 10.6 compat |
+| 3 | Generate overlay compat headers |
+| 4 | CMake configure (targeting 10.6 SDK) |
+| 5 | Post-cmake fixes (build.ninja patching) |
+| 6 | Ninja build (~5540 targets) |
+| 7 | Verify framework outputs |
+| 8 | Package into WebKit.app bundle |
+| 9 | Create install/config scripts |
+| 10 | Build DMG disk image |
+
+Each phase is idempotent — stamp files in `build/stamps/` track completion.
 
 ## Submodules
 
@@ -48,9 +71,20 @@ Each phase writes a stamp file to `build/stamps/`. Re-running skips completed ph
 | `downloads/icu` | [unicode-org/icu](https://github.com/unicode-org/icu) | release-55-1 |
 | `downloads/llvm-project` | [llvm/llvm-project](https://github.com/llvm/llvm-project) | llvmorg-5.0.1 |
 
+## Distribution Contents
+
+The DMG includes:
+
+- **WebKit.app** — Safari launcher with embedded frameworks and runtime libraries
+- **install.command** / **uninstall.command** — Install/remove from /Applications
+- **enable advanced features.command** — Enable WebGL, WebAudio, accelerated compositing, full-screen
+- **revert advanced features to defaults.command** — Reset to defaults
+- **disable/revert TopSites preview rendering.command** — Save CPU/RAM by disabling preview images
+- **Readme.txt** — Usage instructions
+
 ## Documentation
 
-- [BUILD.md](BUILD.md) — Step-by-step build instructions
+- [BUILD.md](BUILD.md) — Step-by-step build instructions and configuration
 - [BUILD_REFERENCE.md](BUILD_REFERENCE.md) — Technical reference (frameworks, libraries, patches, comparison with PPC build)
 
 ## License

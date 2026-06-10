@@ -189,6 +189,56 @@ libedit, libicucore, libc++, libSystem
 
 ---
 
+## Packaging Output
+
+### WebKit.app Bundle Structure
+```
+WebKit.app/
+├── Contents/
+│   ├── Info.plist              # Bundle metadata (org.webkit.nightly.snowleopard)
+│   ├── PkgInfo                 # APPLwbkt
+│   ├── MacOS/
+│   │   └── WebKit              # Shell launcher → Safari + DYLD overrides
+│   ├── Frameworks/
+│   │   └── 10.6/
+│   │       ├── JavaScriptCore.framework/
+│   │       ├── WebCore.framework/
+│   │       ├── WebKit.framework/
+│   │       ├── WebKitLegacy.framework/
+│   │       ├── libc++.1.dylib
+│   │       ├── libc++abi.dylib
+│   │       ├── libicuuc.dylib
+│   │       ├── libicui18n.dylib
+│   │       └── libicudata.dylib
+│   └── Resources/
+│       ├── VERSION
+│       ├── BRANCH
+│       └── start.html
+```
+
+### DMG Contents
+```
+WebKit-604.5.6-SnowLeopard-x86_64.dmg
+├── WebKit.app/
+├── install.command
+├── uninstall.command
+├── enable advanced features.command
+├── revert advanced features to defaults.command
+├── disable TopSites preview rendering.command
+├── revert disabling TopSites preview rendering.command
+└── Readme.txt
+```
+
+### Launcher Behavior
+The `MacOS/WebKit` shell script:
+1. Detects OS version via `sw_vers` (e.g., `10.6`)
+2. Sets `DYLD_LIBRARY_PATH` and `DYLD_FRAMEWORK_PATH` to `Frameworks/10.6/`
+3. Execs `/Applications/Safari.app/Contents/MacOS/Safari`
+
+This causes Safari to load the custom WebKit frameworks instead of the system ones, providing modern web rendering on 10.6.
+
+---
+
 ## Build Patches Applied by build.sh
 
 All patches are applied programmatically by `build.sh` — **no direct source edits**. The build is fully reproducible from fresh source.
@@ -248,6 +298,10 @@ The Leopard PPC patch's build system *lists* these in MODULES and xcconfig files
 
 ### Extras in Our Build
 - WebKitLegacy.framework (PPC build is WebKit2-only)
+- WebKit.app Safari launcher bundle with DYLD override
+- Install/uninstall scripts
+- DMG disk image for distribution
+- enable/disable advanced features scripts
 - xdgmime (MIME detection — not in Leopard's module list)
 - gtest (test infrastructure)
 
