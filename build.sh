@@ -3713,6 +3713,7 @@ HEADER_EOF
  */
 
 #import <Foundation/Foundation.h>
+#import <QuartzCore/QuartzCore.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <dispatch/dispatch.h>
 
@@ -3807,6 +3808,12 @@ uintptr_t g_nativeCodePoison = 0;
 namespace JSC {
 void initializePoison() {}
 }
+
+// CABackdropLayer is 10.10+. Provide a minimal ObjC class stub.
+@interface CABackdropLayer : CALayer
+@end
+@implementation CABackdropLayer
+@end
 MM_EOF
 
     # ─── WebCoreStubs.cpp ───
