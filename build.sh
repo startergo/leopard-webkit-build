@@ -52,18 +52,21 @@ err()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 CLEAN=false
 DEPS_ONLY=false
 PATCHES_ONLY=false
+RESET=false
 
 for arg in "$@"; do
     case "$arg" in
         --clean)    CLEAN=true ;;
         --deps-only) DEPS_ONLY=true ;;
         --patches)  PATCHES_ONLY=true ;;
+        --reset)    RESET=true ;;
         --help|-h)
-            echo "Usage: $0 [--clean] [--deps-only] [--patches] [--help]"
+            echo "Usage: $0 [--clean] [--deps-only] [--patches] [--reset] [--help]"
             echo ""
             echo "  --clean       Remove all build artifacts and rebuild"
             echo "  --deps-only   Only build ICU and libc++ dependencies"
             echo "  --patches     Only apply source patches"
+            echo "  --reset       Reset sources and locks to fresh state (no build)"
             echo "  --help        Show this help"
             exit 0
             ;;
@@ -110,8 +113,10 @@ phase0_prerequisites() {
             SDK_DIR="$SDK_LINK"
         else
             err "Mac OS X 10.6 SDK not found!"
-            err "Run: git submodule update --init sdk/MacOSX-SDKs"
-            err "The SDK is provided via the phracker/MacOSX-SDKs submodule."
+            err "Either:"
+            err "  git submodule update --init sdk/MacOSX-SDKs"
+            err "Or clone manually:"
+            err "  git clone --depth 1 https://github.com/phracker/MacOSX-SDKs.git sdk/MacOSX-SDKs"
             exit 1
         fi
     fi
@@ -120,8 +125,10 @@ phase0_prerequisites() {
     # Check for WebKit source
     if [ ! -d "$SOURCE_DIR/Source" ]; then
         err "WebKit source not found at $SOURCE_DIR"
-        err "Clone with: git clone https://github.com/WebKit/WebKit.git source/webkit"
-        err "Then checkout the Safari 11 / WebKit 604 tag"
+        err "Either:"
+        err "  git submodule update --init source/webkit"
+        err "Or clone manually:"
+        err "  git clone --depth 1 -b Safari-604.5.6 https://github.com/WebKit/WebKit.git source/webkit"
         exit 1
     fi
     ok "WebKit source: $SOURCE_DIR"
@@ -129,17 +136,26 @@ phase0_prerequisites() {
     # Check for dependency sources
     if [ ! -d "$ICU_SRC/source" ] || [ ! -f "$ICU_SRC/source/configure" ]; then
         err "ICU 55 source not found at $ICU_SRC"
-        err "Run: git submodule update --init downloads/icu"
+        err "Either:"
+        err "  git submodule update --init downloads/icu"
+        err "Or clone manually:"
+        err "  git clone --depth 1 -b release-55-1 https://github.com/unicode-org/icu.git downloads/icu"
         exit 1
     fi
     if [ ! -d "$LIBCXX_SRC/include" ]; then
         err "libc++ 5.0.1 source not found at $LIBCXX_SRC"
-        err "Run: git submodule update --init downloads/llvm-project"
+        err "Either:"
+        err "  git submodule update --init downloads/llvm-project"
+        err "Or clone manually:"
+        err "  git clone --depth 1 -b release/5.x https://github.com/llvm/llvm-project.git downloads/llvm-project"
         exit 1
     fi
     if [ ! -d "$LIBCXXABI_SRC/include" ]; then
         err "libc++abi 5.0.1 source not found at $LIBCXXABI_SRC"
-        err "Run: git submodule update --init downloads/llvm-project"
+        err "Either:"
+        err "  git submodule update --init downloads/llvm-project"
+        err "Or clone manually:"
+        err "  git clone --depth 1 -b release/5.x https://github.com/llvm/llvm-project.git downloads/llvm-project"
         exit 1
     fi
 
@@ -306,6 +322,247 @@ phase2_patches() {
 
     local WK="$SOURCE_DIR/Source"
 
+    # ─── Pre-generate GraphicsLayerCA.cpp targeted patch script ───
+    # The bulk Leopard patch corrupts this file (11/16 hunks fail, orphan #endif).
+    # This Python script applies all 16 hunks' changes via regex on the clean source.
+    cat > /tmp/glca_patch.py << 'GLCA_PYEOF'
+import re, sys
+f = sys.argv[1]
+c = open(f).read()
+
+# 1. Add #define HAVE_MODERN_QUARTZCORE and wrap getValueFunctionNameForTransformOperation
+c = c.replace(
+    'static PlatformCAAnimation::ValueFunctionType getValueFunctionNameForTransformOperation',
+    '#define HAVE_MODERN_QUARTZCORE (!PLATFORM(MAC) || __MAC_OS_X_VERSION_MIN_REQUIRED > 1060)\n'
+    '\n#if HAVE_MODERN_QUARTZCORE\n'
+    'static PlatformCAAnimation::ValueFunctionType getValueFunctionNameForTransformOperation',
+    1)
+c = c.replace(
+    '    }\n}\n\nstatic ASCIILiteral propertyIdToString',
+    '    }\n}\n#endif\n\nstatic ASCIILiteral propertyIdToString',
+    1)
+
+# 2. supportsLayerType: Shape needs HAVE_MODERN_QUARTZCORE
+c = c.replace(
+    '    case Type::Shape:\n#if PLATFORM(COCOA)',
+    '    case Type::Shape:\n#if PLATFORM(COCOA) && HAVE_MODERN_QUARTZCORE',
+    1)
+
+# 3. supportsSubpixelAntialiasedLayerText: require 10.12+
+c = c.replace(
+    'bool GraphicsLayer::supportsSubpixelAntialiasedLayerText()\n{\n#if PLATFORM(MAC)\n    return true;',
+    'bool GraphicsLayer::supportsSubpixelAntialiasedLayerText()\n{\n#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200\n    return true;',
+    1)
+
+# 4. Constructor: add setContentsOrientation for !HAVE_MODERN_QUARTZCORE
+c = c.replace(
+    '    m_layer = createPlatformCALayer(platformLayerType, this);\n    noteLayerPropertyChanged(ContentsScaleChanged);',
+    '    m_layer = createPlatformCALayer(platformLayerType, this);\n'
+    '#if !HAVE_MODERN_QUARTZCORE\n'
+    '    setContentsOrientation(defaultContentsOrientation());\n'
+    '#endif\n'
+    '    noteLayerPropertyChanged(ContentsScaleChanged);',
+    1)
+
+# 5. setContentsToImage: add image downscaling for 10.5/10.6 (2046px limit)
+c = c.replace(
+    '        m_pendingContentsImage = m_uncorrectedContentsImage;\n\n        m_contentsLayerPurpose = ContentsLayerForImage;',
+    '        m_pendingContentsImage = m_uncorrectedContentsImage;\n'
+    '\n'
+    '#if PLATFORM(MAC) && (__MAC_OS_X_VERSION_MIN_REQUIRED == 1050)\n'
+    '        // Downscale the image if necessary; on 10.5 both width and height must not be greater than 2046\n'
+    '        size_t width = CGImageGetWidth(m_uncorrectedContentsImage.get());\n'
+    '        size_t height = CGImageGetHeight(m_uncorrectedContentsImage.get());\n'
+    '        if (width > 2046 || height > 2046) {\n'
+    '            float scale = 1.0f;\n'
+    '            if (width > 2046) {\n'
+    '                scale = 2046.0f / width;\n'
+    '            }\n'
+    '            if (height * scale > 2046.0f) {\n'
+    '                scale = 2046.0f / height;\n'
+    '            }\n'
+    '            width *= scale;\n'
+    '            height *= scale;\n'
+    '\n'
+    '            CGRect bounds = CGRectMake(0, 0, width, height);\n'
+    '            CGBitmapInfo bitmapInfo = CGImageGetBitmapInfo(m_uncorrectedContentsImage.get());\n'
+    '            switch (bitmapInfo & kCGBitmapAlphaInfoMask) {\n'
+    '                case kCGImageAlphaFirst:\n'
+    '                    bitmapInfo &= ~kCGImageAlphaFirst;\n'
+    '                    bitmapInfo |= kCGImageAlphaPremultipliedFirst;\n'
+    '                    break;\n'
+    '                case kCGImageAlphaLast:\n'
+    '                    bitmapInfo &= ~kCGImageAlphaLast;\n'
+    '                    bitmapInfo |= kCGImageAlphaPremultipliedLast;\n'
+    '                    break;\n'
+    '            }\n'
+    '            size_t bytesPerRow = CGImageGetBytesPerRow(m_uncorrectedContentsImage.get());\n'
+    '            auto bitmapData = adoptMallocPtr(static_cast<uint8_t*>(fastMalloc(bytesPerRow * bounds.size.height)));\n'
+    '            auto bitmapContext = adoptCF(CGBitmapContextCreate(bitmapData.get(), bounds.size.width, bounds.size.height,\n'
+    '                CGImageGetBitsPerComponent(m_uncorrectedContentsImage.get()),\n'
+    '                bytesPerRow,\n'
+    '                CGImageGetColorSpace(m_uncorrectedContentsImage.get()),\n'
+    '                bitmapInfo));\n'
+    '\n'
+    '            if (bitmapContext) {\n'
+    '                CGContextDrawImage(bitmapContext.get(), bounds, m_uncorrectedContentsImage.get());\n'
+    '                m_pendingContentsImage = adoptCF(CGBitmapContextCreateImage(bitmapContext.get()));\n'
+    '            }\n'
+    '        }\n'
+    '#endif\n'
+    '\n'
+    '        m_contentsLayerPurpose = ContentsLayerForImage;',
+    1)
+
+# 6. createTransformAnimationsFromKeyframes: add supportsValueFunction logic
+c = c.replace(
+    '    int listIndex = validateTransformOperations(valueList, hasBigRotation);\n'
+    '    const TransformOperations* operations = (listIndex >= 0) ? &static_cast<const TransformAnimationValue&>(valueList.at(listIndex)).value() : 0;\n'
+    '\n'
+    '    bool validMatrices = true;\n'
+    '\n'
+    '    // If function lists don\'t match we do a matrix animation, otherwise we do a component hardware animation.\n'
+    '    bool isMatrixAnimation = listIndex < 0;',
+    '    int listIndex = validateTransformOperations(valueList, hasBigRotation);\n'
+    '    const TransformOperations* operations = (listIndex >= 0) ? &static_cast<const TransformAnimationValue&>(valueList.at(listIndex)).value() : 0;\n'
+    '\n'
+    '#if HAVE_MODERN_QUARTZCORE\n'
+    '    bool supportsValueFunction = true;\n'
+    '#else\n'
+    '    bool supportsValueFunction = false;\n'
+    '#endif\n'
+    '    // We need to fall back to software animation if we don\'t have setValueFunction:, and\n'
+    '    // we would need to animate each incoming transform function separately. This is the\n'
+    '    // case if we have a rotation >= 180 or we have more than one transform function.\n'
+    '    if ((hasBigRotation || (operations && operations->size() > 1)) && !supportsValueFunction)\n'
+    '        return false;\n'
+    '\n'
+    '    bool validMatrices = true;\n'
+    '\n'
+    '    // If function lists don\'t match we do a matrix animation, otherwise we do a component hardware animation.\n'
+    '    // Also, we can\'t do component animation unless we have valueFunction, so we need to do matrix animation\n'
+    '    // if that\'s not true as well.\n'
+    '    bool isMatrixAnimation = listIndex < 0 || !supportsValueFunction;',
+    1)
+
+# 7. Change reverseAnimationList #if !PLATFORM(WIN) to also check >= 1070
+c = c.replace(
+    '#if !PLATFORM(WIN)\n'
+    '        // Old versions of Core Animation apply animations in reverse order',
+    '#if !PLATFORM(WIN) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070\n'
+    '        // Old versions of Core Animation apply animations in reverse order',
+    1)
+
+# 8. ASSERT(valuesOK) → ASSERT_UNUSED(valuesOK, valuesOK)
+c = c.replace(
+    '        ASSERT(valuesOK);\n\n        m_uncomittedAnimations',
+    '        ASSERT_UNUSED(valuesOK, valuesOK);\n\n        m_uncomittedAnimations',
+    1)
+
+# 9. Guard setValueFunction in basic animation with HAVE_MODERN_QUARTZCORE
+c = c.replace(
+    '    auto valueFunction = getValueFunctionNameForTransformOperation(transformOpType);\n'
+    '    if (valueFunction != PlatformCAAnimation::NoValueFunction)\n'
+    '        basicAnim->setValueFunction(valueFunction);\n'
+    '\n'
+    '    return true;\n'
+    '}',
+    '#if HAVE_MODERN_QUARTZCORE\n'
+    '    auto valueFunction = getValueFunctionNameForTransformOperation(transformOpType);\n'
+    '    if (valueFunction != PlatformCAAnimation::NoValueFunction)\n'
+    '        basicAnim->setValueFunction(valueFunction);\n'
+    '#endif\n'
+    '\n'
+    '    return true;\n'
+    '}',
+    1)
+
+# 10. Guard valueFunction in keyframe animation with HAVE_MODERN_QUARTZCORE
+c = c.replace(
+    '    keyframeAnim->setTimingFunctions(timingFunctions, !forwards);\n\n'
+    '    PlatformCAAnimation::ValueFunctionType valueFunction = getValueFunctionNameForTransformOperation(transformOpType);\n'
+    '    if (valueFunction != PlatformCAAnimation::NoValueFunction)\n'
+    '        keyframeAnim->setValueFunction(valueFunction);\n'
+    '\n'
+    '    return true;\n'
+    '}',
+    '    keyframeAnim->setTimingFunctions(timingFunctions, !forwards);\n\n'
+    '#if HAVE_MODERN_QUARTZCORE\n'
+    '    PlatformCAAnimation::ValueFunctionType valueFunction = getValueFunctionNameForTransformOperation(transformOpType);\n'
+    '    if (valueFunction != PlatformCAAnimation::NoValueFunction)\n'
+    '        keyframeAnim->setValueFunction(valueFunction);\n'
+    '#endif\n'
+    '\n'
+    '    return true;\n'
+    '}',
+    1)
+
+# 11. Modify defaultContentsOrientation() + add updateContentsTransform()
+c = c.replace(
+    'GraphicsLayer::CompositingCoordinatesOrientation GraphicsLayerCA::defaultContentsOrientation() const\n'
+    '{\n'
+    '    return CompositingCoordinatesTopDown;\n'
+    '}',
+    'GraphicsLayer::CompositingCoordinatesOrientation GraphicsLayerCA::defaultContentsOrientation() const\n'
+    '{\n'
+    '#if !HAVE_MODERN_QUARTZCORE\n'
+    '    // Older QuartzCore does not support -geometryFlipped, so we manually flip the root\n'
+    '    // layer geometry, and then flip the contents of each layer back so that the CTM for CG\n'
+    '    // is unflipped, allowing it to do the correct font auto-hinting.\n'
+    '    return CompositingCoordinatesBottomUp;\n'
+    '#else\n'
+    '    return CompositingCoordinatesTopDown;\n'
+    '#endif\n'
+    '}\n'
+    '\n'
+    'void GraphicsLayerCA::updateContentsTransform()\n'
+    '{\n'
+    '#if !HAVE_MODERN_QUARTZCORE\n'
+    '    if (contentsOrientation() == CompositingCoordinatesBottomUp) {\n'
+    '        CGAffineTransform contentsTransform = CGAffineTransformMakeScale(1, -1);\n'
+    '        contentsTransform = CGAffineTransformTranslate(contentsTransform, 0, -m_layer->bounds().size().height());\n'
+    '        m_layer->setContentsTransform(contentsTransform);\n'
+    '    }\n'
+    '#endif\n'
+    '}',
+    1)
+
+# 12. Modify updateOpacityOnLayer() for !HAVE_MODERN_QUARTZCORE
+c = c.replace(
+    'void GraphicsLayerCA::updateOpacityOnLayer()\n'
+    '{\n'
+    '    primaryLayer()->setOpacity(m_opacity);\n'
+    '\n'
+    '    if (LayerMap* layerCloneMap = primaryLayerClones()) {',
+    'void GraphicsLayerCA::updateOpacityOnLayer()\n'
+    '{\n'
+    '#if !HAVE_MODERN_QUARTZCORE\n'
+    '    // Distribute opacity either to our own layer or to our children. We pass in the\n'
+    '    // contribution from our parent(s).\n'
+    '    distributeOpacity(parent() ? parent()->accumulatedOpacity() : 1);\n'
+    '#else\n'
+    '    primaryLayer()->setOpacity(m_opacity);\n'
+    '\n'
+    '    if (LayerMap* layerCloneMap = primaryLayerClones()) {',
+    1)
+
+# Need to close the #else block. Find the closing of updateOpacityOnLayer and add #endif
+c = c.replace(
+    '    }\n'
+    '}\n'
+    '\n'
+    'void GraphicsLayerCA::setIsViewportConstrained',
+    '    }\n'
+    '#endif\n'
+    '}\n'
+    '\n'
+    'void GraphicsLayerCA::setIsViewportConstrained',
+    1)
+
+open(f, 'w').write(c)
+print("  GraphicsLayerCA.cpp: applied all Leopard changes via targeted script")
+GLCA_PYEOF
+
     # ─── Step 1: Leopard PowerPC reference patch (1379 files) ───
     # This is the bulk of the compatibility work — version guards, header fixes,
     # pragma changes, WebKitLegacy→WebKit include path updates, etc.
@@ -321,6 +578,142 @@ phase2_patches() {
             info "  Leopard patch: some hunks already applied (expected)"
         fi
         info "  Patch log: $(grep -c 'patching file' "$PATCH_LOG" 2>/dev/null || echo '0') files patched, $(grep -c 'FAILED\|skipping\|Reversed' "$PATCH_LOG" 2>/dev/null || echo '0') skipped/failed"
+
+        # ── Fix GraphicsLayerCA.cpp ──
+        # The bulk patch corrupts this file: 11/16 hunks fail, leaving orphan #endif.
+        # Detect imbalance, restore from git, apply all changes via targeted script.
+        local GLCA="$WK/WebCore/platform/graphics/ca/GraphicsLayerCA.cpp"
+        if [ -f "$GLCA" ]; then
+            local GLCA_IF=$(grep -cE '^\s*#\s*if\b' "$GLCA" 2>/dev/null || echo 0)
+            local GLCA_ENDIF=$(grep -cE '^\s*#\s*endif' "$GLCA" 2>/dev/null || echo 0)
+            if [ "$GLCA_ENDIF" -ne "$GLCA_IF" ]; then
+                info "  GraphicsLayerCA.cpp: #if/#endif imbalance ($GLCA_IF vs $GLCA_ENDIF), re-patching..."
+                cd "$SOURCE_DIR"
+                git checkout -- "Source/WebCore/platform/graphics/ca/GraphicsLayerCA.cpp" 2>/dev/null
+                rm -f "Source/WebCore/platform/graphics/ca/GraphicsLayerCA.cpp.rej"
+                cd "$PROJECT_ROOT"
+                python3 /tmp/glca_patch.py "$GLCA"
+            fi
+        fi
+
+        # ── Fix NSScrollerImpDetails.h ──
+        # Both hunks of the Leopard patch fail, duplicating #if guards.
+        # Restore to clean — the include fix in step 5 adds the needed header.
+        local NSIH="$WK/WebCore/platform/mac/NSScrollerImpDetails.h"
+        if [ -f "$NSIH" ]; then
+            local NSIH_IF=$(grep -cE '^\s*#\s*if(n?def)?\b' "$NSIH" 2>/dev/null || echo 0)
+            local NSIH_ENDIF=$(grep -cE '^\s*#\s*endif' "$NSIH" 2>/dev/null || echo 0)
+            if [ "$NSIH_ENDIF" -ne "$NSIH_IF" ]; then
+                info "  NSScrollerImpDetails.h: #if/#endif imbalance, restoring..."
+                cd "$SOURCE_DIR"
+                git checkout -- "Source/WebCore/platform/mac/NSScrollerImpDetails.h" 2>/dev/null
+                rm -f "Source/WebCore/platform/mac/NSScrollerImpDetails.h.rej"
+                cd "$PROJECT_ROOT"
+            fi
+        fi
+
+        # ── Fix SystemSleepListenerMac.mm ──
+        # The bulk patch duplicates the @interface WebSystemSleepObserver block.
+        # Restore to clean — the clean file compiles fine on 10.6 using
+        # NSOperationQueue/block observers (available since 10.6).
+        local SSLMM="$WK/WebCore/platform/mac/SystemSleepListenerMac.mm"
+        if [ -f "$SSLMM" ]; then
+            local SSLMM_IFACE=$(grep -cE '^\s*@interface\s+WebSystemSleepObserver' "$SSLMM" 2>/dev/null || echo 0)
+            if [ "$SSLMM_IFACE" -gt 1 ]; then
+                info "  SystemSleepListenerMac.mm: duplicate @interface ($SSLMM_IFACE copies), restoring..."
+                cd "$SOURCE_DIR"
+                git checkout -- "Source/WebCore/platform/mac/SystemSleepListenerMac.mm" 2>/dev/null
+                rm -f "Source/WebCore/platform/mac/SystemSleepListenerMac.mm.rej"
+                cd "$PROJECT_ROOT"
+            fi
+        fi
+
+        # Generate Python helper for deduplicating SOFT_LINK blocks
+        # ── Fix DNSCFNet.cpp + ProxyServerCFNet.cpp ──
+        # Leopard patch adds SOFT_LINK(CFNetwork, CFNetworkCopySystemProxySettings)
+        # guarded with <= 1060 to BOTH files, and duplicates the block within each file.
+        # The SOFT_LINK macros define the same symbols (CFNetworkLibrary,
+        # softLinkCFNetworkCopySystemProxySettings, initCFNetworkCopySystemProxySettings,
+        # CFNetworkCopySystemProxySettings) in both TUs — an ODR violation.
+        # Fix: (1) restore DNSCFNet.cpp from git (remove its SOFT_LINK block entirely),
+        # (2) deduplicate ProxyServerCFNet.cpp to keep only one SOFT_LINK block.
+        # DNSCFNet.cpp will use the CFNetworkCopySystemProxySettings symbol from
+        # ProxyServerCFNet.cpp at link time (both are in the same WebCore library).
+        local DNSCF="$WK/WebCore/platform/network/cf/DNSCFNet.cpp"
+        if [ -f "$DNSCF" ]; then
+            local DNSCF_SOFTLINK=$(grep -c 'SOFT_LINK(CFNetwork, CFNetworkCopySystemProxySettings' "$DNSCF" 2>/dev/null || echo 0)
+            if [ "$DNSCF_SOFTLINK" -ge 1 ]; then
+                info "  DNSCFNet.cpp: removing SOFT_LINK block (ODR — symbol provided by ProxyServerCFNet.cpp)"
+                cd "$SOURCE_DIR"
+                git checkout -- "Source/WebCore/platform/network/cf/DNSCFNet.cpp" 2>/dev/null
+                rm -f "Source/WebCore/platform/network/cf/DNSCFNet.cpp.rej"
+                cd "$PROJECT_ROOT"
+            fi
+        fi
+
+        local PSCF="$WK/WebCore/platform/network/cf/ProxyServerCFNet.cpp"
+        if [ -f "$PSCF" ]; then
+            local PSCF_SOFTLINK=$(grep -c 'SOFT_LINK(CFNetwork, CFNetworkCopySystemProxySettings' "$PSCF" 2>/dev/null || echo 0)
+            if [ "$PSCF_SOFTLINK" -gt 1 ]; then
+                info "  ProxyServerCFNet.cpp: deduplicating SOFT_LINK ($PSCF_SOFTLINK copies → 1)"
+                # The duplicated block looks like:
+                #   #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 1060
+                #   #include <wtf/SoftLinking.h>
+                #   <blank>
+                #   SOFT_LINK_FRAMEWORK_IN_UMBRELLA(CoreServices, CFNetwork)
+                #   #pragma GCC diagnostic push
+                #   #pragma GCC diagnostic ignored "-Wredundant-decls"
+                #   SOFT_LINK(CFNetwork, CFNetworkCopySystemProxySettings, CFDictionaryRef, (), ())
+                #   #pragma GCC diagnostic pop
+                #   #endif
+                # Remove the entire second block (from blank line before it through #endif).
+                # Use python for reliability with multi-line block detection.
+                python3 - "$PSCF" << "DEDUP_PY"
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    lines = f.readlines()
+# Find lines containing the SOFT_LINK call
+softlink_lines = [i for i, l in enumerate(lines) if "SOFT_LINK(CFNetwork, CFNetworkCopySystemProxySettings" in l]
+if len(softlink_lines) > 1:
+    # For each duplicate (all except first), remove the surrounding #if..#endif block.
+    # Walk backward from the SOFT_LINK line to find the #if, forward to find #endif.
+    to_remove = set()
+    for idx in softlink_lines[1:]:
+        start = idx
+        while start > 0 and "#if" not in lines[start]:
+            start -= 1
+        end = idx
+        while end < len(lines) and lines[end].strip() != "#endif":
+            end += 1
+        for i in range(start, end + 1):
+            to_remove.add(i)
+        # Also remove trailing blank line after #endif
+        if end + 1 < len(lines) and lines[end + 1].strip() == "":
+            to_remove.add(end + 1)
+    lines = [l for i, l in enumerate(lines) if i not in to_remove]
+    with open(path, "w") as f:
+        f.writelines(lines)
+    print(f"  Removed {len(to_remove)} lines from duplicate block(s)")
+DEDUP_PY
+                rm -f "Source/WebCore/platform/network/cf/ProxyServerCFNet.cpp.rej"
+            fi
+        fi
+
+        # ── Fix WebVideoFullscreenController.mm ──
+        # Leopard patch leaves unterminated conditional directive.
+        local WVFC="$WK/WebCore/platform/mac/WebVideoFullscreenController.mm"
+        if [ -f "$WVFC" ]; then
+            local WVFC_IF=$(grep -cE '^\s*#\s*if\b' "$WVFC" 2>/dev/null || echo 0)
+            local WVFC_ENDIF=$(grep -cE '^\s*#\s*endif' "$WVFC" 2>/dev/null || echo 0)
+            if [ "$WVFC_ENDIF" -ne "$WVFC_IF" ]; then
+                info "  WebVideoFullscreenController.mm: #if/#endif imbalance ($WVFC_IF vs $WVFC_ENDIF), restoring..."
+                cd "$SOURCE_DIR"
+                git checkout -- "Source/WebCore/platform/mac/WebVideoFullscreenController.mm" 2>/dev/null
+                rm -f "Source/WebCore/platform/mac/WebVideoFullscreenController.mm.rej"
+                cd "$PROJECT_ROOT"
+            fi
+        fi
     else
         warn "  Leopard patch not found at $LEOPARD_PATCH"
         warn "  Build may fail without it. See BUILD.md for details."
@@ -744,13 +1137,11 @@ SBEOF
         info "    Disabled USE_OPENTYPE_SANITIZER"
     fi
 
-    # ─── Platform.h — Disable USE_WOFF2 ───
-    # woff2 library not available. Enabled because target < 10.12.
-    info "  Disabling USE_WOFF2 in Platform.h..."
-    if [ -f "$PLATH" ] && grep -q '#define USE_WOFF2 1' "$PLATH" 2>/dev/null; then
-        sed -i '' 's|^#define USE_WOFF2 1|/* Disabled for 10.6 cross-build: woff2 not available */ /* #define USE_WOFF2 1 */|' "$PLATH"
-        info "    Disabled USE_WOFF2"
-    fi
+    # ─── Platform.h — Keep USE_WOFF2 enabled ───
+    # woff2+brotli are built by CMake as static libs (ThirdParty/brotli, ThirdParty/woff2).
+    # USE_WOFF2 is enabled when target < 10.12 (system woff2 not available). Our 10.6
+    # target needs it. WebCore links against woff2 for WOFF2 font decompression.
+    info "  USE_WOFF2: keeping enabled (brotli+woff2 built by CMake)"
 
     # ─── Platform.h — Disable HAVE_NETWORK_EXTENSION for 10.6 ───
     # NetworkExtension framework not available in 10.6 SDK. Guard with version check.
@@ -797,8 +1188,46 @@ SBEOF
     while IFS= read -r f; do
         sed -i '' 's/__MAC_OS_X_VERSION_MIN_REQUIRED == 1050/__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060/g' "$f"
         VER_GUARD_COUNT=$((VER_GUARD_COUNT + 1))
-    done < <(grep -rl '__MAC_OS_X_VERSION_MIN_REQUIRED == 1050' "$WK/" 2>/dev/null | grep -v '\.orig\|\.rej\|ForwardingHeaders\|ThirdParty\|/Gradient\.h$\|/Gradient\.cpp$')
+    done < <(grep -rl '__MAC_OS_X_VERSION_MIN_REQUIRED == 1050' "$WK/" 2>/dev/null | grep -v '\.orig\|\.rej\|ForwardingHeaders\|ThirdParty\|/Gradient\.h$\|/Gradient\.cpp$\|/dom/Document\.cpp$')
     info "    Patched $VER_GUARD_COUNT files"
+
+    # ─── Document.cpp — Dedup disableRangeMutation ───
+    # The Leopard patch adds disableRangeMutation (Leopard-only, == 1050).
+    # If the source tree is stale from a previous run, the function may appear twice.
+    local DC="$WK/WebCore/dom/Document.cpp"
+    if [ -f "$DC" ] && [ "$(grep -c 'static bool disableRangeMutation' "$DC" 2>/dev/null)" -gt 1 ]; then
+        info "    Deduplicating disableRangeMutation in Document.cpp"
+        awk '
+        /^static bool disableRangeMutation\(Page\* page\)/ { count++; if (count > 1) skip=1 }
+        skip && /^}$/ { skip=0; next }
+        skip { next }
+        { print }
+        ' "$DC" > "${DC}.tmp" && mv "${DC}.tmp" "$DC"
+    fi
+
+    # ─── Gradient.h/cpp — Restore == 1050 guards (prevent cached <= 1060) ───
+    # m_gradientFunction is only needed on 10.5 (Leopard PowerPC) where CGGradient
+    # lacked certain features. On 10.6 it's not needed and causes duplicate member
+    # errors if the submodule cache has a stale version with <= 1060 guards.
+    local GH="$WK/WebCore/platform/graphics/Gradient.h"
+    local GC="$WK/WebCore/platform/graphics/Gradient.cpp"
+    for gf in "$GH" "$GC"; do
+        if [ -f "$gf" ] && grep -q '__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060' "$gf" 2>/dev/null; then
+            # Only revert guards related to m_gradientFunction / CGFunction
+            sed -i '' '/m_gradientFunction\|CGFunction\|CGGradientGetFunction/s/__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060/__MAC_OS_X_VERSION_MIN_REQUIRED == 1050/g' "$gf"
+            info "    Restored == 1050 guards in $(basename "$gf") (m_gradientFunction not needed on 10.6)"
+        fi
+    done
+    # Also remove any duplicate m_gradientFunction declarations that may have been
+    # introduced by the Leopard patch applying on cached (already-patched) source.
+    if [ -f "$GH" ] && [ "$(grep -c 'm_gradientFunction;' "$GH" 2>/dev/null)" -gt 1 ]; then
+        info "    WARNING: Duplicate m_gradientFunction in Gradient.h — removing duplicates"
+        # Keep only the last declaration within an #if guard, remove any others
+        awk '
+        /CGFunctionRef m_gradientFunction;/ { count++; if (count > 1) next }
+        { print }
+        ' "$GH" > "${GH}.tmp" && mv "${GH}.tmp" "$GH"
+    fi
 
     # ─── NSScrollerImp — Lower version guards from >= 1070 to >= 1060 ───
     # NSScrollerImp overlay scrollbars were introduced in 10.7 but the SPI header
@@ -907,7 +1336,13 @@ typedef NSInteger NSScrollerKnobStyle;' "$NSISPIF"
     info "  Patching NSScrollerImpDetails.h (add SPI include)..."
     local NSIDH="$WK/WebCore/platform/mac/NSScrollerImpDetails.h"
     if [ -f "$NSIDH" ] && ! grep -q 'NSScrollerImpSPI' "$NSIDH" 2>/dev/null; then
-        sed -i '' 's/#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060/#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060\n\n#include "NSScrollerImpSPI.h"/' "$NSIDH"
+        if grep -q '#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060' "$NSIDH" 2>/dev/null; then
+            # Patched file — add include after the version guard
+            sed -i '' 's/#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060/#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1060\n\n#include "NSScrollerImpSPI.h"/' "$NSIDH"
+        else
+            # Clean file (restored from git) — add include before namespace WebCore
+            sed -i '' 's/^namespace WebCore {/#include "NSScrollerImpSPI.h"\n\nnamespace WebCore {/' "$NSIDH"
+        fi
         info "    Added NSScrollerImpSPI.h include"
     fi
 
@@ -919,6 +1354,18 @@ typedef NSInteger NSScrollerKnobStyle;' "$NSISPIF"
     if [ -f "$SBTMM" ] && grep -q '__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060' "$SBTMM" 2>/dev/null; then
         sed -i '' 's/__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060/__MAC_OS_X_VERSION_MIN_REQUIRED <= 1050/g' "$SBTMM"
         info "    Changed NSScrollerImp stub guard to <= 1050"
+    fi
+
+    # ─── WebCoreSystemInterface.h — Speech synthesis declarations behind >= 1070 ───
+    # wkSpeechSynthesisGetVoiceIdentifiers et al. are guarded with >= 1070 but
+    # PlatformSpeechSynthesizerMac.mm uses them unconditionally when SPEECH_SYNTHESIS
+    # is enabled. The .mm definitions are unguarded, so lower the guard to >= 1060.
+    info "  Patching WebCoreSystemInterface.h (speech synthesis guard)..."
+    local WCSIH="$WK/WebCore/platform/mac/WebCoreSystemInterface.h"
+    if [ -f "$WCSIH" ] && grep -q 'wkSpeechSynthesisGetVoiceIdentifiers' "$WCSIH" 2>/dev/null; then
+        # Only change the >= 1070 guard on the line immediately before wkSpeechSynthesisGetVoiceIdentifiers
+        awk '/wkSpeechSynthesisGetVoiceIdentifiers/{sub(/>= 1070/,">= 1060",prev)} {print prev; prev=$0} END{print prev}' "$WCSIH" > "$WCSIH.tmp" && mv "$WCSIH.tmp" "$WCSIH"
+        info "    Lowered speech synthesis guard to >= 1060"
     fi
 
     # ─── NSScrollerImpSPI.h — #undef macro versions before enum block ───
@@ -1126,6 +1573,13 @@ void ScrollingTreeFrameScrollingNodeMac::scrollToOffsetWithoutAnimation(const Fl
     if [ -f "$WVIMM" ] && grep -q 'convertRectToBacking' "$WVIMM" 2>/dev/null; then
         sed -i '' 's/NSRectToCGRect(\[window convertRectToBacking:croppedImageRect\])/NSRectToCGRect(croppedImageRect)/' "$WVIMM"
         info "    Replaced convertRectToBacking: with direct NSRect (10.6 compat)"
+    fi
+
+    # ─── WebViewImpl.mm — Fix NSViewNoInstrinsicMetric typo ───
+    # The Leopard patch introduces a typo: NSViewNoInstrinsicMetric (missing 'n').
+    # Our compat header defines NSViewNoIntrinsicMetric (correctly spelled).
+    if [ -f "$WVIMM" ]; then
+        sed -i '' 's/NSViewNoInstrinsicMetric/NSViewNoIntrinsicMetric/g' "$WVIMM"
     fi
 
     # ─── Fix const ObjC casts from Leopard patch (all source files) ───
@@ -1935,7 +2389,10 @@ DIFF_EOF
         "$SOURCE_DIR/Source/WebKit/UIProcess/mac/PageClientImpl.mm" \
         "$SOURCE_DIR/Source/WebKit/UIProcess/mac/WKFullScreenWindowController.mm" \
         "$SOURCE_DIR/Source/WebKit/UIProcess/mac/TiledCoreAnimationDrawingAreaProxy.mm" \
-        "$SOURCE_DIR/Source/WebKit/UIProcess/mac/ViewSnapshotStore.mm"; do
+        "$SOURCE_DIR/Source/WebKit/UIProcess/mac/ViewSnapshotStore.mm" \
+        "$SOURCE_DIR/Source/WebKit/UIProcess/API/Cocoa/APIWebsiteDataStoreCocoa.mm" \
+        "$SOURCE_DIR/Source/WebKit/UIProcess/API/Cocoa/APIContentRuleListStoreCocoa.mm" \
+        "$SOURCE_DIR/Source/WebKit/PluginProcess/mac/PluginProcessMac.mm"; do
         if [ -f "$f" ] && ! grep -q 'AppKit10_7Compat' "$f" 2>/dev/null; then
             # Insert after the first #import line
             sed -i '' '1,/^#import/{/^#import/a\
@@ -1944,6 +2401,42 @@ DIFF_EOF
             info "  Added AppKit10_7Compat.h import to $(basename "$f")"
         fi
     done
+
+    # ── Create woff2 include wrappers ──
+    # The Leopard patch renames woff2_dec.h → include/woff2/decode.h etc.
+    # but git patch can't do renames, so the directory never gets created.
+    # Create wrapper headers that include the originals.
+    local WOFF2_INC="$WK/ThirdParty/woff2/include/woff2"
+    if [ ! -f "$WOFF2_INC/decode.h" ]; then
+        info "  Creating woff2 include wrappers..."
+        mkdir -p "$WOFF2_INC"
+        cat > "$WOFF2_INC/decode.h" << 'WOFF2DECODE'
+#ifndef WOFF2_WOFF2_DEC_H_
+#define WOFF2_WOFF2_DEC_H_
+#include <stddef.h>
+#include <inttypes.h>
+#include "../../src/woff2_out.h"
+namespace woff2 {
+size_t ComputeWOFF2FinalSize(const uint8_t *data, size_t length);
+bool ConvertWOFF2ToTTF(uint8_t *result, size_t result_length, const uint8_t *data, size_t length);
+bool ConvertWOFF2ToTTF(const uint8_t *data, size_t length, WOFF2Out* out);
+} // namespace woff2
+#endif
+WOFF2DECODE
+        cat > "$WOFF2_INC/output.h" << 'WOFF2OUTPUT'
+#ifndef WOFF2_WOFF2_OUT_H_
+#define WOFF2_WOFF2_OUT_H_
+#include "../../src/woff2_out.h"
+#endif
+WOFF2OUTPUT
+        cat > "$WOFF2_INC/encode.h" << 'WOFF2ENCODE'
+#ifndef WOFF2_WOFF2_ENC_H_
+#define WOFF2_WOFF2_ENC_H_
+#include "../../src/woff2_enc.h"
+#endif
+WOFF2ENCODE
+        info "    Created decode.h, output.h, encode.h wrappers"
+    fi
 
     # ── Version-guard code that can't be stubbed ──
 
@@ -2648,6 +3141,10 @@ xpc_object_t xpc_dictionary_get_value(xpc_object_t xdict, const char *key);
 @interface NSURL (SnowLeopardFileURLCompat)
 @property (nonatomic, readonly) BOOL fileURL;
 @end
+
+@interface NSFileManager (SnowLeopardCompat)
+- (BOOL)createDirectoryAtURL:(NSURL *)url withIntermediateDirectories:(BOOL)createIntermediates attributes:(NSDictionary *)attributes error:(NSError **)error;
+@end
 #endif /* __OBJC__ */
 
 #ifdef __OBJC__
@@ -3045,6 +3542,10 @@ HEADER_EOF
 @property (nonatomic, readonly) CGColorRef CGColor;
 @end
 
+@interface NSFileManager (WebKit10_7Compat)
+- (BOOL)createDirectoryAtURL:(NSURL *)url withIntermediateDirectories:(BOOL)createIntermediates attributes:(NSDictionary *)attributes error:(NSError **)error;
+@end
+
 #endif /* __MAC_OS_X_VERSION_MAX_ALLOWED < 1070 */
 
 #endif /* APPKIT10_7_COMPAT_H */
@@ -3208,8 +3709,17 @@ HEADER_EOF
  * sdk_stubs.mm - Missing symbols for MacOSX 10.6 SDK (ObjC++ linkage).
  */
 
+#import <Foundation/Foundation.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <dispatch/dispatch.h>
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 1070
+@implementation NSFileManager (WebKit10_7Compat)
+- (BOOL)createDirectoryAtURL:(NSURL *)url withIntermediateDirectories:(BOOL)createIntermediates attributes:(NSDictionary *)attributes error:(NSError **)error {
+    return [self createDirectoryAtPath:[url path] withIntermediateDirectories:createIntermediates attributes:attributes error:error];
+}
+@end
+#endif
 #include <objc/objc.h>
 #include <stdlib.h>
 
@@ -3378,8 +3888,9 @@ phase4_cmake() {
     COMMON_FLAGS="$COMMON_FLAGS -DOS_OBJECT_USE_OBJC=0"
     COMMON_FLAGS="$COMMON_FLAGS -DNS_NONATOMIC_IOSONLY=nonatomic"
     COMMON_FLAGS="$COMMON_FLAGS $FW_FLAGS"
+    COMMON_FLAGS="$COMMON_FLAGS -I$SOURCE_DIR/Source/ThirdParty/woff2/include"
 
-    local CXX_FLAGS="$COMMON_FLAGS -std=gnu++14"
+    local CXX_FLAGS="$COMMON_FLAGS -std=gnu++14 -Wno-nontrivial-memcall"
 
     # Linker flags
     local LINKER_FLAGS="-target $ARCH-apple-macos10.6"
@@ -3568,30 +4079,36 @@ phase6_build() {
     local BUILD_LOG="$BUILD_DIR/ninja-build.log"
     rm -f "$BUILD_LOG"
 
-    # Run ninja, capture full output to log.
-    # Use a temp file for the exit code since PIPESTATUS is fragile.
-    # NOTE: We do NOT pipe through grep — ninja suppresses subcommand stderr
-    # when piped, hiding the actual error (e.g. Ruby script failures).
+    # Run ninja, capture full output to log, show filtered progress on terminal.
+    # Use a temp file for the exit code since PIPESTATUS is fragile in pipelines.
     local RC_FILE="$BUILD_DIR/ninja-rc"
     rm -f "$RC_FILE"
     set +e
-    ninja -j"$JOBS" 2>&1 | tee "$BUILD_LOG"
+    ninja -j"$JOBS" 2>&1 | tee "$BUILD_LOG" | grep --line-buffered -E '^\[|error:|fatal error:|FAILED:|ld: |Linking|ninja: build stopped' || true
     local NINJA_RC=${PIPESTATUS[0]:-1}
     set -e
 
     if [ "$NINJA_RC" -ne 0 ]; then
         err "Ninja build failed (exit code $NINJA_RC)"
-        err "--- Last 80 lines of build log ---"
-        tail -80 "$BUILD_LOG"
+        # Extract actual errors, not the warning spam
+        local ERROR_LINES
+        ERROR_LINES=$(grep -E 'FAILED:|error:|fatal error:|ld:|Undefined symbol|duplicate symbol|linker command failed|cannot find' "$BUILD_LOG" 2>/dev/null | grep -v 'note: *in instantiation\|note: *explicitly cast' | head -60)
+        if [ -n "$ERROR_LINES" ]; then
+            err "--- Build errors ---"
+            echo "$ERROR_LINES"
+        else
+            err "--- Last 30 lines of build log ---"
+            tail -30 "$BUILD_LOG"
+        fi
         exit 1
     fi
 
-    local FAIL_COUNT=$(grep -c 'error:' "$BUILD_LOG" 2>/dev/null || true)
+    local FAIL_COUNT=$(grep -cE ' error:|fatal error:|FAILED:' "$BUILD_LOG" 2>/dev/null || true)
     FAIL_COUNT="${FAIL_COUNT:-0}"
     FAIL_COUNT=$(echo "$FAIL_COUNT" | tr -d '[:space:]')
     if [ "${FAIL_COUNT:-0}" -gt 0 ]; then
         err "Build completed with $FAIL_COUNT errors"
-        tail -30 "$BUILD_LOG"
+        grep -E 'FAILED:| error:|fatal error:' "$BUILD_LOG" 2>/dev/null | grep -v 'note: *in instantiation\|note: *explicitly cast' | head -40
         exit 1
     else
         ok "Build complete"
@@ -3651,6 +4168,42 @@ phase7_verify() {
 # ── Main ───────────────────────────────────────────────────────────────────
 
 main() {
+
+    if $RESET; then
+        echo "========================================================"
+        echo "  Resetting to fresh state..."
+        echo "========================================================"
+        echo ""
+        info "Removing git locks..."
+        find "$PROJECT_ROOT" -name "*.lock" -path "*/.git/*" -delete 2>/dev/null || true
+        ok "Git locks cleared"
+
+        info "Removing build artifacts..."
+        rm -rf "$PROJECT_ROOT/build" "$PROJECT_ROOT/dist"
+        ok "Build artifacts removed"
+
+        info "Restoring source trees to clean state..."
+        for git_dir in "$PROJECT_ROOT/source/webkit" "$PROJECT_ROOT/downloads/icu" "$PROJECT_ROOT/downloads/llvm-project" "$PROJECT_ROOT/downloads/patches-604"; do
+            if [ -e "$git_dir/.git" ]; then
+                info "  Resetting $(basename "$git_dir")..."
+                cd "$git_dir"
+                git checkout -- . 2>/dev/null || true
+                git clean -fd 2>/dev/null || true
+            fi
+        done
+        if [ -e "$PROJECT_ROOT/sdk/MacOSX-SDKs/.git" ]; then
+            info "  Resetting MacOSX-SDKs..."
+            cd "$PROJECT_ROOT/sdk/MacOSX-SDKs"
+            git checkout -- . 2>/dev/null || true
+            git clean -fd 2>/dev/null || true
+        fi
+        cd "$PROJECT_ROOT"
+        ok "Source trees restored"
+        echo ""
+        ok "Reset complete. Run ./build.sh --clean to rebuild from scratch."
+        exit 0
+    fi
+
     echo "========================================================"
     echo "  WebKit 604 for Mac OS X 10.6 Snow Leopard — Build"
     echo "  Cross-compiling: $(uname -m) → x86_64"
@@ -3661,10 +4214,14 @@ main() {
         info "Cleaning all build artifacts..."
         rm -rf "$BUILD_DIR" "$DIST_DIR"
         mkdir -p "$BUILD_DIR" "$STAMP_DIR" "$DIST_DIR"
-        # Restore source tree to clean state so patches re-apply cleanly
+        # Restore source tree to clean state so patches re-apply cleanly.
+        # git checkout restores tracked files; git clean removes untracked
+        # debris (.orig, .rej, files created by failed patches).
         if [ -d "$SOURCE_DIR/.git" ]; then
             info "  Restoring source tree to clean state..."
-            cd "$SOURCE_DIR" && git checkout -- . 2>/dev/null || true
+            cd "$SOURCE_DIR"
+            git checkout -- . 2>/dev/null || true
+            git clean -fd -- Source/ 2>/dev/null || true
             cd "$PROJECT_ROOT"
         fi
         info "Clean complete. Rebuilding from scratch."
