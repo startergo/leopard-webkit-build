@@ -3768,6 +3768,22 @@ void xpc_connection_set_event_handler(void *conn, void (^handler)(xpc_object_t))
 void xpc_connection_resume(void *conn) { (void)conn; }
 void xpc_connection_cancel(void *conn) { (void)conn; }
 void xpc_connection_send_message(void *conn, xpc_object_t msg) { (void)conn; (void)msg; }
+void xpc_connection_send_message_with_reply(void *conn, xpc_object_t msg, dispatch_queue_t queue, void (^handler)(xpc_object_t)) {
+    (void)conn; (void)msg; (void)queue; if (handler) handler(NULL);
+}
+void *xpc_connection_create(const char *name, dispatch_queue_t targetq) {
+    (void)name; (void)targetq; return NULL;
+}
+void xpc_connection_set_bootstrap(void *conn, xpc_object_t bootstrap) { (void)conn; (void)bootstrap; }
+void xpc_connection_set_oneshot_instance(void *conn, uint64_t inst) { (void)conn; (void)inst; }
+pid_t xpc_connection_get_pid(void *conn) { (void)conn; return 0; }
+void xpc_connection_get_audit_token(void *conn, audit_token_t *token) { (void)conn; (void)token; }
+void xpc_connection_kill(void *conn, int signo) { (void)conn; (void)signo; }
+xpc_object_t xpc_array_create(const xpc_object_t *objects, size_t count) { (void)objects; (void)count; return NULL; }
+void xpc_array_set_string(xpc_object_t arr, size_t idx, const char *str) { (void)arr; (void)idx; (void)str; }
+void xpc_dictionary_set_string(xpc_object_t dict, const char *key, const char *str) { (void)dict; (void)key; (void)str; }
+void xpc_dictionary_set_fd(xpc_object_t dict, const char *key, int fd) { (void)dict; (void)key; (void)fd; }
+void xpc_dictionary_set_mach_send(xpc_object_t dict, const char *key, mach_port_t port) { (void)dict; (void)key; (void)port; }
 
 } /* extern "C" */
 
@@ -3775,6 +3791,29 @@ void xpc_connection_send_message(void *conn, xpc_object_t msg) { (void)conn; (vo
 int sandbox_check(pid_t pid, const char *operation, enum sandbox_filter_type type, ...) {
     (void)pid; (void)operation; (void)type; return 0;
 }
+
+// Sandbox extension constants (10.7+, from libWebKitSystemInterface)
+const char *APP_SANDBOX_READ = "com.apple.app-sandbox.read";
+const char *APP_SANDBOX_READ_WRITE = "com.apple.app-sandbox.read-write";
+
+// Additional sandbox functions referenced by WebKit
+int sandbox_check_by_audit_token(audit_token_t token, const char *operation, enum sandbox_filter_type type, ...) {
+    (void)token; (void)operation; (void)type; return 0;
+}
+int sandbox_container_path_for_pid(pid_t pid, char *buffer, size_t bufsize) {
+    (void)pid; (void)buffer; (void)bufsize; return -1;
+}
+int sandbox_init_with_parameters(const char *profile, uint64_t flags, const char *const parameters[], char **errorbuf) {
+    (void)profile; (void)flags; (void)parameters; if (errorbuf) *errorbuf = NULL; return 0;
+}
+int sandbox_extension_consume(const char *extension_token) { (void)extension_token; return -1; }
+char *sandbox_extension_issue_file(const char *extension_class, const char *path, int flags, int *error) {
+    (void)extension_class; (void)path; (void)flags; if (error) *error = 0; return NULL;
+}
+char *sandbox_extension_issue_generic(const char *extension_class, int flags, int *error) {
+    (void)extension_class; (void)flags; if (error) *error = 0; return NULL;
+}
+void sandbox_extension_release(char *extension_token) { (void)extension_token; }
 
 struct _xpc_connection_s;
 struct dispatch_queue_s;
