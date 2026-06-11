@@ -3859,8 +3859,8 @@ typedef NSInteger NSScrollerStyle;
 - (void)scrollerImpPair:(id)pair updateScrollerStyleForNewRecommendedScrollerStyle:(NSScrollerStyle)style;
 @end
 
-@interface NSScrollerImpPair : NSObject <NSScrollerImpPairDelegate>
-@property (assign) id<NSScrollerImpPairDelegate> delegate;
+@interface NSScrollerImpPair : NSObject
+@property (assign) id delegate;
 @property NSScrollerStyle scrollerStyle;
 @property (retain) NSScrollerImp *verticalScrollerImp;
 @property (retain) NSScrollerImp *horizontalScrollerImp;
@@ -3872,8 +3872,6 @@ typedef NSInteger NSScrollerStyle;
 - (void)contentAreaScrolled;
 - (void)contentAreaScrolledInDirection:(NSPoint)direction;
 - (void)contentAreaWillDraw;
-- (void)beginLiveResize;
-- (void)endLiveResize;
 @end
 @implementation NSScrollerImpPair
 @end
