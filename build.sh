@@ -3832,7 +3832,7 @@ void initializePoison() {}
 // ScrollAnimatorMac.mm uses them for overlay scrollbar animation.
 typedef NSInteger NSScrollerStyle;
 
-@interface NSScrollerImp : NSResponder
+@interface NSScrollerImp : NSObject
 @property (assign) id delegate;
 @property CGFloat knobAlpha;
 @property CGFloat trackAlpha;
