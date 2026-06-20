@@ -1,0 +1,202 @@
+From 10.6 runtime crash-fix series (CTFontDrawGlyphs CG fallback, CTLine NULL guard,
+ CALayer/NSMenu version gates, WebDOMOperations ObjC DOM bridge)
+Subject: [PATCH] Fix 10.6 runtime crashes: fonts, complex text, async drawing, DOM bridge
+
+diff --git a/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm b/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm
+index 82d76d6b2..5b715adb7 100644
+--- a/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm
++++ b/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm
+@@ -690,14 +690,26 @@ void PlatformCALayerCocoa::setMasksToBounds(bool value)
+ 
+ bool PlatformCALayerCocoa::acceleratesDrawing() const
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
+     return [m_layer drawsAsynchronously];
++#else
++    // -[CALayer drawsAsynchronously] is a 10.8+ SPI; absent on 10.6.
++    return false;
++#endif
+ }
+ 
+ void PlatformCALayerCocoa::setAcceleratesDrawing(bool acceleratesDrawing)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
+     BEGIN_BLOCK_OBJC_EXCEPTIONS
+     [m_layer setDrawsAsynchronously:acceleratesDrawing];
+     END_BLOCK_OBJC_EXCEPTIONS
++#else
++    // -[CALayer setDrawsAsynchronously:] is a 10.8+ SPI; on 10.6 CALayer does not
++    // respond to it, so sending it raises "unrecognized selector" and terminates
++    // the app. Async/accelerated layer drawing is simply unavailable on 10.6.
++    UNUSED_PARAM(acceleratesDrawing);
++#endif
+ }
+ 
+ bool PlatformCALayerCocoa::wantsDeepColorBackingStore() const
+@@ -883,15 +895,26 @@ void PlatformCALayerCocoa::setTimeOffset(CFTimeInterval value)
+ 
+ float PlatformCALayerCocoa::contentsScale() const
+ {
++#if PLATFORM(IOS) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     return [m_layer contentsScale];
++#else
++    // CALayer.contentsScale is 10.7+; on 10.6 the layer's backing store is always
++    // at a 1.0 scale (no Retina), so report the effective scale as 1.0.
++    return 1.0f;
++#endif
+ }
+ 
+ void PlatformCALayerCocoa::setContentsScale(float value)
+ {
+     BEGIN_BLOCK_OBJC_EXCEPTIONS
++#if PLATFORM(IOS) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     [m_layer setContentsScale:value];
+ #if PLATFORM(IOS)
+     [m_layer setRasterizationScale:value];
++#endif
++#else
++    // CALayer.contentsScale is 10.7+ — no-op on 10.6 (always 1.0).
++    UNUSED_PARAM(value);
+ #endif
+     END_BLOCK_OBJC_EXCEPTIONS
+ }
+diff --git a/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm b/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm
+index 29d30e443..1f27ed9a7 100644
+--- a/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm
++++ b/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm
+@@ -163,8 +163,27 @@ static void showGlyphsWithAdvances(const FloatPoint& point, const Font& font, CG
+         }
+         CTFontDrawGlyphs(platformData.ctFont(), glyphs, positions.data(), count, context);
+     } else {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
++        // CTFontDrawGlyphs is a 10.7+ API (absent from the 10.6 CoreText headers).
++        // It is exported on 10.6 but undocumented there, and — critically — does not
++        // honor the per-glyph positions the way 10.7+ does: WebKit pre-transforms
++        // those positions with the *inverse* text matrix expecting 10.7+'s
++        // CTFontDrawGlyphs to re-apply it. On 10.6 that double-handling is lost, so
++        // the positions come out wrong and the flipped text matrix is ignored,
++        // producing mangled, vertically-mirrored glyphs. Fall back to the classic
++        // CoreGraphics glyph path, which honors CGContextSetTextPosition + the text
++        // matrix (hence the flip) correctly on every macOS back to 10.0. Both the
++        // simple and complex code paths route through this function, so this fixes
++        // all text rendering.
++        RetainPtr<CGFontRef> cgFont = adoptCF(CTFontCopyGraphicsFont(platformData.ctFont(), nullptr));
++        CGContextSetFont(context, cgFont.get());
++        CGContextSetFontSize(context, platformData.size());
++        CGContextShowGlyphsWithAdvances(context, glyphs, advances, count);
++        CGContextSetFont(context, nullptr);
++#else
+         fillVectorWithHorizontalGlyphPositions(positions, context, advances, count);
+         CTFontDrawGlyphs(platformData.ctFont(), glyphs, positions.data(), count, context);
++#endif
+     }
+ }
+ 
+diff --git a/Source/WebCore/platform/graphics/mac/ComplexTextControllerCoreText.mm b/Source/WebCore/platform/graphics/mac/ComplexTextControllerCoreText.mm
+index e8b3c74a2..803c8cac3 100644
+--- a/Source/WebCore/platform/graphics/mac/ComplexTextControllerCoreText.mm
++++ b/Source/WebCore/platform/graphics/mac/ComplexTextControllerCoreText.mm
+@@ -234,7 +234,10 @@ void ComplexTextController::collectComplexTextRunsForCharacters(const UChar* cp,
+ 
+     CFArrayRef runArray = CTLineGetGlyphRuns(line.get());
+ 
+-    CFIndex runCount = CFArrayGetCount(runArray);
++    // On 10.6 CoreText, CTLineGetGlyphRuns can return NULL where modern CoreText
++    // returns an empty array; CFArrayGetCount(NULL) then faults (KERN_INVALID_ADDRESS
++    // at 0x0). Treat NULL as zero runs so layout of the line simply yields no glyphs.
++    CFIndex runCount = runArray ? CFArrayGetCount(runArray) : 0;
+ 
+     for (CFIndex r = 0; r < runCount; r++) {
+         CTRunRef ctRun = static_cast<CTRunRef>(CFArrayGetValueAtIndex(runArray, m_run.ltr() ? r : runCount - 1 - r));
+diff --git a/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm b/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
+index 36b49e092..dfa3c84f6 100644
+--- a/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
++++ b/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
+@@ -177,6 +177,7 @@ static int clickCountForEvent(NSEvent *event)
+ 
+ static PlatformWheelEventPhase momentumPhaseForEvent(NSEvent *event)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     uint32_t phase = PlatformWheelEventPhaseNone;
+ 
+     if ([event momentumPhase] & NSEventPhaseBegan)
+@@ -191,11 +192,18 @@ static PlatformWheelEventPhase momentumPhaseForEvent(NSEvent *event)
+         phase |= PlatformWheelEventPhaseCancelled;
+ 
+     return static_cast<PlatformWheelEventPhase>(phase);
++#else
++    // NSEvent -momentumPhase / NSEventPhase are 10.7+; 10.6 scroll events carry no
++    // momentum phase.
++    UNUSED_PARAM(event);
++    return PlatformWheelEventPhaseNone;
++#endif
+ }
+ 
+ static PlatformWheelEventPhase phaseForEvent(NSEvent *event)
+ {
+-    uint32_t phase = PlatformWheelEventPhaseNone; 
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    uint32_t phase = PlatformWheelEventPhaseNone;
+     if ([event phase] & NSEventPhaseBegan)
+         phase |= PlatformWheelEventPhaseBegan;
+     if ([event phase] & NSEventPhaseStationary)
+@@ -210,6 +218,11 @@ static PlatformWheelEventPhase phaseForEvent(NSEvent *event)
+         phase |= PlatformWheelEventPhaseMayBegin;
+ 
+     return static_cast<PlatformWheelEventPhase>(phase);
++#else
++    // NSEvent -phase / NSEventPhase are 10.7+; 10.6 scroll events carry no phase.
++    UNUSED_PARAM(event);
++    return PlatformWheelEventPhaseNone;
++#endif
+ }
+ 
+ static inline String textFromEvent(NSEvent* event)
+@@ -679,17 +692,27 @@ static inline OptionSet<PlatformEvent::Modifier> modifiersForEvent(NSEvent *even
+ 
+ static int typeForEvent(NSEvent *event)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+     return static_cast<int>([NSMenu menuTypeForEvent:event]);
++#else
++    // +[NSMenu menuTypeForEvent:] is a modern AppKit SPI (returns NSMenuType);
++    // absent on 10.6, where sending it raises "unrecognized selector". 0 = none.
++    UNUSED_PARAM(event);
++    return 0;
++#endif
+ }
+ 
+ void getWheelEventDeltas(NSEvent *event, float& deltaX, float& deltaY, BOOL& continuous)
+ {
+     ASSERT(event);
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     if (event.hasPreciseScrollingDeltas) {
+         deltaX = event.scrollingDeltaX;
+         deltaY = event.scrollingDeltaY;
+         continuous = YES;
+-    } else {
++    } else
++#endif
++    {
+         deltaX = event.deltaX;
+         deltaY = event.deltaY;
+         continuous = NO;
+diff --git a/Source/WebKitLegacy/PlatformMac.cmake b/Source/WebKitLegacy/PlatformMac.cmake
+--- a/Source/WebKitLegacy/PlatformMac.cmake
++++ b/Source/WebKitLegacy/PlatformMac.cmake
+@@ -62,6 +62,7 @@
+     mac/DOM/DOMDocumentFragment.mm
+     mac/DOM/DOMDocumentType.mm
+     mac/DOM/DOMElement.mm
++    mac/DOM/DOMEntity.mm
+     mac/DOM/DOMEntityReference.mm
+     mac/DOM/DOMEvent.mm
+     mac/DOM/DOMEvents.mm
+@@ -163,6 +164,7 @@
+     mac/DOM/ExceptionHandlers.mm
+     mac/DOM/ObjCEventListener.mm
+     mac/DOM/ObjCNodeFilterCondition.mm
++    mac/DOM/WebDOMOperations.mm
+ 
+     mac/DefaultDelegates/WebDefaultContextMenuDelegate.mm
+     mac/DefaultDelegates/WebDefaultEditingDelegate.m

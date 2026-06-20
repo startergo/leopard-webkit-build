@@ -1,0 +1,48 @@
+diff --git a/Source/JavaScriptCore/API/JSContext.h b/Source/JavaScriptCore/API/JSContext.h
+index 194e352bf..58defcc63 100644
+--- a/Source/JavaScriptCore/API/JSContext.h
++++ b/Source/JavaScriptCore/API/JSContext.h
+@@ -39,6 +39,7 @@
+  JavaScript execution takes place within a context, and all JavaScript values
+  are tied to a context.
+ */
++__attribute__((visibility("default")))
+ NS_CLASS_AVAILABLE(10_9, 7_0)
+ @interface JSContext : NSObject
+ 
+diff --git a/Source/JavaScriptCore/API/JSManagedValue.h b/Source/JavaScriptCore/API/JSManagedValue.h
+index 01073fad9..00be9c1c1 100644
+--- a/Source/JavaScriptCore/API/JSManagedValue.h
++++ b/Source/JavaScriptCore/API/JSManagedValue.h
+@@ -48,6 +48,7 @@ The primary use for a JSManagedValue is to store a JSValue in an Objective-C
+ or Swift object that is exported to JavaScript. It is incorrect to store a JSValue
+ in an object that is exported to JavaScript, since doing so creates a retain cycle.
+ */ 
++__attribute__((visibility("default")))
+ NS_CLASS_AVAILABLE(10_9, 7_0)
+ @interface JSManagedValue : NSObject
+ 
+diff --git a/Source/JavaScriptCore/API/JSValue.h b/Source/JavaScriptCore/API/JSValue.h
+index 1410dd74a..753c27183 100644
+--- a/Source/JavaScriptCore/API/JSValue.h
++++ b/Source/JavaScriptCore/API/JSValue.h
+@@ -44,6 +44,7 @@
+  JSValue to a method or property of a JSValue or JSContext originating from a
+  different JSVirtualMachine. Doing so will raise an Objective-C exception.
+ */
++__attribute__((visibility("default")))
+ NS_CLASS_AVAILABLE(10_9, 7_0)
+ @interface JSValue : NSObject
+ 
+diff --git a/Source/JavaScriptCore/API/JSVirtualMachine.h b/Source/JavaScriptCore/API/JSVirtualMachine.h
+index ccf9264d5..6ec50f222 100644
+--- a/Source/JavaScriptCore/API/JSVirtualMachine.h
++++ b/Source/JavaScriptCore/API/JSVirtualMachine.h
+@@ -34,6 +34,7 @@
+  virtual machine, with concurrent JavaScript execution supported by allocating
+  separate instances of JSVirtualMachine.
+ */
++__attribute__((visibility("default")))
+ NS_CLASS_AVAILABLE(10_9, 7_0)
+ @interface JSVirtualMachine : NSObject
+ 

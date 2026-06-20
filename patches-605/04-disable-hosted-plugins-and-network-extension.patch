@@ -1,0 +1,140 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: 605-build <build@local>
+Date: 605-build
+Subject: [PATCH 04/04] Disable out-of-process (Hosted) Netscape plugin host and
+ NetworkExtension for the 10.6 SDK
+
+The WebKitLegacy/mac/Plugins/Hosted/ tree implements the out-of-process
+Netscape plugin host (WebKitPluginHost XPC service).  It cannot build against
+the MacOSX 10.6 SDK:
+
+  * the .defs files drive a `mig` custom command whose generated C targets XPC
+    mach IPC unavailable on 10.6;
+  * the runtime depends on private frameworks (WebKitPluginHost, etc.) that
+    ship only with 10.7+.
+
+Accordingly:
+
+  1. WTF/wtf/Platform.h — set USE_PLUGIN_HOST_PROCESS to 0 for the 10.6 build.
+     Every `#if USE(PLUGIN_HOST_PROCESS)` caller (in WebNetscapePluginPackage.mm,
+     WebFrameLoaderClient.mm, WebChromeClient.mm and the Hosted/ sources
+     themselves) then compiles out, leaving no dangling references.
+  2. WTF/wtf/Platform.h — gate HAVE_NETWORK_EXTENSION behind
+     __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070.  The NetworkExtension framework
+     is absent from the 10.6 SDK; leaving it defined makes
+     platform/cocoa/NetworkExtensionContentFilter.mm emit unavailable
+     NEFilterSource SPI.  (CONTENT_FILTERING is also turned off in patch 01;
+     this is the matching Platform.h guard.)
+  3. WebKitLegacy/PlatformMac.cmake — drop the `mac/Plugins/Hosted` include
+     directory, the 13 Hosted/ source-list entries, and the `file(COPY .defs)`,
+     two `add_custom_command(mig ...)` blocks and the `list(APPEND ... *.c)`
+     that wired the MIG-generated sources in.
+
+In-process Netscape plugins (ENABLE_NETSCAPE_PLUGIN_API, still ON) continue to
+work; only the sandboxed OOP host is unavailable, matching the stock 10.6 OS.
+
+Applies on top of safari-605.2.8.1-branch @ 638989847.
+---
+ Source/WTF/wtf/Platform.h                  |  9 +++-
+ Source/WebKitLegacy/PlatformMac.cmake      | 50 ----------------------
+ 2 files changed, 8 insertions(+), 51 deletions(-)
+
+diff --git a/Source/WTF/wtf/Platform.h b/Source/WTF/wtf/Platform.h
+index 7fb8ecbed..0ab91b11c 100644
+--- a/Source/WTF/wtf/Platform.h
++++ b/Source/WTF/wtf/Platform.h
+@@ -584,8 +584,15 @@
+ #define HAVE_SEC_KEYCHAIN 1
+
+ #if CPU(X86_64)
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+ #define HAVE_NETWORK_EXTENSION 1
+-#define USE_PLUGIN_HOST_PROCESS 1
++#endif
++/* 10.6 build: the out-of-process (Hosted) Netscape plugin host needs XPC +
++   private frameworks absent from the MacOSX 10.6 SDK.  The Hosted plugin
++   sources are also excluded from the WebKitLegacy build (see the 605 patch on
++   PlatformMac.cmake); forcing this to 0 makes every USE(PLUGIN_HOST_PROCESS)
++   caller compile out so there are no dangling symbol references. */
++#define USE_PLUGIN_HOST_PROCESS 0
+ #endif
+
+ /* OS X defines a series of platform macros for debugging. */
+diff --git a/Source/WebKitLegacy/PlatformMac.cmake b/Source/WebKitLegacy/PlatformMac.cmake
+index 0cbe38fcb..e5d0c2a1d 100644
+--- a/Source/WebKitLegacy/PlatformMac.cmake
++++ b/Source/WebKitLegacy/PlatformMac.cmake
+@@ -18,7 +18,6 @@ list(APPEND WebKitLegacy_SYSTEM_INCLUDE_DIRECTORIES
+     mac/Misc
+     mac/Panels
+     mac/Plugins
+-    mac/Plugins/Hosted
+     mac/Storage
+     mac/WebCoreSupport
+     mac/WebInspector
+@@ -226,20 +225,6 @@ list(APPEND WebKitLegacy_SOURCES
+     mac/Plugins/WebPluginRequest.m
+     mac/Plugins/npapi.mm
+
+-    mac/Plugins/Hosted/HostedNetscapePluginStream.mm
+-    mac/Plugins/Hosted/NetscapePluginHostManager.mm
+-    mac/Plugins/Hosted/NetscapePluginHostProxy.mm
+-    mac/Plugins/Hosted/NetscapePluginInstanceProxy.mm
+-    mac/Plugins/Hosted/ProxyInstance.mm
+-    mac/Plugins/Hosted/ProxyRuntimeObject.mm
+-    mac/Plugins/Hosted/WebHostedNetscapePluginView.mm
+-    mac/Plugins/Hosted/WebKitPluginAgent.defs
+-    mac/Plugins/Hosted/WebKitPluginAgentReply.defs
+-    mac/Plugins/Hosted/WebKitPluginClient.defs
+-    mac/Plugins/Hosted/WebKitPluginHost.defs
+-    mac/Plugins/Hosted/WebKitPluginHostTypes.defs
+-    mac/Plugins/Hosted/WebTextInputWindowController.m
+-
+     mac/Storage/WebDatabaseManager.mm
+     mac/Storage/WebDatabaseManagerClient.mm
+     mac/Storage/WebDatabaseProvider.mm
+@@ -402,41 +387,6 @@ foreach (_file ${WebKitLegacy_SOURCES})
+     endif ()
+ endforeach ()
+
+-file(COPY
+-    mac/Plugins/Hosted/WebKitPluginAgent.defs
+-    mac/Plugins/Hosted/WebKitPluginAgentReply.defs
+-    mac/Plugins/Hosted/WebKitPluginClient.defs
+-    mac/Plugins/Hosted/WebKitPluginHost.defs
+-    mac/Plugins/Hosted/WebKitPluginHostTypes.defs
+-    mac/Plugins/Hosted/WebKitPluginHostTypes.h
+-DESTINATION ${DERIVED_SOURCES_WEBKITLEGACY_DIR})
+-
+-add_custom_command(
+-    OUTPUT
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentReplyServer.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentReplyUser.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentServer.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentUser.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginHostServer.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginHostUser.c
+-    DEPENDS mac/Plugins/Hosted/WebKitPluginAgent.defs mac/Plugins/Hosted/WebKitPluginHost.defs
+-    WORKING_DIRECTORY ${DERIVED_SOURCES_WEBKITLEGACY_DIR}
+-    COMMAND mig -I.. WebKitPluginAgent.defs WebKitPluginAgentReply.defs WebKitPluginHost.defs
+-    VERBATIM)
+-add_custom_command(
+-    OUTPUT
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginClientServer.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginClientUser.c
+-    DEPENDS mac/Plugins/Hosted/WebKitPluginClient.defs
+-    WORKING_DIRECTORY ${DERIVED_SOURCES_WEBKITLEGACY_DIR}
+-    COMMAND mig -I.. -sheader WebKitPluginClientServer.h WebKitPluginClient.defs
+-    VERBATIM)
+-list(APPEND WebKitLegacy_SOURCES
+-    ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentUser.c
+-    ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginClientServer.c
+-    ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginHostUser.c
+-)
+-
+ WEBKIT_CREATE_FORWARDING_HEADERS(WebKitLegacy DIRECTORIES ${WebKitLegacy_FORWARDING_HEADERS_DIRECTORIES} FILES ${WebKitLegacy_FORWARDING_HEADERS_FILES})
+
+ # FIXME: Forwarding headers should be copies of actual headers.
+--
+2.605.0
+

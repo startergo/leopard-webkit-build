@@ -1208,29 +1208,22 @@ SBEOF
         ' "$DC" > "${DC}.tmp" && mv "${DC}.tmp" "$DC"
     fi
 
-    # ─── Gradient.h/cpp — Restore == 1050 guards (prevent cached <= 1060) ───
-    # m_gradientFunction is only needed on 10.5 (Leopard PowerPC) where CGGradient
-    # lacked certain features. On 10.6 it's not needed and causes duplicate member
-    # errors if the submodule cache has a stale version with <= 1060 guards.
+    # ─── Gradient.h/cpp — Restore clean 604 versions (no m_gradientFunction) ───
+    # The Leopard patch adds m_gradientFunction/CGGradientGetFunction, a private SPI
+    # not available in 10.6 CG. Calling CGFunctionRelease on garbage crashes.
+    # The clean 604 source doesn't have m_gradientFunction, so just restore from git.
     local GH="$WK/WebCore/platform/graphics/Gradient.h"
-    local GC="$WK/WebCore/platform/graphics/Gradient.cpp"
-    for gf in "$GH" "$GC"; do
-        if [ -f "$gf" ] && grep -q '__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060' "$gf" 2>/dev/null; then
-            # Only revert guards related to m_gradientFunction / CGFunction
-            sed -i '' '/m_gradientFunction\|CGFunction\|CGGradientGetFunction/s/__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060/__MAC_OS_X_VERSION_MIN_REQUIRED == 1050/g' "$gf"
-            info "    Restored == 1050 guards in $(basename "$gf") (m_gradientFunction not needed on 10.6)"
+    local GCG="$WK/WebCore/platform/graphics/cg/GradientCG.cpp"
+    for gf in "$GH" "$GCG"; do
+        [ -f "$gf" ] || continue
+        if grep -q 'm_gradientFunction\|CGGradientGetFunction' "$gf" 2>/dev/null; then
+            cd "$SOURCE_DIR"
+            git checkout -- "${gf#$SOURCE_DIR/}" 2>/dev/null
+            rm -f "${gf}.rej" 2>/dev/null
+            cd "$PROJECT_ROOT"
+            info "    Restored clean 604 $(basename "$gf") (removed m_gradientFunction)"
         fi
     done
-    # Also remove any duplicate m_gradientFunction declarations that may have been
-    # introduced by the Leopard patch applying on cached (already-patched) source.
-    if [ -f "$GH" ] && [ "$(grep -c 'm_gradientFunction;' "$GH" 2>/dev/null)" -gt 1 ]; then
-        info "    WARNING: Duplicate m_gradientFunction in Gradient.h — removing duplicates"
-        # Keep only the last declaration within an #if guard, remove any others
-        awk '
-        /CGFunctionRef m_gradientFunction;/ { count++; if (count > 1) next }
-        { print }
-        ' "$GH" > "${GH}.tmp" && mv "${GH}.tmp" "$GH"
-    fi
 
     # ─── NSScrollerImp — Lower version guards from >= 1070 to >= 1060 ───
     # NSScrollerImp overlay scrollbars were introduced in 10.7 but the SPI header
@@ -1409,6 +1402,49 @@ typedef NSInteger NSScrollerKnobStyle;' "$NSISPIF"
     if [ -f "$AHLM" ] && grep -q '__MAC_OS_X_VERSION_MIN_REQUIRED >= 1060' "$AHLM" 2>/dev/null; then
         sed -i '' 's/__MAC_OS_X_VERSION_MIN_REQUIRED >= 1060/__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070/g' "$AHLM"
         info "    Changed CoreAudio guards to >= 1070"
+
+
+    # ── AudioHardwareListenerMac.cpp — Remove duplicate proc-based definitions ──
+    # The broad sweep creates duplicate WebAudioObjectPropertyListener definitions
+    # (three copies). Remove the proc-based copies and add an unconditional stub
+    # since the header still declares it.
+    info "  Patching AudioHardwareListenerMac (remove duplicate definitions)..."
+    local AHLM2="$WK/WebCore/platform/audio/mac/AudioHardwareListenerMac.cpp"
+    if [ -f "$AHLM2" ] && grep -c "AudioHardwareListenerMac::WebAudioObjectPropertyListener" "$AHLM2" 2>/dev/null | head -1 | grep -q "^[2-9]"; then
+        python3 - "$AHLM2" << 'DEDUP_AUDIO_PY'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    lines = f.readlines()
+# Remove all blocks: #if <= 1060 ... WebAudioObjectPropertyListener definition ... #endif
+result = []
+i = 0
+while i < len(lines):
+    if "<= 1060" in lines[i] and i+3 < len(lines):
+        j = i + 1
+        has_listener = False
+        while j < len(lines) and lines[j].strip() != "#endif":
+            if "WebAudioObjectPropertyListener" in lines[j] and "AudioHardwareListenerMac::" in lines[j]:
+                has_listener = True
+            j += 1
+        if has_listener:
+            i = j + 1
+            continue
+    result.append(lines[i])
+    i += 1
+# Check if we already have the unconditional stub
+has_stub = any("WebCore::AudioHardwareListenerMac::WebAudioObjectPropertyListener" in l for l in result)
+if not has_stub:
+    result.append("\n")
+    result.append("// Stub for WebAudioObjectPropertyListener — declared in header, not used on 10.6\n")
+    result.append("OSStatus WebCore::AudioHardwareListenerMac::WebAudioObjectPropertyListener(AudioObjectID, UInt32, const AudioObjectPropertyAddress[], void*) {\n")
+    result.append("    return noErr;\n")
+    result.append("}\n")
+with open(path, "w") as f:
+    f.writelines(result)
+DEDUP_AUDIO_PY
+        info "    Deduplicated AudioHardwareListenerMac definitions"
+    fi
     fi
 
     # ─── ScrollingTreeFrameScrollingNodeMac — Add missing pure virtual method ───
@@ -1463,16 +1499,21 @@ void ScrollingTreeFrameScrollingNodeMac::scrollToOffsetWithoutAnimation(const Fl
         info "    Fixed CAAudioStreamDescription.cpp enum guard"
     fi
 
-    # ─── AudioHardwareListenerMac.cpp — Fix enum redefinition ───
-    # The Leopard PPC patch adds kAudioDeviceTransportTypeUnknown/BuiltIn enums
-    # guarded with <= 1060, but the 10.6 SDK's AudioHardware.h already defines them.
-    # Change the enum guard to == 1050 only (leave the function guard at <= 1060).
-    info "  Patching AudioHardwareListenerMac.cpp (enum redefinition)..."
+    # ─── AudioHardwareListenerMac.cpp — Remove duplicate enum blocks ───
+    # The Leopard patch adds kAudioDeviceTransportTypeUnknown/BuiltIn enum blocks
+    # but the broad sweep duplicates them (two identical blocks). The 10.6 SDK
+    # already defines these. Remove ALL enum blocks with these constants.
     local AHLM="$WK/WebCore/platform/audio/mac/AudioHardwareListenerMac.cpp"
-    if [ -f "$AHLM" ]; then
-        # Only change the FIRST <= 1060 (the enum guard), not the function guard (macOS sed lacks 0,range)
-        awk '!done && /__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060/ { sub(/__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060/, "__MAC_OS_X_VERSION_MIN_REQUIRED == 1050"); done=1 } {print}' "$AHLM" > "${AHLM}.tmp" && mv "${AHLM}.tmp" "$AHLM"
-        info "    Fixed AudioHardwareListenerMac.cpp enum guard"
+    if [ -f "$AHLM" ] && grep -q 'kAudioDeviceTransportTypeUnknown' "$AHLM" 2>/dev/null; then
+        python3 -c "
+import re
+f = '$AHLM'
+c = open(f).read()
+# Remove ALL #if blocks containing kAudioDeviceTransportTypeUnknown enum definitions
+c = re.sub(r'#if[^\n]*\nenum\s*\{[^}]*kAudioDeviceTransportTypeUnknown[^}]*\};\s*\n#endif\s*\n*', '', c)
+open(f, 'w').write(c)
+"
+        info "    Removed duplicate kAudioDeviceTransportType enum blocks from AudioHardwareListenerMac.cpp"
     fi
 
     # ─── SleepDisablerCocoa.cpp — Fix IOPMAssertionCreateWithDescription ───
@@ -1491,14 +1532,22 @@ void ScrollingTreeFrameScrollingNodeMac::scrollToOffsetWithoutAnimation(const Fl
     # to avoid overlapping with == 1060 guards (CGFont/CTFont paths).
     info "  Fixing ATS-specific <= 1060 guards..."
     for atsfile in \
-        "$WK/WebCore/platform/graphics/mac/FontCustomPlatformData.cpp" \
-        "$WK/WebCore/platform/graphics/mac/FontCustomPlatformData.h" \
         "$WK/WebCore/platform/graphics/cv/PixelBufferConformerCV.cpp"; do
         if [ -f "$atsfile" ]; then
             sed -i '' 's/__MAC_OS_X_VERSION_MIN_REQUIRED <= 1060/__MAC_OS_X_VERSION_MIN_REQUIRED < 1060/g' "$atsfile"
             info "    Fixed ATS guard: $(basename "$atsfile")"
         fi
     done
+
+    # ─── FontCustomPlatformData.cpp — Use CGFont instead of ATS for @font-face on 10.6 ───
+    # The ATS path (ATSFontActivateFromMemory -> CTFontCreateWithPlatformFont) is
+    # unreliable for decompressed WOFF/WOFF2 web fonts. CGFont works reliably.
+    info "  Patching FontCustomPlatformData.cpp (CGFont-based custom fonts for 10.6)..."
+    local FCPP="$WK/WebCore/platform/graphics/mac/FontCustomPlatformData.cpp"
+    if [ -f "$FCPP" ] && grep -q "Use ATS to activate the font" "$FCPP" 2>/dev/null; then
+        python3 "$PROJECT_ROOT/patches/cgfont_custom_font.py" "$FCPP"
+    fi
+
 
     # ─── WebVideoFullscreenController.mm — Fix NSApp property access ───
     # 10.6 SDK declares NSApp as 'id', not 'NSApplication *', so dot-syntax fails.
@@ -2516,6 +2565,254 @@ WOFF2ENCODE
         info "  Patched parser.rb: added =~ to Annotation class for Ruby 3.x"
     fi
 
+    # --- WebCoreSystemInterface.mm - Initialize wkIsPublicSuffix stub ---
+    info "  Patching WebCoreSystemInterface.mm (wkIsPublicSuffix stub init)..."
+    local WCSIMM="$WK/WebCore/platform/mac/WebCoreSystemInterface.mm"
+    if [ -f "$WCSIMM" ] && ! grep -q '__wkIsPublicSuffixStub' "$WCSIMM" 2>/dev/null; then
+        sed -i '' 's/^bool (\*wkIsPublicSuffix)(NSString \*host);$/static bool __wkIsPublicSuffixStub(NSString *host) { (void)host; return false; }\nbool (*wkIsPublicSuffix)(NSString *host) = __wkIsPublicSuffixStub;/' "$WCSIMM"
+        info "    Initialized wkIsPublicSuffix with safe stub"
+    fi
+
+    # ── TextBreakIteratorICU.h — Null-guard ubrk calls for ICU 55 compat ──
+    # ICU 55's RuleBasedBreakIterator can crash with SIGSEGV when m_iterator is null
+    # (ubrk_open fails on certain text). Guard all three methods.
+    info "  Patching TextBreakIteratorICU.h (null-guard ubrk calls)..."
+    local ICU_H="$WK/WTF/wtf/text/icu/TextBreakIteratorICU.h"
+    if [ -f "$ICU_H" ] && ! grep -q 'if (!m_iterator)' "$ICU_H" 2>/dev/null; then
+        python3 - "$ICU_H" << 'ICUFIX_PY'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    c = f.read()
+c = c.replace(
+    "    bool isBoundary(unsigned location) const\n    {\n        return ubrk_isBoundary(m_iterator, location);",
+    "    bool isBoundary(unsigned location) const\n    {\n        if (!m_iterator)\n            return false;\n        return ubrk_isBoundary(m_iterator, location);")
+c = c.replace(
+    "    std::optional<unsigned> preceding(unsigned location) const\n    {\n        auto result = ubrk_preceding(m_iterator, location);",
+    "    std::optional<unsigned> preceding(unsigned location) const\n    {\n        if (!m_iterator)\n            return { };\n        auto result = ubrk_preceding(m_iterator, location);")
+c = c.replace(
+    "    std::optional<unsigned> following(unsigned location) const\n    {\n        auto result = ubrk_following(m_iterator, location);",
+    "    std::optional<unsigned> following(unsigned location) const\n    {\n        if (!m_iterator)\n            return { };\n        auto result = ubrk_following(m_iterator, location);")
+with open(path, "w") as f:
+    f.write(c)
+print("  Patched TextBreakIteratorICU.h with null guards")
+ICUFIX_PY
+    fi
+
+    # ── ComplexTextController.cpp — Remove ICU break iterator from offsetForPosition ──
+    # ICU 55's RuleBasedBreakIterator::isBoundary crashes with SIGSEGV (non-null but
+    # corrupt UBreakIterator*) during text ellipsis layout on 10.6.
+    # Replace with simple glyph-based cluster boundaries.
+    info "  Patching ComplexTextController.cpp (remove ICU break iterator from offsetForPosition)..."
+    local CTC="$WK/WebCore/platform/graphics/ComplexTextController.cpp"
+    if [ -f "$CTC" ]; then
+        python3 - "$CTC" << 'CTCFIX_PY'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    c = f.read()
+c = c.replace(
+    "                unsigned hitIndex = hitGlyphStart + (hitGlyphEnd - hitGlyphStart) * (m_run.ltr() ? x / adjustedAdvance : 1 - x / adjustedAdvance);\n                if (hitIndex > stringLength)\n                    hitIndex = stringLength;\n                // ICU 55 on 10.6 can crash in RuleBasedBreakIterator::isBoundary with\n                // certain text. Fall back to simple glyph-based hit testing.\n                unsigned clusterStart = hitGlyphStart;\n                unsigned clusterEnd = std::max(hitGlyphStart + 1, hitGlyphEnd);\n                if (stringLength > 0) {\n                    CachedTextBreakIterator cursorPositionIterator(StringView(complexTextRun.characters(), stringLength), TextBreakIterator::Mode::Caret, nullAtom());\n                    if (cursorPositionIterator.isBoundary(hitIndex))\n                        clusterStart = hitIndex;\n                    else\n                        clusterStart = cursorPositionIterator.preceding(hitIndex).value_or(0);\n                    clusterEnd = cursorPositionIterator.following(hitIndex).value_or(stringLength);\n                }",
+    "                unsigned stringLength = complexTextRun.stringLength();\n                unsigned hitIndex = hitGlyphStart + (hitGlyphEnd - hitGlyphStart) * (m_run.ltr() ? x / adjustedAdvance : 1 - x / adjustedAdvance);\n                if (hitIndex > stringLength)\n                    hitIndex = stringLength;\n                unsigned clusterStart = hitGlyphStart;\n                unsigned clusterEnd = std::max(hitGlyphStart + 1, hitGlyphEnd);")
+with open(path, "w") as f:
+    f.write(c)
+print("  Patched ComplexTextController.cpp")
+CTCFIX_PY
+    fi
+
+
+    # ── FontPlatformDataCocoa.mm — Fix @font-face glyph corruption & crashes on 10.6 ──
+    # On 10.6, the Leopard patch uses ATSFontRef-based APIs (CTFontGetPlatformFont,
+    # CGFontCreateWithPlatformFont, CTFontCreateWithPlatformFont) which return wrong
+    # glyphs for custom @font-face fonts. Replace all with CGFont-based APIs:
+    # CTFontCopyGraphicsFont and CTFontCreateWithGraphicsFont (same as >= 10.7 path).
+    info "  Patching FontPlatformDataCocoa.mm (CGFont-based APIs for 10.6)..."
+    local FPDC="$WK/WebCore/platform/graphics/cocoa/FontPlatformDataCocoa.mm"
+    if [ -f "$FPDC" ]; then
+        # Constructor: use CTFontCopyGraphicsFont instead of ATSFontRef path
+        sed -i '' 's|    ATSFontRef atsFont = CTFontGetPlatformFont(font, nullptr);\n    m_cgFont = adoptCF(CGFontCreateWithPlatformFont(&atsFont));\n    RELEASE_ASSERT(m_cgFont.get());|    m_cgFont = adoptCF(CTFontCopyGraphicsFont(font, nullptr));|' "$FPDC" 2>/dev/null || true
+        sed -i '' 's|    RELEASE_ASSERT(m_cgFont.get());|// RELEASE_ASSERT removed|' "$FPDC" 2>/dev/null || true
+        # ctFont(): use CTFontCreateWithGraphicsFont instead of CTFontCreateWithPlatformFont
+        sed -i '' 's|CTFontCreateWithPlatformFont(CTFontGetPlatformFont(m_font.get(), nullptr), m_size, 0, descriptor.get())|CTFontCreateWithGraphicsFont(m_cgFont.get(), m_size, 0, descriptor.get())|g' "$FPDC"
+        sed -i '' 's|CTFontCreateWithPlatformFont(CTFontGetPlatformFont(m_font.get(), nullptr), m_size, 0, newDescriptor.get())|CTFontCreateWithGraphicsFont(m_cgFont.get(), m_size, 0, newDescriptor.get())|g' "$FPDC"
+        # Relax RELEASE_ASSERTs to ASSERT
+        sed -i '' 's/RELEASE_ASSERT(CTFontGetPlatformFont/ASSERT(CTFontGetPlatformFont/g' "$FPDC"
+        sed -i '' 's/RELEASE_ASSERT(atsFont != kATSFontRefUnspecified)/if (atsFont == kATSFontRefUnspecified) return adoptCF(CFDataCreate(kCFAllocatorDefault, (UInt8 *)\&atsFont, sizeof(atsFont)))/' "$FPDC"
+        info "    Switched 10.6 font APIs from ATSFontRef to CGFont-based"
+    fi
+
+    # ── GradientCG.cpp — Fix use-after-free in platformDestroy ──
+    # On 10.6, CGGradientRelease can go through objc_msgSend for certain CF types.
+    # If m_gradient points to already-freed memory, this causes SIGSEGV.
+    # Fix: clear m_gradient before releasing, and validate the CGGradient type.
+    info "  Patching GradientCG.cpp (use-after-free in platformDestroy)..."
+    local GRADCG="$WK/WebCore/platform/graphics/cg/GradientCG.cpp"
+    if [ -f "$GRADCG" ] && grep -q 'CGGradientRelease(m_gradient);' "$GRADCG" 2>/dev/null; then
+        sed -i '' 's/void Gradient::platformDestroy()/void Gradient::platformDestroy()/' "$GRADCG"
+        python3 - "$GRADCG" << 'GRADFIX'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    c = f.read()
+c = c.replace(
+    "void Gradient::platformDestroy()\n{\n    CGGradientRelease(m_gradient);\n    m_gradient = 0;\n}",
+    "void Gradient::platformDestroy()\n{\n    CGGradientRef gradient = m_gradient;\n    m_gradient = 0;\n    if (gradient && CFGetTypeID(gradient) == CGGradientGetTypeID())\n        CGGradientRelease(gradient);\n}"
+)
+open(path, 'w').write(c)
+GRADFIX
+        info "    Patched Gradient::platformDestroy with type-safe release"
+    fi
+
+    # ── WebInspectorClient.mm — Add sendMessageToFrontend implementation ──
+    # The header declares sendMessageToFrontend() as override but the .mm doesn't
+    # define it, causing a dyld lazy binding crash when Safari loads the inspector.
+    info "  Patching WebInspectorClient.mm (sendMessageToFrontend)..."
+    local WIC="$WK/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm"
+    if [ -f "$WIC" ] && ! grep -q 'WebInspectorClient::sendMessageToFrontend' "$WIC" 2>/dev/null; then
+        sed -i '' '/^void WebInspectorClient::releaseFrontend()/i\
+void WebInspectorClient::sendMessageToFrontend(const String\& message)\
+{\
+    if (m_frontendPage)\
+        m_frontendPage->inspectorController().dispatchMessageFromFrontend(message);\
+}\
+' "$WIC"
+        info "    Added sendMessageToFrontend stub"
+    fi
+
+    # ── WebDynamicScrollBarsView — Add _webcore_effectiveFirstResponder ──
+    # WebCore::Widget::setFocus calls [platformWidget() _webcore_effectiveFirstResponder]
+    # on WebDynamicScrollBarsView, but this method is only on WebView/WebFrameView.
+    info "  Patching WebDynamicScrollBarsView (_webcore_effectiveFirstResponder)..."
+    local WDSBV="$WK/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm"
+    if [ -f "$WDSBV" ] && ! grep -q '_webcore_effectiveFirstResponder' "$WDSBV" 2>/dev/null; then
+        python3 - "$WDSBV" << 'WDSBVFIX_PY'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    c = f.read()
+c = c.replace(
+    "@implementation WebDynamicScrollBarsView\n",
+    "@implementation WebDynamicScrollBarsView\n- (NSView *)_webcore_effectiveFirstResponder\n{\n    NSView *view = [self documentView];\n    return view ? view : self;\n}\n", 1)
+with open(path, "w") as f:
+    f.write(c)
+WDSBVFIX_PY
+        info "    Added _webcore_effectiveFirstResponder to WebDynamicScrollBarsView"
+    fi
+
+    # --- WebNotificationProviderGrowl - dedicated stub with protocol methods ---
+    info "  Creating WebNotificationProviderGrowl stub with protocol methods..."
+    local GROWL_H="$WK/WebKitLegacy/mac/WebView/WebNotificationProviderGrowl.h"
+    local GROWL_MM="$WK/WebKitLegacy/mac/WebView/WebNotificationProviderGrowl.mm"
+    local WNC_MM="$WK/WebKitLegacy/mac/WebCoreSupport/WebNotificationClient.mm"
+
+    cat > "$GROWL_H" << 'GROWL_H_EOF'
+#import <Foundation/Foundation.h>
+#define WebNotificationProviderGrowl WebNotificationProviderStub
+#define WebNotificationPolicyListenerGrowl WebNotificationPolicyListener
+@interface WebNotificationProviderStub : NSObject
+- (void)registerWebView:(id)webView;
+- (void)unregisterWebView:(id)webView;
+- (void)showNotification:(id)notification fromWebView:(id)webView;
+- (void)cancelNotification:(id)notification;
+- (void)notificationDestroyed:(id)notification;
+- (void)clearNotifications:(NSArray *)notificationIDs;
+- (int)policyForOrigin:(id)origin;
+- (void)webView:(id)webView didShowNotification:(uint64_t)notificationID;
+- (void)webView:(id)webView didClickNotification:(uint64_t)notificationID;
+- (void)webView:(id)webView didCloseNotifications:(NSArray *)notificationIDs;
++ (id)shared;
+@end
+GROWL_H_EOF
+
+    cat > "$GROWL_MM" << 'GROWL_MM_EOF'
+#import "WebNotificationProviderGrowl.h"
+@implementation WebNotificationProviderStub
++ (id)shared {
+    static WebNotificationProviderStub *instance;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{ instance = [[WebNotificationProviderStub alloc] init]; });
+    return instance;
+}
+- (void)registerWebView:(id)webView { (void)webView; }
+- (void)unregisterWebView:(id)webView { (void)webView; }
+- (void)showNotification:(id)notification fromWebView:(id)webView { (void)notification; (void)webView; }
+- (void)cancelNotification:(id)notification { (void)notification; }
+- (void)notificationDestroyed:(id)notification { (void)notification; }
+- (void)clearNotifications:(NSArray *)notificationIDs { (void)notificationIDs; }
+- (int)policyForOrigin:(id)origin { (void)origin; return 0; }
+- (void)webView:(id)webView didShowNotification:(uint64_t)notificationID { (void)webView; (void)notificationID; }
+- (void)webView:(id)webView didClickNotification:(uint64_t)notificationID { (void)webView; (void)notificationID; }
+- (void)webView:(id)webView didCloseNotifications:(NSArray *)notificationIDs { (void)webView; (void)notificationIDs; }
+@end
+GROWL_MM_EOF
+
+    if [ -f "$WNC_MM" ] && grep -q '@implementation WebNotificationProviderStub' "$WNC_MM" 2>/dev/null; then
+        sed -i '' '/^\/\/ Growl not available/,/^@end$/c\
+// Use dedicated WebNotificationProviderGrowl.h for the stub implementation\
+#import "WebNotificationProviderGrowl.h"' "$WNC_MM"
+        info "    Replaced inline stub in WebNotificationClient.mm with import"
+    fi
+
+
+    # ── FontCustomPlatformData.cpp — Remove dead m_atsContainer path for 10.6 ──
+    # The Leopard patch adds a <= 1060 path that references m_atsContainer and
+    # RELEASE_ASSERT, but with @font-face disabled this code is dead. Remove it.
+    info "  Patching FontCustomPlatformData.cpp (remove dead m_atsContainer path)..."
+    local FCPP2="$WK/WebCore/platform/graphics/mac/FontCustomPlatformData.cpp"
+    if [ -f "$FCPP2" ] && grep -q 'm_atsContainer' "$FCPP2" 2>/dev/null; then
+        python3 - "$FCPP2" << 'FCPP2_FIX_PY'
+import sys
+path = sys.argv[1]
+with open(path) as f:
+    c = f.read()
+c = c.replace(
+    '#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 1060\n    RELEASE_ASSERT(CTFontGetPlatformFont(newFont.get(), nullptr) == CTFontGetPlatformFont(font.get(), nullptr));\n\n    return FontPlatformData(font.get(), &m_atsContainer.get(), size, bold, italic, orientation, widthVariant, fontDescription.textRenderingMode());\n#else\n    return FontPlatformData(font.get(), size, bold, italic, orientation, widthVariant, fontDescription.textRenderingMode());\n#endif',
+    'return FontPlatformData(font.get(), size, bold, italic, orientation, widthVariant, fontDescription.textRenderingMode());')
+with open(path, 'w') as f:
+    f.write(c)
+FCPP2_FIX_PY
+        info "    Removed dead m_atsContainer path from FontCustomPlatformData.cpp"
+    fi
+
+    # ── Runtime fix: Disable media playback on 10.6 (QTKit blocks main thread) ──
+    # QTKit's [QTMovie currentTime] blocks the main thread when autoplaying
+    # videos from modern sites (CNN etc.), causing the browser to hang.
+    info "  Patching MediaPlayerPrivateQTKit.mm (disable media on 10.6)..."
+    local MPQTK="$WK/WebCore/platform/graphics/mac/MediaPlayerPrivateQTKit.mm"
+    if [ -f "$MPQTK" ] && ! grep -q 'Disable media playback entirely on 10.6' "$MPQTK" 2>/dev/null; then
+        perl -i -0pe 's/MediaPlayer::SupportsType MediaPlayerPrivateQTKit::supportsType\(const MediaEngineSupportParameters& parameters\)\n\{\n#if ENABLE\(MEDIA_SOURCE\)/MediaPlayer::SupportsType MediaPlayerPrivateQTKit::supportsType(const MediaEngineSupportParameters& parameters)\n{\n#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 1060\n    \/\/ QTKit currentTime() blocks the main thread on 10.6 with autoplay videos.\n    \/\/ Disable media playback entirely on 10.6.\n    return MediaPlayer::IsNotSupported;\n#endif\n#if ENABLE(MEDIA_SOURCE)/' "$MPQTK"
+        info "    Disabled media playback on 10.6"
+    fi
+
+    # ── Runtime fix: Disable CSS keyframe animations on 10.6 ──
+    # Modern sites have dozens of looping CSS animations that cause the animation
+    # timer to fire continuously, triggering style recalc on every element and
+    # blocking navigation/loading.
+    info "  Patching CompositeAnimation.cpp (disable keyframe animations on 10.6)..."
+    local CA="$WK/WebCore/page/animation/CompositeAnimation.cpp"
+    if [ -f "$CA" ] && ! grep -q 'Disable CSS keyframe animations on 10.6' "$CA" 2>/dev/null; then
+        perl -i -0pe 's/(void CompositeAnimation::updateKeyframeAnimations\(RenderElement\* renderer, const RenderStyle\* currentStyle, const RenderStyle\* targetStyle\)\n\{)\n(    \/\/ Nothing to do)/$1\n#if PLATFORM(MAC) \&\& __MAC_OS_X_VERSION_MIN_REQUIRED <= 1060\n    \/\/ Disable CSS keyframe animations on 10.6. Modern sites have dozens of\n    \/\/ looping animations that cause the animation timer to fire continuously,\n    \/\/ triggering style recalc on every element and blocking navigation\/loading.\n    return;\n#endif\n$2/' "$CA"
+        info "    Disabled CSS keyframe animations on 10.6"
+    fi
+
+    # ── Runtime fix: Bypass WKGetWheelEventDeltas on 10.6 (hasPreciseScrollingDeltas crash) ──
+    # The ElCapitan WSI library's WKGetWheelEventDeltas calls [NSEvent hasPreciseScrollingDeltas]
+    # which is 10.7+, causing NSInvalidArgumentException crash on every scroll event.
+    info "  Patching PlatformEventFactoryMac.mm (bypass wkGetWheelEventDeltas on 10.6)..."
+    local PEFM="$WK/WebCore/platform/mac/PlatformEventFactoryMac.mm"
+    if [ -f "$PEFM" ] && grep -q 'wkGetWheelEventDeltas(event, &m_deltaX, &m_deltaY, &continuous);' "$PEFM" 2>/dev/null; then
+        perl -i -0pe 's/        BOOL continuous;\n        wkGetWheelEventDeltas\(event, &m_deltaX, &m_deltaY, &continuous\);/        #if PLATFORM(MAC) \&\& __MAC_OS_X_VERSION_MIN_REQUIRED <= 1060\n        \/\/ On 10.6, WKGetWheelEventDeltas (from ElCapitan WSI) calls\n        \/\/ [NSEvent hasPreciseScrollingDeltas] which is 10.7+, crashes.\n        BOOL continuous = NO;\n        m_deltaX = [event deltaX];\n        m_deltaY = [event deltaY];\n        #else\n        BOOL continuous;\n        wkGetWheelEventDeltas(event, \&m_deltaX, \&m_deltaY, \&continuous);\n        #endif/' "$PEFM"
+        info "    Bypassed wkGetWheelEventDeltas on 10.6"
+    fi
+
+    info "  Patching WebDynamicScrollBarsView.mm (bypass WKGetWheelEventDeltas on 10.6)..."
+    local WDSBV2="$WK/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm"
+    if [ -f "$WDSBV2" ] && grep -q 'WKGetWheelEventDeltas(event, &deltaX, &deltaY, &isContinuous);' "$WDSBV2" 2>/dev/null; then
+        perl -i -0pe 's/    float deltaX;\n    float deltaY;\n    BOOL isContinuous;\n    WKGetWheelEventDeltas\(event, &deltaX, &deltaY, &isContinuous\);/    float deltaX;\n    float deltaY;\n    BOOL isContinuous;\n    #if __MAC_OS_X_VERSION_MIN_REQUIRED <= 1060\n    isContinuous = NO;\n    deltaX = [event deltaX];\n    deltaY = [event deltaY];\n    #else\n    WKGetWheelEventDeltas(event, \&deltaX, \&deltaY, \&isContinuous);\n    #endif/' "$WDSBV2"
+        info "    Bypassed WKGetWheelEventDeltas in WebDynamicScrollBarsView"
+    fi
+
+
     ok "Source patches applied"
 }
 
@@ -2740,7 +3037,7 @@ typedef int dispatch_fd_t;
 extern "C" {
 #endif
 
-extern const dispatch_block_t DISPATCH_DATA_DESTRUCTOR_DEFAULT;
+extern const const dispatch_block_t DISPATCH_DATA_DESTRUCTOR_DEFAULT;
 extern dispatch_data_t dispatch_data_empty;
 
 size_t dispatch_data_get_size(dispatch_data_t data);
@@ -3498,7 +3795,7 @@ CFTypeRef _CFNetworkCopyATSContext(void);
 #define LOOKUP_SPI_COMPAT
 @interface LULookupDefinitionModule : NSObject
 @end
-static inline void* LookupLibrary(void) { return nullptr; }
+static inline void* LookupLibrary(void) { return NULL; }
 #endif
 #endif
 
@@ -3712,10 +4009,15 @@ HEADER_EOF
  * sdk_stubs.mm - Missing symbols for MacOSX 10.6 SDK (ObjC++ linkage).
  */
 
+// XPC typedefs — needed because sdk_stubs is compiled without -include TargetConditionals_compat.h
+typedef struct _xpc_connection_s *xpc_connection_t;
+typedef void *xpc_object_t;
+
 #import <Foundation/Foundation.h>
 #import <QuartzCore/QuartzCore.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <dispatch/dispatch.h>
+#include <pthread.h>
 
 #if __MAC_OS_X_VERSION_MAX_ALLOWED < 1070
 @implementation NSFileManager (WebKit10_7Compat)
@@ -3724,6 +4026,22 @@ HEADER_EOF
 }
 @end
 #endif
+
+// ── NSNotificationCenter — postNotificationOnMainThread (10.7+) ──
+// WebKit 604 calls this frequently. Forward to the synchronous 10.6 API.
+@interface NSNotificationCenter (SLCompat106)
+- (void)postNotificationOnMainThreadWithName:(NSString *)name object:(id)object userInfo:(NSDictionary *)userInfo;
+- (void)postNotificationOnMainThreadWithName:(NSString *)name object:(id)object;
+@end
+@implementation NSNotificationCenter (SLCompat106)
+- (void)postNotificationOnMainThreadWithName:(NSString *)name object:(id)object userInfo:(NSDictionary *)userInfo {
+    [self postNotificationName:name object:object userInfo:userInfo];
+}
+- (void)postNotificationOnMainThreadWithName:(NSString *)name object:(id)object {
+    [self postNotificationName:name object:object];
+}
+@end
+
 #include <objc/objc.h>
 #include <stdlib.h>
 
@@ -3747,10 +4065,10 @@ void *XPC_ERROR_CONNECTION_INVALID = &xpc_error_connection_invalid_val;
 
 typedef void *xpc_object_t;
 
-void *xpc_dictionary_create(const char * const *keys, const xpc_object_t *values, size_t count) {
+xpc_object_t xpc_dictionary_create(const char * const *keys, const xpc_object_t *values, size_t count) {
     (void)keys; (void)values; (void)count; return NULL;
 }
-void *xpc_dictionary_get_value(xpc_object_t xdict, const char *key) {
+xpc_object_t xpc_dictionary_get_value(xpc_object_t xdict, const char *key) {
     (void)xdict; (void)key; return NULL;
 }
 void xpc_dictionary_set_value(xpc_object_t xdict, const char *key, xpc_object_t value) {
@@ -3759,26 +4077,26 @@ void xpc_dictionary_set_value(xpc_object_t xdict, const char *key, xpc_object_t 
 xpc_object_t xpc_get_type(xpc_object_t obj) { (void)obj; return NULL; }
 xpc_object_t xpc_retain(xpc_object_t obj) { return obj; }
 void xpc_release(xpc_object_t obj) { (void)obj; }
-void *xpc_connection_create_mach_service(const char *name, dispatch_queue_t targetq, uint64_t flags) {
+xpc_connection_t xpc_connection_create_mach_service(const char *name, dispatch_queue_t targetq, uint64_t flags) {
     (void)name; (void)targetq; (void)flags; return NULL;
 }
-void xpc_connection_set_event_handler(void *conn, void (^handler)(xpc_object_t)) {
+void xpc_connection_set_event_handler(xpc_connection_t conn, void (^handler)(xpc_object_t)) {
     (void)conn; (void)handler;
 }
-void xpc_connection_resume(void *conn) { (void)conn; }
-void xpc_connection_cancel(void *conn) { (void)conn; }
-void xpc_connection_send_message(void *conn, xpc_object_t msg) { (void)conn; (void)msg; }
-void xpc_connection_send_message_with_reply(void *conn, xpc_object_t msg, dispatch_queue_t queue, void (^handler)(xpc_object_t)) {
+void xpc_connection_resume(xpc_connection_t conn) { (void)conn; }
+void xpc_connection_cancel(xpc_connection_t conn) { (void)conn; }
+void xpc_connection_send_message(xpc_connection_t conn, xpc_object_t msg) { (void)conn; (void)msg; }
+void xpc_connection_send_message_with_reply(xpc_connection_t conn, xpc_object_t msg, dispatch_queue_t queue, void (^handler)(xpc_object_t)) {
     (void)conn; (void)msg; (void)queue; if (handler) handler(NULL);
 }
-void *xpc_connection_create(const char *name, dispatch_queue_t targetq) {
+xpc_connection_t xpc_connection_create(const char *name, dispatch_queue_t targetq) {
     (void)name; (void)targetq; return NULL;
 }
-void xpc_connection_set_bootstrap(void *conn, xpc_object_t bootstrap) { (void)conn; (void)bootstrap; }
-void xpc_connection_set_oneshot_instance(void *conn, uint64_t inst) { (void)conn; (void)inst; }
-pid_t xpc_connection_get_pid(void *conn) { (void)conn; return 0; }
-void xpc_connection_get_audit_token(void *conn, audit_token_t *token) { (void)conn; (void)token; }
-void xpc_connection_kill(void *conn, int signo) { (void)conn; (void)signo; }
+void xpc_connection_set_bootstrap(xpc_connection_t conn, xpc_object_t bootstrap) { (void)conn; (void)bootstrap; }
+void xpc_connection_set_oneshot_instance(xpc_connection_t conn, const unsigned char inst[16]) { (void)conn; (void)inst; }
+pid_t xpc_connection_get_pid(xpc_connection_t conn) { (void)conn; return 0; }
+void xpc_connection_get_audit_token(xpc_connection_t conn, audit_token_t *token) { (void)conn; (void)token; }
+void xpc_connection_kill(xpc_connection_t conn, int signo) { (void)conn; (void)signo; }
 xpc_object_t xpc_array_create(const xpc_object_t *objects, size_t count) { (void)objects; (void)count; return NULL; }
 void xpc_array_set_string(xpc_object_t arr, size_t idx, const char *str) { (void)arr; (void)idx; (void)str; }
 void xpc_dictionary_set_string(xpc_object_t dict, const char *key, const char *str) { (void)dict; (void)key; (void)str; }
@@ -3787,6 +4105,7 @@ void xpc_dictionary_set_mach_send(xpc_object_t dict, const char *key, mach_port_
 
 } /* extern "C" */
 
+extern "C" {
 #include <sandbox.h>
 int sandbox_check(pid_t pid, const char *operation, enum sandbox_filter_type type, ...) {
     (void)pid; (void)operation; (void)type; return 0;
@@ -3814,6 +4133,107 @@ char *sandbox_extension_issue_generic(const char *extension_class, int flags, in
     (void)extension_class; (void)flags; if (error) *error = 0; return NULL;
 }
 void sandbox_extension_release(char *extension_token) { (void)extension_token; }
+} /* extern "C" */
+
+/* dispatch_data / dispatch_io stubs (10.7+ APIs, not in 10.6 libdispatch) */
+extern "C" {
+#ifndef dispatch_data_t
+typedef dispatch_object_t dispatch_data_t;
+#endif
+#ifndef dispatch_io_t
+typedef dispatch_object_t dispatch_io_t;
+#endif
+typedef int dispatch_fd_t;
+typedef void (^dispatch_io_handler_t)(bool done, dispatch_data_t data, int error);
+void __dispatch_data_destructor_noop(void) {}
+
+// DISPATCH_DATA_DESTRUCTOR_DEFAULT — must be a global export, not local.
+// Use extern declaration + definition to ensure it appears as 'D' not 'd'.
+extern const dispatch_block_t DISPATCH_DATA_DESTRUCTOR_DEFAULT;
+const dispatch_block_t DISPATCH_DATA_DESTRUCTOR_DEFAULT __attribute__((used, visibility("default"))) = (dispatch_block_t)__dispatch_data_destructor_noop;
+dispatch_data_t dispatch_data_empty_val = NULL;
+dispatch_data_t dispatch_data_empty = NULL;
+dispatch_data_t dispatch_data_create(const void *buffer, size_t size, dispatch_queue_t queue, dispatch_block_t destructor) {
+    (void)buffer; (void)size; (void)queue; (void)destructor; return NULL;
+}
+dispatch_data_t dispatch_data_create_map(dispatch_data_t data, const void **buffer_ptr, size_t *size_ptr) {
+    (void)data; if (buffer_ptr) *buffer_ptr = NULL; if (size_ptr) *size_ptr = 0; return NULL;
+}
+bool dispatch_data_apply(dispatch_data_t data, bool (^applier)(dispatch_data_t, size_t, const void*, size_t)) {
+    (void)data; (void)applier; return false;
+}
+dispatch_data_t dispatch_data_create_subrange(dispatch_data_t data, size_t offset, size_t size) {
+    (void)data; (void)offset; (void)size; return NULL;
+}
+dispatch_data_t dispatch_data_create_concat(dispatch_data_t a, dispatch_data_t b) {
+    (void)a; (void)b; return NULL;
+}
+size_t dispatch_data_get_size(dispatch_data_t data) { (void)data; return 0; }
+dispatch_io_t dispatch_io_create(int type, dispatch_fd_t fd, dispatch_queue_t queue, void (^cleanup_handler)(int error)) {
+    (void)type; (void)fd; (void)queue; (void)cleanup_handler; return NULL;
+}
+void dispatch_io_set_low_water(dispatch_io_t channel, size_t low_water) { (void)channel; (void)low_water; }
+void dispatch_io_read(dispatch_io_t channel, off_t offset, size_t length, dispatch_queue_t queue, dispatch_io_handler_t io_handler) {
+    (void)channel; (void)offset; (void)length; (void)queue; if (io_handler) io_handler(true, NULL, 0);
+}
+void dispatch_io_write(dispatch_io_t channel, off_t offset, dispatch_data_t data, dispatch_queue_t queue, dispatch_io_handler_t io_handler) {
+    (void)channel; (void)offset; (void)data; (void)queue; if (io_handler) io_handler(true, NULL, 0);
+}
+} /* extern "C" */
+
+/* Private AppKit symbols (10.7+) not in 10.6 */
+extern "C" {
+const char* NSPopUpMenuPopupButtonWidget = "popup";
+float NSPopUpMenuPopupButtonBounds[4] = {0, 0, 100, 24};
+float NSPopUpMenuPopupButtonLabelOffset = 0;
+float NSPopUpMenuPopupButtonSize[2] = {100, 24};
+float _NSElasticDeltaForTimeDelta(float axis, float delta, float velocity, float size) {
+    (void)axis; (void)velocity; (void)size; return delta;
+}
+float _NSElasticDeltaForReboundDelta(float delta) { return delta; }
+float _NSReboundDeltaForElasticDelta(float delta) { return delta; }
+int _NSRecommendedScrollerStyle = 0;
+void NSInitializeCGFocusRingStyleForTime(int *style, float time, int *color, int *enabled) {
+    (void)time; if (style) *style = 0; if (enabled) *enabled = 0;
+}
+} /* extern "C" */
+
+/* Missing ObjC classes (10.7+) — referenced by libWebKitSystemInterfaceElCapitan.a */
+@interface CASpringAnimation : CAAnimation
+@end
+@implementation CASpringAnimation
+@end
+@interface NSLayoutConstraint : NSObject
+@end
+@implementation NSLayoutConstraint
+@end
+@interface NSPopoverColorWell : NSObject
+@end
+@implementation NSPopoverColorWell
+@end
+/* Missing C symbols (10.7+) */
+extern "C" {
+void CABackingStoreCollectBlocking(void) {}
+const void* kCAContextCIFilterBehavior = NULL;
+const void* kCAContextPortNumber = NULL;
+int CGContextDrawsWithCorrectShadowOffsets = 0;
+void CGSPackagesEnableConnectionOcclusionNotifications(int a, int b) { (void)a; (void)b; }
+void CGSPackagesEnableConnectionWindowModificationNotifications(int a, int b) { (void)a; (void)b; }
+} /* extern "C" */
+
+/* QuartzCore SPI constants (10.7+) */
+extern "C" {
+const char* kCAFilterColorInvert = "colorInvert";
+const char* kCAFilterGaussianBlur = "gaussianBlur";
+const void* kCFWebServicesProviderDefaultDisplayNameKey = NULL;
+const void* kCFWebServicesTypeWebSearch = NULL;
+__attribute__((used)) void* kCFStreamPropertyCONNECTAdditionalHeaders = 0;
+__attribute__((used)) void* kCFStreamPropertyCONNECTProxy = 0;
+__attribute__((used)) void* kCFStreamPropertyCONNECTProxyHost = 0;
+__attribute__((used)) void* kCFStreamPropertyCONNECTProxyPort = 0;
+__attribute__((used)) void* kCFStreamPropertyCONNECTResponse = 0;
+__attribute__((used)) void* kMDItemDownloadedDate = 0;
+} /* extern "C" */
 
 struct _xpc_connection_s;
 struct dispatch_queue_s;
@@ -3856,17 +4276,6 @@ void initializePoison() {}
 
 // CAFilter is a private QuartzCore class (10.7+) used for layer filters.
 // Used by PlatformCAFiltersCocoa.mm: [CAFilter filterWithType:...]
-@interface CAFilter : NSObject <NSCopying, NSMutableCopying>
-+ (CAFilter *)filterWithType:(NSString *)type;
-@property (copy) NSString *name;
-@property (retain) id inputKeys;
-@end
-@implementation CAFilter
-+ (CAFilter *)filterWithType:(NSString *)type { return [[CAFilter alloc] init]; }
-- (id)copyWithZone:(NSZone *)zone { return self; }
-- (id)mutableCopyWithZone:(NSZone *)zone { return self; }
-@end
-
 // NSScrollerImp and NSScrollerImpPair are 10.7+ overlay scrollbar classes.
 // ScrollAnimatorMac.mm uses them for overlay scrollbar animation.
 typedef NSInteger NSScrollerStyle;
@@ -3881,11 +4290,17 @@ typedef NSInteger NSScrollerStyle;
 @property (retain) CALayer *layer;
 @property BOOL needsDisplay;
 @property BOOL tracking;
+@property BOOL isHorizontal;
 - (NSRect)rectForPart:(NSInteger)part;
 - (void)mouseEnteredScroller;
 - (void)mouseExitedScroller;
+- (void)setNeedsDisplay:(BOOL)flag;
 @end
 @implementation NSScrollerImp
+- (NSRect)rectForPart:(NSInteger)part { (void)part; return NSZeroRect; }
+- (void)mouseEnteredScroller {}
+- (void)mouseExitedScroller {}
+- (void)setNeedsDisplay:(BOOL)flag { (void)flag; self.needsDisplay = YES; }
 @end
 
 @protocol NSScrollerImpPairDelegate <NSObject>
@@ -3911,9 +4326,67 @@ typedef NSInteger NSScrollerStyle;
 - (void)contentAreaScrolled;
 - (void)contentAreaScrolledInDirection:(NSPoint)direction;
 - (void)contentAreaWillDraw;
+- (BOOL)overlayScrollerStateIsLocked;
+- (void)lockOverlayScrollerState:(NSInteger)state;
+- (void)unlockOverlayScrollerState;
+- (void)mouseEnteredContentArea;
+- (void)mouseExitedContentArea;
+- (void)mouseMovedInContentArea;
+- (void)startLiveResize;
+- (void)endLiveResize;
+- (void)windowOrderedIn;
+- (void)windowOrderedOut;
 @end
 @implementation NSScrollerImpPair
+- (void)flashScrollers {}
+- (void)hideOverlayScrollers {}
+- (void)beginScrollGesture {}
+- (void)endScrollGesture {}
+- (void)contentAreaDidResize {}
+- (void)contentAreaScrolled {}
+- (void)contentAreaScrolledInDirection:(NSPoint)direction { (void)direction; }
+- (void)contentAreaWillDraw {}
+- (BOOL)overlayScrollerStateIsLocked { return NO; }
+- (void)lockOverlayScrollerState:(NSInteger)state { (void)state; }
+- (void)unlockOverlayScrollerState {}
+- (void)mouseEnteredContentArea {}
+- (void)mouseExitedContentArea {}
+- (void)mouseMovedInContentArea {}
+- (void)startLiveResize {}
+- (void)endLiveResize {}
+- (void)windowOrderedIn {}
+- (void)windowOrderedOut {}
 @end
+
+/* WebHostedNetscapePluginView — out-of-process plugin view (XPC, 10.7+).
+   Disabled in CMake build but referenced by WebKitLegacy plugin code. */
+@interface WebHostedNetscapePluginView : NSObject
+@end
+@implementation WebHostedNetscapePluginView
+@end
+
+/* WebKeyGenerator — SSL key generation helper */
+@interface WebKeyGenerator : NSObject
+@end
+@implementation WebKeyGenerator
+@end
+
+/* WebRenderNode — rendering tree debug helper */
+@interface WebRenderNode : NSObject
+@end
+@implementation WebRenderNode
+@end
+
+/* WebSerializedJSValue — JS value serialization */
+@interface WebSerializedJSValue : NSObject
+@end
+@implementation WebSerializedJSValue
+@end
+
+/* C++ mangled sandbox_check — called from JSC code that did not see extern "C" */
+extern "C" void __sandbox_check_cpp_stub(void) {}
+asm(".globl __Z13sandbox_checkiPKc19sandbox_filter_typez");
+asm(".set __Z13sandbox_checkiPKc19sandbox_filter_typez, ___sandbox_check_cpp_stub");
 MM_EOF
 
     # ─── WebCoreStubs.cpp ───
@@ -3948,6 +4421,63 @@ id ScrollbarThemeMac::painterForScrollbar(Scrollbar&) { return nil; }
 #endif
 CPP_EOF
 
+    # ─── wk_stubs.c — WebKitSystemInterface function stubs ───
+    # The 604 code references WK* functions (WKCGContextGetShouldSmoothFonts, etc.)
+    # via function pointers initialized in WebSystemInterface.mm. These functions
+    # exist in libWebKitSystemInterfaceElCapitan.a but the linker doesn't always
+    # pull them from the fat archive correctly. Providing stubs ensures the
+    # symbols resolve at load time on 10.6.
+    info "  Writing wk_stubs.c..."
+    cat > "$OVERLAY_DIR/wk_stubs.c" << 'WKSTUB_EOF'
+#include <CoreFoundation/CoreFoundation.h>
+#include <ApplicationServices/ApplicationServices.h>
+
+int WKCGContextGetShouldSmoothFonts(CGContextRef c) { return 0; }
+void WKCGContextResetClip(CGContextRef c) { (void)c; }
+void WKSetCGFontRenderingMode(CGContextRef c, void* font) { (void)c; (void)font; }
+void WKSetBaseCTM(CGContextRef c, CGAffineTransform m) { CGContextConcatCTM(c, m); }
+CGAffineTransform WKGetUserToBaseCTM(CGContextRef c) { return CGContextGetCTM(c); }
+void WKSetPatternPhaseInUserSpace(CGContextRef c, CGPoint phase) { (void)c; (void)phase; }
+void WKDisableCGDeferredUpdates(void) {}
+CFStringRef WKCopyCFLocalizationPreferredName(CFStringRef cf) { if (cf) CFRetain(cf); return cf; }
+CFStringRef WKCopyCFURLResponseSuggestedFilename(void* r) { (void)r; return CFSTR(""); }
+void* WKGetCFURLResponseHTTPResponse(void* r) { (void)r; return NULL; }
+CFStringRef WKGetCFURLResponseMIMEType(void* r) { (void)r; return CFSTR(""); }
+CFURLRef WKGetCFURLResponseURL(void* r) { (void)r; return NULL; }
+void WKSetCFURLResponseMIMEType(void* r, CFStringRef m) { (void)r; (void)m; }
+CFStringRef WKCopyNSURLResponseStatusLine(void* r) { (void)r; return CFSTR(""); }
+CFArrayRef WKCopyNSURLResponseCertificateChain(void* r) { (void)r; return NULL; }
+CFDateRef WKGetNSURLResponseLastModifiedDate(void* r) { (void)r; return NULL; }
+void* WKCopyHTTPCookieStorage(void) { return 0; }
+CFArrayRef WKHTTPCookiesForURL(void* s, CFURLRef u) { (void)s; (void)u; return NULL; }
+CFStringRef WKGetExtensionsForMIMEType(CFStringRef m) { (void)m; return CFSTR(""); }
+CFStringRef WKGetMIMETypeForExtension(CFStringRef e) { (void)e; return CFSTR(""); }
+CFStringRef WKGetPreferredExtensionForMIMEType(CFStringRef m) { (void)m; return CFSTR(""); }
+void* WKCreateCTLineWithUniCharProvider(void* a, void* b, void* c) { (void)a; (void)b; (void)c; return NULL; }
+void WKGetGlyphsForCharacters(void* font, const void* ch, void* gl, unsigned long n) { (void)font; (void)ch; (void)gl; (void)n; }
+void WKGetGlyphTransformedAdvances(void* font, void* m, void* s, void* a, const void* gl, void* ad, unsigned long n) { (void)font; (void)m; (void)s; (void)a; (void)gl; (void)ad; (void)n; }
+void WKGetVerticalGlyphsForCharacters(void* font, const void* ch, void* gl, unsigned long* n) { (void)font; (void)ch; (void)gl; (void)n; }
+unsigned long WKGetHyphenationLocationBeforeIndex(unsigned long loc, CFStringRef s) { (void)s; return loc; }
+void* WKGetFontInLanguageForRange(void* font, CFRange r) { (void)font; (void)r; return NULL; }
+void* WKGetFontInLanguageForCharacter(void* font, void* ch, unsigned long n) { (void)font; (void)ch; (void)n; return NULL; }
+void WKSetUpFontCache(void) {}
+int WKGetNSEventMomentumPhase(void* e) { (void)e; return 0; }
+void WKSetNSURLConnectionDefersCallbacks(void* c, int d) { (void)c; (void)d; }
+void WKSetNSURLRequestShouldContentSniff(void* r, int s) { (void)r; (void)s; }
+void WKCreateCustomCFReadStream(void** s, void* a, void* b, void* c) { (void)s; (void)a; (void)b; (void)c; }
+void WKSignalCFReadStreamEnd(void* s) { (void)s; }
+void WKSignalCFReadStreamError(void* s, void* e) { (void)s; (void)e; }
+void WKSignalCFReadStreamHasBytes(void* s) { (void)s; }
+void WKInitializeMaximumHTTPConnectionCountPerHost(void) {}
+void WKDrawBezeledTextFieldCell(void* r, int s) { (void)r; (void)s; }
+void WKDrawCapsLockIndicator(void* r, void* c) { (void)r; (void)c; }
+void WKDrawTextFieldCellFocusRing(void* r) { (void)r; }
+float WKQTMovieDataRate(void* m) { (void)m; return 0; }
+float WKQTMovieMaxTimeSeekable(void* m) { (void)m; return 0; }
+void WKQTMovieViewSetDrawSynchronously(void* v, int s) { (void)v; (void)s; }
+int WKMediaControllerThemeAvailable(void) { return 0; }
+WKSTUB_EOF
+
     touch "$stamp"
     ok "Overlay files generated in $OVERLAY_DIR"
 }
@@ -3974,6 +4504,55 @@ phase4_cmake() {
         -c "$OVERLAY_DIR/sdk_stubs.mm" \
         -o "$BUILD_DIR/cmake/sdk_stubs.o" \
         -fallow-unsupported -std=gnu++14 2>&1 | tail -3
+
+    # Compile WK stubs (WebKitSystemInterface function stubs for 10.6)
+    info "  Compiling wk_stubs..."
+    clang -target $ARCH-apple-macos10.6 -arch $ARCH \
+        -isysroot "$SDK_DIR" \
+        -I"$OVERLAY_DIR" \
+        -fallow-unsupported \
+        -c "$OVERLAY_DIR/wk_stubs.c" -o "$BUILD_DIR/cmake/wk_stubs.o" 2>&1 | tail -3
+
+    # Protocol stubs — formal versions of 10.7+ protocols that were informal on 10.6.
+    # Must be compiled separately as plain ObjC without importing Foundation headers
+    # (which would suppress the protocol object emission).
+    info "  Compiling protocol_stubs... "
+    cat > "$OVERLAY_DIR/protocol_stubs.m" << 'PROTO_EOF'
+@protocol NSObject
+@end
+@protocol NSURLConnectionDelegate <NSObject>
+@optional
+- (void)connection:(id)connection didFailWithError:(id)error;
+- (void)connection:(id)connection didReceiveResponse:(id)response;
+- (void)connection:(id)connection didReceiveData:(id)data;
+- (void)connection:(id)connection willSendRequest:(id)request redirectResponse:(id)redirectResponse;
+- (void)connectionDidFinishLoading:(id)connection;
+@end
+@interface NSObject <NSObject>
+@end
+@interface _NSURLConnectionDelegateProtocolHolder : NSObject <NSURLConnectionDelegate>
+@end
+@implementation _NSURLConnectionDelegateProtocolHolder
+@end
+PROTO_EOF
+    clang -target $ARCH-apple-macos10.6 -arch $ARCH \
+        -c "$OVERLAY_DIR/protocol_stubs.m" \
+        -o "$BUILD_DIR/cmake/protocol_stubs.o" 2>&1 | tail -3
+
+    # ObjC exception typeinfo — system frameworks linked against the old WebKit
+    # try to resolve these from our WebKit via DYLD_FRAMEWORK_PATH redirect.
+    info "  Compiling ehtype_stubs... "
+    cat > "$OVERLAY_DIR/ehtype_stubs.c" << 'EHTYPE_EOF'
+struct _objc_typeinfo { void *vtable[2]; const char *name; };
+static struct _objc_typeinfo _ehtype_id_data = {{0, 0}, "id"};
+static struct _objc_typeinfo _ehtype_nsexception_data = {{0, 0}, "NSException"};
+struct _objc_typeinfo *OBJC_EHTYPE_id = &_ehtype_id_data;
+struct _objc_typeinfo *OBJC_EHTYPE_$_NSException = &_ehtype_nsexception_data;
+void __objc_personality_v0(void) {}
+EHTYPE_EOF
+    clang -target $ARCH-apple-macos10.6 -arch $ARCH \
+        -c "$OVERLAY_DIR/ehtype_stubs.c" \
+        -o "$BUILD_DIR/cmake/ehtype_stubs.o" 2>&1 | tail -3
 
     # Framework paths for sub-frameworks
     local FW_SUBPATHS=(
@@ -4004,13 +4583,16 @@ phase4_cmake() {
 
     # Linker flags
     local LINKER_FLAGS="-target $ARCH-apple-macos10.6"
-    LINKER_FLAGS="$LINKER_FLAGS $BUILD_DIR/cmake/sdk_stubs.o"
+    LINKER_FLAGS="$LINKER_FLAGS $BUILD_DIR/cmake/sdk_stubs.o $BUILD_DIR/cmake/protocol_stubs.o $BUILD_DIR/cmake/ehtype_stubs.o $BUILD_DIR/cmake/wk_stubs.o"
     LINKER_FLAGS="$LINKER_FLAGS -L$SOURCE_DIR/WebKitLibraries"
     LINKER_FLAGS="$LINKER_FLAGS -L$LIBCXX_DIST/lib"
     LINKER_FLAGS="$LINKER_FLAGS -L$CRT_DIST"
     LINKER_FLAGS="$LINKER_FLAGS -L$ICU_DIST/lib"
     LINKER_FLAGS="$LINKER_FLAGS -licuuc -licui18n -licudata"
     LINKER_FLAGS="$LINKER_FLAGS -Wl,-undefined,dynamic_lookup"
+    # Re-export libobjc so system frameworks that reference WebKit can find
+    # ObjC runtime symbols through our framework via DYLD_FRAMEWORK_PATH.
+    LINKER_FLAGS="$LINKER_FLAGS -Wl,-reexport_library,/usr/lib/libobjc.A.dylib"
 
     cd "$BUILD_DIR"
 
@@ -4096,9 +4678,9 @@ phase5_post_cmake() {
     # without quotes causes list expansion, joining our flags with -compatibility_version
     # via semicolons (e.g. "dynamic_lookup;-compatibility_version"). Replace with spaces.
     local NINJA="$BUILD_DIR/build.ninja"
-    if [ -f "$NINJA" ] && grep -q 'dynamic_lookup;' "$NINJA"; then
-        sed -i '' 's/dynamic_lookup;-compatibility_version/dynamic_lookup -compatibility_version/g' "$NINJA"
-        info "  Fixed LINK_FLAGS semicolons in build.ninja"
+    if [ -f "$NINJA" ] && grep -q ';-compatibility_version' "$NINJA"; then
+        sed -i '' 's/;-compatibility_version/ -compatibility_version/g' "$NINJA"
+        info "  Fixed all semicolons before -compatibility_version in build.ninja"
     fi
 
     # Remove host-only framework link dependencies from build.ninja.
@@ -4132,7 +4714,7 @@ phase5_post_cmake() {
     local FH_WEBKIT="$BUILD_DIR/DerivedSources/ForwardingHeaders/WebKit"
     local STALE_COUNT=0
     if [ -d "$FH_WEBKIT" ]; then
-        STALE_COUNT=$(grep -rl '#import <WebKit2/' "$FH_WEBKIT/" 2>/dev/null | wc -l | tr -d ' ')
+        STALE_COUNT=$(grep -rl '#import <WebKit2/' "$FH_WEBKIT/" 2>/dev/null | wc -l | tr -d ' ' || true)
         if [ "$STALE_COUNT" -gt 0 ]; then
             sed -i '' 's|#import <WebKit2/\([^>]*\)>|#include "WebKit/\1"|g' "$FH_WEBKIT/"*.h
             info "  Fixed $STALE_COUNT stale forwarding headers (WebKit2 → WebKit)"
@@ -4223,6 +4805,83 @@ phase6_build() {
     else
         ok "Build complete"
     fi
+
+
+    # --- Relink JSC with -Wl,-u flags for WTF mutex symbols ---
+    # Safari's binary references WTF::lockAtomicallyInitializedStaticMutex and
+    # WTF::unlockAtomicallyInitializedStaticMutex as lazy-bound symbols expected
+    # in JavaScriptCore.framework. These come from libWTF.a (statically linked
+    # into JSC) but the ninja-generated link command doesn't export them.
+    # The -Wl,-u flag forces the linker to mark them as required exports.
+    info "  Relinking JSC with WTF mutex symbol exports..."
+    local JSC_LK=$(ninja -t commands lib/JavaScriptCore.framework/Versions/A/JavaScriptCore 2>/dev/null | tail -1)
+    if [ -n "$JSC_LK" ]; then
+        rm -f lib/JavaScriptCore.framework/Versions/A/JavaScriptCore
+        eval "$(echo "$JSC_LK" | sed 's|lib/libWTF.a|-Wl,-u,__ZN3WTF36lockAtomicallyInitializedStaticMutexEv -Wl,-u,__ZN3WTF38unlockAtomicallyInitializedStaticMutexEv lib/libWTF.a|')" 2>&1 | grep -E "error:" || true
+        info "  JSC relink with WTF mutex exports complete"
+    fi
+
+    # --- Compile scrollbar stub (painterForScrollbar) ---
+    info "  Compiling scrollbar stub..."
+    cat > /tmp/scrollbar_stub.cpp << 'SCROLLBAR_EOF'
+namespace WebCore { class Scrollbar; }
+extern "C" void* _ZN7WebCore17ScrollbarThemeMac19painterForScrollbarERNS_9ScrollbarE(void*);
+void* _ZN7WebCore17ScrollbarThemeMac19painterForScrollbarERNS_9ScrollbarE(void*) { return 0; }
+SCROLLBAR_EOF
+    clang++ -target x86_64-apple-macos10.6 -arch x86_64 -isysroot "$SDK_DIR"         -fallow-unsupported -O2 -c /tmp/scrollbar_stub.cpp -o "$BUILD_DIR/cmake/scrollbar_stub.o" 2>&1 | grep "error:" || true
+
+    # --- Compile woff2+brotli and inject into WebCore ---
+    info "  Compiling woff2+brotli into WebCore..."
+    local WK3="$SOURCE_DIR/Source"
+    local WOFF2_DIR="$BUILD_DIR/cmake/woff2"
+    mkdir -p "$WOFF2_DIR"
+    # brotli (C)
+    for f in \
+        "$WK3/ThirdParty/brotli/dec/decode.c" \
+        "$WK3/ThirdParty/brotli/dec/huffman.c" \
+        "$WK3/ThirdParty/brotli/dec/bit_reader.c" \
+        "$WK3/ThirdParty/brotli/dec/state.c" \
+        "$WK3/ThirdParty/brotli/dec/dictionary.c" \
+        "$WK3/ThirdParty/brotli/common/dictionary.c"; do
+        [ -f "$f" ] || continue
+        local base=$(basename "$f" .c)
+        clang -target x86_64-apple-macos10.6 -arch x86_64 -isysroot "$SDK_DIR" \
+            -fallow-unsupported -O2 -DNDEBUG \
+            -I"$WK3/ThirdParty/brotli/include" -I"$WK3/ThirdParty/brotli/common" \
+            -c "$f" -o "$WOFF2_DIR/${base}.o" 2>&1 | grep "error:" || true
+    done
+    # woff2 (C++)
+    local WOFF2_CXX="-target x86_64-apple-macos10.6 -arch x86_64 -isysroot $SDK_DIR \
+        -fallow-unsupported -O2 -DNDEBUG -std=c++11 -fno-exceptions -fno-rtti \
+        -nostdinc++ -isystem $LIBCXX_DIST/include -I$OVERLAY_DIR \
+        -include TargetConditionals_compat.h \
+        -I$WK3/ThirdParty/brotli/include \
+        -I$WK3/ThirdParty/woff2/include -I$WK3/ThirdParty/woff2/src"
+    for f in woff2_dec woff2_common font glyph normalize table_tags transform variable_length; do
+        clang++ $WOFF2_CXX -c "$WK3/ThirdParty/woff2/src/${f}.cc" -o "$WOFF2_DIR/${f}.o" 2>&1 | grep "error:" || true
+    done
+    # Relink WebCore with woff2+brotli objects
+    local WC_LK=$(ninja -t commands lib/WebCore.framework/Versions/A/WebCore 2>/dev/null | tail -1)
+    local WOFF2_OBJS=$(ls "$WOFF2_DIR"/*.o 2>/dev/null | tr '\n' ' ')
+    if [ -n "$WOFF2_OBJS" ] && [ -n "$WC_LK" ]; then
+        rm -f lib/WebCore.framework/Versions/A/WebCore
+        eval "$(echo "$WC_LK" | sed "s| -F/| $WOFF2_OBJS $BUILD_DIR/cmake/scrollbar_stub.o -F/|")" 2>&1 | grep -E "error:|duplicate" || true
+        info "  Injected woff2+brotli into WebCore"
+    fi
+
+    # --- Compile and link WebNotificationProviderGrowl.mm into WebKitLegacy ---
+    info "  Compiling WebNotificationProviderGrowl.mm..."
+    local GROWL_SRC="$SOURCE_DIR/Source/WebKitLegacy/mac/WebView/WebNotificationProviderGrowl.mm"
+    local GROWL_OBJ_REL="Source/WebKitLegacy/CMakeFiles/WebKit.dir/mac/WebView/WebNotificationProviderGrowl.mm.o"
+    if [ -f "$GROWL_SRC" ]; then
+        local WKL_CC=$(ninja -t commands Source/WebKitLegacy/CMakeFiles/WebKit.dir/mac/WebView/WebView.mm.o 2>/dev/null | tail -1)
+        [ -n "$WKL_CC" ] && eval "${WKL_CC% *}" "$GROWL_SRC" -o "$BUILD_DIR/$GROWL_OBJ_REL" -c 2>&1 | grep "error:" || true
+        info "  Injecting Growl.o into WebKitLegacy..."
+        rm -f "$BUILD_DIR/lib/WebKitLegacy.framework/Versions/A/WebKitLegacy"
+        local WKL_LK=$(ninja -t commands lib/WebKitLegacy.framework/Versions/A/WebKitLegacy 2>/dev/null | tail -1)
+        [ -n "$WKL_LK" ] && eval "$(echo "$WKL_LK" | sed "s| -F/| $GROWL_OBJ_REL -F/|")" 2>&1 | grep -E "error:|duplicate" || true
+    fi
+
 }
 
 # ── Phase 7: Verify ───────────────────────────────────────────────────────
@@ -4336,6 +4995,9 @@ FW_DIR="$PWD/../Frameworks/$OS_X_VERSION"
 # Set it as the primary framework search path so Safari loads our custom
 # JavaScriptCore, WebCore, and WebKit frameworks instead of the system ones.
 export DYLD_FRAMEWORK_PATH="$FW_DIR"
+
+# JSC is in PrivateFrameworks — found by @loader_path from our frameworks,
+# but NOT redirected by DYLD_FRAMEWORK_PATH (avoids breaking system WebKit2).
 export DYLD_LIBRARY_PATH="$FW_DIR"
 export DYLD_FALLBACK_FRAMEWORK_PATH="/System/Library/Frameworks:/Library/Frameworks"
 export DYLD_FALLBACK_LIBRARY_PATH="/usr/lib:/usr/local/lib"
@@ -4344,9 +5006,20 @@ exec "/Applications/Safari.app/Contents/MacOS/Safari"
 LAUNCHER_EOF
     chmod +x "$MACOS_DIR/WebKit"
 
+
     # ── Copy frameworks ──
     info "  Copying frameworks..."
-    for FW in JavaScriptCore WebCore WebKit WebKitLegacy; do
+    # All frameworks including JSC go to Frameworks/10.6 so DYLD_FRAMEWORK_PATH
+    # redirects ALL JSC lookups (including Safari's own) to our modern JSC.
+    # This prevents ABI mismatches between Safari's expected JSC and ours.
+    local PRIV_FW_DIR="$APP/Contents/PrivateFrameworks"
+    mkdir -p "$PRIV_FW_DIR"
+    local SRC_JSC="$BUILD_DIR/lib/JavaScriptCore.framework"
+    if [ -d "$SRC_JSC" ]; then
+        cp -R "$SRC_JSC" "$FW_DIR/"
+        info "    Copied JavaScriptCore.framework → Frameworks/10.6"
+    fi
+    for FW in WebCore WebKit WebKitLegacy; do
         local SRC_FW="$BUILD_DIR/lib/$FW.framework"
         if [ -d "$SRC_FW" ]; then
             cp -R "$SRC_FW" "$FW_DIR/"
@@ -4354,42 +5027,125 @@ LAUNCHER_EOF
         fi
     done
 
-    # ── Strip frameworks (remove debug info only, preserve LC_ID_DYLIB) ──
+    # ── WebKit2 stub: re-export our WebKit as WebKit2 ──
+    # Safari links system WebKit2 which has incompatible C++ ABI with our WebCore/JSC.
+    # Create a WebKit2.framework that re-exports our WebKit, so Safari gets our modern WK API.
+    info "  Creating WebKit2 re-export stub..."
+    mkdir -p "$FW_DIR/WebKit2.framework/Versions/A/Resources"
+    ln -sf A "$FW_DIR/WebKit2.framework/Versions/Current"
+    ln -sf Versions/Current/WebKit2 "$FW_DIR/WebKit2.framework/WebKit2"
+    ln -sf Versions/Current/Resources "$FW_DIR/WebKit2.framework/Resources"
+    cat > "$FW_DIR/WebKit2.framework/Versions/A/Resources/Info.plist" << 'PLIST_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>CFBundleExecutable</key><string>WebKit2</string>
+<key>CFBundleIdentifier</key><string>com.apple.WebKit2</string>
+<key>CFBundleName</key><string>WebKit2</string><key>CFBundlePackageType</key><string>FMWK</string></dict></plist>
+PLIST_EOF
+    clang -target $ARCH-apple-macos10.6 -arch $ARCH \
+        -dynamiclib -o "$FW_DIR/WebKit2.framework/Versions/A/WebKit2" \
+        -install_name /System/Library/PrivateFrameworks/WebKit2.framework/Versions/A/WebKit2 \
+        -compatibility_version 1.0.0 -current_version 534.59.10 \
+        -reexport_library /System/Library/Frameworks/WebKit.framework/Versions/A/WebKit \
+        "$OVERLAY_DIR/webkit2_reexport.c" 2>&1 | tail -3
+
+    # ── WebInspectorUI.framework — bundle inspector frontend resources ──
+    # The inspector frontend (Main.html, JS, CSS) lives in Source/WebInspectorUI.
+    # We package it as a resource-only framework next to the other frameworks.
+    # WebInspectorClient.mm uses direct file paths (not soft-link) to find it.
+    info "  Packaging WebInspectorUI.framework..."
+    local WUI_FW="$FW_DIR/WebInspectorUI.framework"
+    mkdir -p "$WUI_FW/Versions/A/Resources"
+    local WUI_SRC="$SOURCE_DIR/Source/WebInspectorUI/UserInterface"
+    if [ -d "$WUI_SRC" ]; then
+        cp -R "$WUI_SRC/"* "$WUI_FW/Versions/A/Resources/"
+    fi
+    # Copy localizedStrings.js from Localizations/en.lproj to Resources root
+    local WUI_LOC="$SOURCE_DIR/Source/WebInspectorUI/Localizations/en.lproj/localizedStrings.js"
+    if [ -f "$WUI_LOC" ]; then
+        cp "$WUI_LOC" "$WUI_FW/Versions/A/Resources/localizedStrings.js"
+    fi
+    # Copy InspectorBackendCommands.js from Legacy/10.3 (closest protocol version)
+    local WUI_PROTO="$WUI_FW/Versions/A/Resources/Protocol"
+    mkdir -p "$WUI_PROTO"
+    local BACKEND_CMDS="$SOURCE_DIR/Source/WebInspectorUI/UserInterface/Protocol/Legacy/10.3/InspectorBackendCommands.js"
+    if [ -f "$BACKEND_CMDS" ]; then
+        cp "$BACKEND_CMDS" "$WUI_PROTO/InspectorBackendCommands.js"
+    fi
+    # Create Info.plist with correct bundle identifier
+    cat > "$WUI_FW/Versions/A/Resources/Info.plist" << 'WUI_PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.apple.WebInspectorUI</string>
+    <key>CFBundleExecutable</key>
+    <string>WebInspectorUI</string>
+    <key>CFBundleName</key>
+    <string>WebInspectorUI</string>
+    <key>CFBundlePackageType</key>
+    <string>FMWK</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+</dict>
+</plist>
+WUI_PLIST
+    # Create minimal stub dylib for dlopen compatibility
+    echo "// WebInspectorUI stub" > /tmp/_wui_stub.c
+    clang -arch $ARCH -isysroot "$SDK_DIR"         -dynamiclib -o "$WUI_FW/Versions/A/WebInspectorUI"         -install_name @rpath/WebInspectorUI.framework/Versions/A/WebInspectorUI         -target $ARCH-apple-macos10.6 -fallow-unsupported         /tmp/_wui_stub.c 2>&1 | tail -3
+    # Create framework symlinks
+    cd "$WUI_FW"
+    ln -sf A Versions/Current
+    ln -sf Versions/Current/WebInspectorUI WebInspectorUI
+    ln -sf Versions/Current/Resources Resources
+    cd "$PROJECT_ROOT"
+    info "    WebInspectorUI.framework packaged"
+
+    # ── Strip frameworks ──
     info "  Stripping frameworks..."
     for FW in JavaScriptCore WebCore WebKit WebKitLegacy; do
         local FW_BIN="$FW_DIR/$FW.framework/Versions/A/$FW"
-        if [ ! -f "$FW_BIN" ]; then
-            FW_BIN="$FW_DIR/$FW.framework/$FW"
-        fi
+        [ -f "$FW_BIN" ] || FW_BIN="$(dirname $FW_BIN)/../$FW"
         if [ -f "$FW_BIN" ]; then
-            # Remove debug sections but keep all symbol tables and load commands
             strip -r "$FW_BIN" 2>/dev/null || true
         fi
     done
 
-    # ── Fix install names: change @rpath to /System/Library paths ──
-    # Safari on 10.6 loads frameworks by absolute path. DYLD_FRAMEWORK_PATH
-    # intercepts absolute paths but NOT @rpath lookups. Change all @rpath
-    # references in our frameworks to /System/Library/Frameworks/... so that
-    # DYLD_FRAMEWORK_PATH can redirect them at runtime.
-    info "  Fixing install names for DYLD_FRAMEWORK_PATH compatibility..."
-    for FW in JavaScriptCore WebCore WebKit WebKitLegacy; do
+    # ── Fix install names ──
+    # All frameworks use /System/Library/Frameworks install names so
+    # DYLD_FRAMEWORK_PATH redirects them all uniformly.
+    info "  Fixing install names..."
+    local JSC_BIN="$FW_DIR/JavaScriptCore.framework/Versions/A/JavaScriptCore"
+    if [ -f "$JSC_BIN" ]; then
+        install_name_tool -id "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/JavaScriptCore" "$JSC_BIN"
+    fi
+
+    for FW in WebCore WebKit WebKitLegacy; do
         local FW_BIN="$FW_DIR/$FW.framework/Versions/A/$FW"
         [ -f "$FW_BIN" ] || FW_BIN="$FW_DIR/$FW.framework/$FW"
         [ -f "$FW_BIN" ] || continue
 
-        # Change ID: @rpath/X.framework → /System/Library/Frameworks/X.framework
         install_name_tool -id "/System/Library/Frameworks/$FW.framework/Versions/A/$FW" "$FW_BIN"
 
-        # Change all @rpath deps to /System/Library/Frameworks
-        for DEP_FW in JavaScriptCore WebCore WebKit WebKitLegacy; do
+        install_name_tool -change \
+            "@rpath/JavaScriptCore.framework/Versions/A/JavaScriptCore" \
+            "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/JavaScriptCore" \
+            "$FW_BIN" 2>/dev/null || true
+        install_name_tool -change \
+            "@loader_path/../../../../../PrivateFrameworks/JavaScriptCore.framework/Versions/A/JavaScriptCore" \
+            "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/JavaScriptCore" \
+            "$FW_BIN" 2>/dev/null || true
+
+        for DEP_FW in WebCore WebKit WebKitLegacy; do
             install_name_tool -change \
                 "@rpath/$DEP_FW.framework/Versions/A/$DEP_FW" \
                 "/System/Library/Frameworks/$DEP_FW.framework/Versions/A/$DEP_FW" \
                 "$FW_BIN" 2>/dev/null || true
         done
     done
-
     # ── Copy our custom libc++ and ICU dylibs ──
     info "  Copying runtime libraries..."
     if [ -f "$LIBCXX_DIST/lib/libc++.1.dylib" ]; then

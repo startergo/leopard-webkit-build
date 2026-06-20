@@ -5,7 +5,7 @@
 # Run from the project root:
 #   ./generate-supplement-patch.sh
 #
-# It cd's into source/webkit, runs git diff for the uncovered files,
+# It cd's into source/webkit, runs git diff for the 24 uncovered files,
 # and writes the result to downloads/patches-604/supplement.diff.
 
 set -euo pipefail

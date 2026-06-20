@@ -31,7 +31,7 @@ for HEADER in "$FH_DIR/WebKitLegacy/"*.h; do
 
     # Convert #include to #import for ObjC compatibility
     if grep -q '#include' "$DEST" 2>/dev/null; then
-        sed -i '' 's/^#include/#import/g' "$DEST"
+        sed -i '' 's/#include/#import/g' "$DEST"
         CONVERTED=$((CONVERTED + 1))
     fi
 done
