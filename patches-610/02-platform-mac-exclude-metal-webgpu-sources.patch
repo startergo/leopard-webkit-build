@@ -1,0 +1,86 @@
+diff --git a/Source/WebCore/PlatformMac.cmake b/Source/WebCore/PlatformMac.cmake
+index ff51893581..62c9b66a1d 100644
+--- a/Source/WebCore/PlatformMac.cmake
++++ b/Source/WebCore/PlatformMac.cmake
+@@ -6,7 +6,6 @@ find_library(AUDIOUNIT_LIBRARY AudioUnit)
+ find_library(CARBON_LIBRARY Carbon)
+ find_library(CFNETWORK_LIBRARY CFNetwork)
+ find_library(COCOA_LIBRARY Cocoa)
+-find_library(COMPRESSION_LIBRARY Compression)
+ find_library(COREAUDIO_LIBRARY CoreAudio)
+ find_library(CORESERVICES_LIBRARY CoreServices)
+ find_library(DISKARBITRATION_LIBRARY DiskArbitration)
+@@ -22,6 +21,25 @@ find_library(XML2_LIBRARY XML2)
+ find_package(Sqlite3 REQUIRED)
+ find_package(ZLIB REQUIRED)
+ 
++# [leopard-webkit-build] 610 links the imported target LibXml2::LibXml2 but the Mac
++# port only does find_library(XML2_LIBRARY XML2), never creating the imported target.
++# The 10.6 SDK ships libxml2.2.dylib + headers, so define the target from the SDK.
++if (NOT TARGET LibXml2::LibXml2)
++    add_library(LibXml2::LibXml2 SHARED IMPORTED)
++    set_target_properties(LibXml2::LibXml2 PROPERTIES
++        IMPORTED_LOCATION "${CMAKE_OSX_SYSROOT}/usr/lib/libxml2.2.dylib"
++        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_OSX_SYSROOT}/usr/include/libxml2")
++endif ()
++
++# [leopard-webkit-build] Same treatment for LibXslt::LibXslt — 610 links it but the
++# Mac port never creates the imported target. 10.6 SDK ships libxslt.1.dylib + headers.
++if (NOT TARGET LibXslt::LibXslt)
++    add_library(LibXslt::LibXslt SHARED IMPORTED)
++    set_target_properties(LibXslt::LibXslt PROPERTIES
++        IMPORTED_LOCATION "${CMAKE_OSX_SYSROOT}/usr/lib/libxslt.1.dylib"
++        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_OSX_SYSROOT}/usr/include")
++endif ()
++
+ list(APPEND WebCore_UNIFIED_SOURCE_LIST_FILES
+     "SourcesCocoa.txt"
+ )
+@@ -34,13 +52,11 @@ list(APPEND WebCore_LIBRARIES
+     ${CARBON_LIBRARY}
+     ${CFNETWORK_LIBRARY}
+     ${COCOA_LIBRARY}
+-    ${COMPRESSION_LIBRARY}
+     ${COREAUDIO_LIBRARY}
+     ${CORESERVICES_LIBRARY}
+     ${DISKARBITRATION_LIBRARY}
+     ${IOKIT_LIBRARY}
+     ${IOSURFACE_LIBRARY}
+-    ${METAL_LIBRARY}
+     ${OPENGL_LIBRARY}
+     ${QUARTZ_LIBRARY}
+     ${QUARTZCORE_LIBRARY}
+@@ -196,7 +212,7 @@ list(APPEND WebCore_SOURCES
+     platform/audio/mac/AudioDestinationMac.cpp
+     platform/audio/mac/AudioFileReaderMac.cpp
+     platform/audio/mac/AudioHardwareListenerMac.cpp
+-    platform/audio/mac/AudioSessionMac.cpp
++    platform/audio/mac/AudioSessionMac.mm
+     platform/audio/mac/CARingBuffer.cpp
+     platform/audio/mac/FFTFrameMac.cpp
+ 
+@@ -322,7 +338,6 @@ list(APPEND WebCore_SOURCES
+     platform/graphics/cocoa/WebCoreCALayerExtras.mm
+     platform/graphics/cocoa/WebCoreDecompressionSession.mm
+     platform/graphics/cocoa/WebGLLayer.mm
+-    platform/graphics/cocoa/WebGPULayer.mm
+ 
+     platform/graphics/cv/ImageRotationSessionVT.mm
+     platform/graphics/cv/PixelBufferConformerCV.cpp
+@@ -359,8 +374,6 @@ list(APPEND WebCore_SOURCES
+ 
+     platform/mac/BlacklistUpdater.mm
+     platform/mac/CursorMac.mm
+-    platform/mac/DragDataMac.mm
+-    platform/mac/DragImageMac.mm
+     platform/mac/KeyEventMac.mm
+     platform/mac/LocalCurrentGraphicsContextMac.mm
+     platform/mac/LoggingMac.mm
+@@ -519,7 +532,6 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
+     platform/cocoa/LocalCurrentGraphicsContext.h
+     platform/cocoa/NetworkExtensionContentFilter.h
+     platform/cocoa/PlatformView.h
+-    platform/cocoa/PlaybackSessionInterface.h
+     platform/cocoa/PlaybackSessionModel.h
+     platform/cocoa/PlaybackSessionModelMediaElement.h
+     platform/cocoa/ScrollController.h
