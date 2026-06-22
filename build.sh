@@ -2856,6 +2856,9 @@ phase3_overlay() {
 #ifndef NS_ASSUME_NONNULL_END
 #define NS_ASSUME_NONNULL_END
 #endif
+#ifndef NS_NOESCAPE
+#define NS_NOESCAPE
+#endif
 
 /* Pull in objc/objc.h early so BOOL, YES, NO are defined before any
    other header needs them. Then override YES/NO to use integer literals
