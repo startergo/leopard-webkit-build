@@ -1432,3 +1432,9 @@ extern "C" uint32_t dyld_get_program_sdk_version(void)
 {
     return 0x000A0600; /* 10.6.0 */
 }
+
+/* [leopard] NSTextCheckingInsertionPointKey is a 10.7+ AppKit string constant absent
+   from the 10.6 SDK. WebKitLegacy (WebEditorClient.mm spell-check options) references it.
+   Provide a definition so the symbol resolves at load. The 10.6 spell-checker ignores
+   this key, so the value only needs to be a stable, unique string. */
+NSString *NSTextCheckingInsertionPointKey = @"NSTextCheckingInsertionPoint";
