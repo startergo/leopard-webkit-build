@@ -384,7 +384,7 @@ phase4_cmake() {
         -DENABLE_VARIATION_FONTS=OFF \
         -DENABLE_VIDEO=ON -DENABLE_VIDEO_TRACK=ON -DENABLE_DATACUE_VALUE=OFF -DENABLE_WEB_AUDIO=OFF \
         -DENABLE_MEDIA_STREAM=OFF -DENABLE_MEDIA_CONTROLS_SCRIPT=ON \
-        -DENABLE_FULLSCREEN_API=OFF -DENABLE_SMOOTH_SCROLLING=OFF \
+        -DENABLE_FULLSCREEN_API=OFF -DENABLE_SMOOTH_SCROLLING=ON -DENABLE_WIRELESS_PLAYBACK_TARGET=OFF \
         -DENABLE_REMOTE_INSPECTOR=OFF -DENABLE_NOTIFICATIONS=OFF \
         -DENABLE_USER_MESSAGE_HANDLERS=OFF -DENABLE_SERVICE_WORKER=OFF \
         -DENABLE_WEBGL=ON -DENABLE_WEBGL2=ON \
@@ -431,8 +431,8 @@ phase5_post_cmake() {
                     ENABLE_LEGACY_ENCRYPTED_MEDIA ENABLE_MEDIA_SOURCE \
                     ENABLE_WEB_AUDIO ENABLE_MEDIA_STREAM \
                     ENABLE_FULLSCREEN_API \
-                    ENABLE_SMOOTH_SCROLLING ENABLE_REMOTE_INSPECTOR \
-                    ENABLE_NOTIFICATIONS ENABLE_USER_MESSAGE_HANDLERS \
+                    ENABLE_REMOTE_INSPECTOR \
+                    ENABLE_NOTIFICATIONS ENABLE_USER_MESSAGE_HANDLERS ENABLE_WIRELESS_PLAYBACK_TARGET \
                     ENABLE_SERVICE_WORKER ENABLE_WEBGPU; do
             if grep -q "$feat 1" "$CC"; then
                 sed -i '' "s/$feat 1/$feat 0/" "$CC"
@@ -531,6 +531,73 @@ phase5_post_cmake() {
     if [ -d "$FH/WebKitLegacy" ] && [ ! -e "$FH/WebKit" ]; then
         ln -sf WebKitLegacy "$FH/WebKit"
         info "  linked ForwardingHeaders/WebKit → WebKitLegacy"
+    fi
+
+    # ── Freeze build.ninja + repair forwarding headers ────────────────────
+    # A stray `ninja` can trigger the live RERUN_CMAKE rule, which regenerates
+    # build.ninja (wiping every patch above) AND rewrites the DerivedSources
+    # forwarding headers as self-referential `#include "<abs-path-to-self>"`
+    # (infinite include -> "#include nested too deeply", then a cascade of
+    # bogus DOM/symbol errors). Neuter the regen rule, then normalize every
+    # single-line forwarding-header redirect to an ABSOLUTE include of the real
+    # source header (framework-preferred, WK2/Windows-penalized).
+    local RULES="$BUILD_DIR/CMakeFiles/rules.ninja"
+    if [ -f "$RULES" ] && grep -q 'regenerate-during-build' "$RULES"; then
+        python3 - "$RULES" <<'PYRULES'
+import sys, re
+p = sys.argv[1]
+s = open(p).read()
+# Replace the RERUN_CMAKE command body with an echo stub (keep the rule head).
+s = re.sub(r'(rule RERUN_CMAKE\n(?:.*\n)*?\s*command = ).*',
+           r"\1echo '[leopard] RERUN_CMAKE neutered to protect build.ninja + forwarding headers'",
+           s, count=1)
+open(p, 'w').write(s)
+print("[leopard] neutered RERUN_CMAKE in rules.ninja")
+PYRULES
+        info "  neutered RERUN_CMAKE (build.ninja frozen)"
+    fi
+
+    local FWD="$BUILD_DIR/DerivedSources/ForwardingHeaders"
+    local SRC_ROOT="$SOURCE_DIR/Source"
+    if [ -d "$FWD" ]; then
+        FWD_ROOT="$FWD" SRC_ROOT="$SRC_ROOT" python3 - <<'PYFWD'
+import os, glob, re
+fwd_root = os.environ["FWD_ROOT"]
+src_root = os.path.abspath(os.environ["SRC_ROOT"])
+real = {}
+for dp, _, files in os.walk(src_root):
+    for fn in files:
+        if fn.endswith('.h'):
+            real.setdefault(fn, []).append(os.path.join(dp, fn))
+def best(basename, fw):
+    c = real.get(basename, [])
+    if not c: return None
+    def score(p):
+        s = 0
+        if "/Source/%s/" % fw in p: s -= 50
+        if fw == "WebKitLegacy" and "/Source/WebKit/" in p: s += 100
+        if "/win/" in p: s += 80
+        if "/mac/" in p: s -= 8
+        if "/DOM/" in p and basename.startswith("DOM"): s -= 8
+        return (s, len(p))
+    return sorted(c, key=score)[0]
+fixed = 0
+for f in glob.glob(fwd_root + "/**/*.h", recursive=True):
+    try:
+        content = open(f).read()
+    except Exception:
+        continue
+    lines = [l for l in content.split("\n") if l.strip()]
+    # Only single-line #include redirects (leave full-content copies alone).
+    if len(lines) == 1 and lines[0].strip().startswith('#include "'):
+        fw = f.split("/ForwardingHeaders/")[1].split("/")[0]
+        t = best(os.path.basename(f), fw)
+        if t:
+            open(f, "w").write('#include "%s"\n' % t)
+            fixed += 1
+print("[leopard] normalized %d forwarding headers to absolute includes" % fixed)
+PYFWD
+        info "  repaired forwarding headers (absolute includes)"
     fi
 
     touch "$stamp"
@@ -668,7 +735,16 @@ export DYLD_FRAMEWORK_PATH="$FW_DIR"
 export DYLD_LIBRARY_PATH="$FW_DIR"
 export DYLD_FALLBACK_FRAMEWORK_PATH="/System/Library/Frameworks:/Library/Frameworks"
 export DYLD_FALLBACK_LIBRARY_PATH="/usr/lib:/usr/local/lib"
-exec "/Applications/Safari.app/Contents/MacOS/Safari"
+# [leopard] Inject the TLS 1.2 shim so HTTPS sites requiring modern ciphers
+# (AES-GCM / TLS 1.2) work -- 10.6's stock Security stack only negotiates
+# TLS 1.0. The shim's load-time constructor patches the SSL functions. It is
+# x86_64-only, so Safari (a universal binary defaulting to i386 on 10.6) must
+# be pinned to x86_64 to match both our frameworks and the shim.
+TLS12_DYLIB="/usr/local/lib/libsecurity_ssl_tls12.dylib"
+if [ -f "$TLS12_DYLIB" ]; then
+    export DYLD_INSERT_LIBRARIES="$TLS12_DYLIB"
+fi
+exec arch -x86_64 "/Applications/Safari.app/Contents/MacOS/Safari"
 LAUNCHER_EOF
     chmod +x "$MACOS_DIR/WebKit"
 
@@ -684,7 +760,11 @@ LAUNCHER_EOF
     # Current -> A) so DYLD_FRAMEWORK_PATH loading and the install-name/id below
     # are consistent and the packaged framework matches the 604 reference.
     local WC_VER="$FW_DIR/WebCore.framework/Versions"
-    if [ -d "$WC_VER/SOVERSION" ] && [ ! -d "$WC_VER/A" ]; then
+    if [ -d "$WC_VER/SOVERSION" ]; then
+        # A stale Versions/A (e.g. a prior partial package that copied only
+        # Resources, no binary) must not block the move -- that left WebCore
+        # absent and WebKit failed to load it. Remove any stale A first.
+        rm -rf "$WC_VER/A"
         mv "$WC_VER/SOVERSION" "$WC_VER/A"
         rm -f "$WC_VER/Current"
         ln -sf A "$WC_VER/Current"
