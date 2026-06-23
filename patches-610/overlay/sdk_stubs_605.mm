@@ -31,6 +31,7 @@ typedef void *xpc_object_t;
 #include <pthread.h>
 #include <objc/objc.h>
 #include <objc/runtime.h>
+#include <objc/message.h>  /* objc_msgSend with correct C linkage */
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <mach/mach_types.h>
@@ -178,15 +179,69 @@ static void webViewSPI_setJavaScriptURLsAreAllowed(id self, SEL _cmd, BOOL flag)
     (void)self; (void)_cmd; (void)flag;
 }
 
+/* IMP for _initWithFrame:frameName:groupName:usesDocumentViews: - Safari 5.0.5's
+ * BrowserWebView calls this private 4-arg init. The usesDocumentViews: param was
+ * removed (WK1 always uses document views). Forward to the public 3-arg init. */
+static id webViewSPI_initWithFrameFrameNameGroupNameUsesDocumentViews(id self, SEL _cmd, NSRect frame, NSString *frameName, NSString *groupName, BOOL usesDocumentViews) {
+    (void)_cmd; (void)usesDocumentViews;
+    return ((id(*)(id, SEL, NSRect, NSString*, NSString*))objc_msgSend)(
+        self, sel_registerName("_initWithFrame:frameName:groupName:"), frame, frameName, groupName);
+}
+
+/* IMP for -[WebView _usesDocumentViews] - Safari 5.0.5 queries this. WK1 always
+ * uses document views, so return YES. Signature "c@:" = BOOL(id, SEL). */
+static BOOL webViewSPI_usesDocumentViews(id self, SEL _cmd) {
+    (void)self; (void)_cmd;
+    return YES;
+}
+
 @implementation WebViewSPIInjector
 + (void)load {
     Class webView = objc_getClass("WebView");
     if (!webView)
         return; /* not present in this image (e.g. JSC/WebCore copies) */
-    SEL sel = sel_registerName("_setJavaScriptURLsAreAllowed:");
-    if (class_getInstanceMethod(webView, sel))
-        return; /* already implemented — don't clobber a real future impl */
-    class_addMethod(webView, sel, (IMP)webViewSPI_setJavaScriptURLsAreAllowed, "v@:c");
+
+    /* _setJavaScriptURLsAreAllowed: - removed in 610, no-op. */
+    SEL sel1 = sel_registerName("_setJavaScriptURLsAreAllowed:");
+    if (!class_getInstanceMethod(webView, sel1))
+        class_addMethod(webView, sel1, (IMP)webViewSPI_setJavaScriptURLsAreAllowed, "v@:c");
+
+    /* _initWithFrame:frameName:groupName:usesDocumentViews: - Safari 5.0.5's
+     * BrowserWebView calls this private 4-arg init. Forward to the public 3-arg init. */
+    SEL sel2 = sel_registerName("_initWithFrame:frameName:groupName:usesDocumentViews:");
+    if (!class_getInstanceMethod(webView, sel2))
+        class_addMethod(webView, sel2, (IMP)webViewSPI_initWithFrameFrameNameGroupNameUsesDocumentViews,
+                        "@@:{CGRect=dddd}@@c");
+
+    /* _usesDocumentViews - Safari 5.0.5 getter; WK1 always uses document views. */
+    SEL sel3 = sel_registerName("_usesDocumentViews");
+    if (!class_getInstanceMethod(webView, sel3))
+        class_addMethod(webView, sel3, (IMP)webViewSPI_usesDocumentViews, "c@:");
+}
+@end
+
+/* IMP for -[WebDynamicScrollBarsView setVerticalScrollElasticity:] and the horizontal
+ * variant - Safari 5.0.5 sets scroll elasticity (rubber-band bounce) during frame-view
+ * setup. NSScrollElasticity (NSInteger) and these setters are 10.7+; on 10.6 there is no
+ * elasticity. No-op so the call succeeds and window/content-view setup completes.
+ * Signature "v@:q" = void(id, SEL, NSInteger). */
+static void webDSBV_setScrollElasticity(id self, SEL _cmd, NSInteger value) {
+    (void)self; (void)_cmd; (void)value;
+}
+
+@interface WebDynamicScrollBarsViewSPIInjector : NSObject
+@end
+@implementation WebDynamicScrollBarsViewSPIInjector
++ (void)load {
+    Class cls = objc_getClass("WebDynamicScrollBarsView");
+    if (!cls)
+        return;
+    SEL selV = sel_registerName("setVerticalScrollElasticity:");
+    if (!class_getInstanceMethod(cls, selV))
+        class_addMethod(cls, selV, (IMP)webDSBV_setScrollElasticity, "v@:q");
+    SEL selH = sel_registerName("setHorizontalScrollElasticity:");
+    if (!class_getInstanceMethod(cls, selH))
+        class_addMethod(cls, selH, (IMP)webDSBV_setScrollElasticity, "v@:q");
 }
 @end
 
@@ -491,6 +546,11 @@ void xpc_connection_set_target_queue(struct _xpc_connection_s *conn, struct disp
 extern "C" {
 id objc_initWeak(id *addr, id val) { *addr = val; return val; }
 void objc_destroyWeak(id *addr) { *addr = nil; }
+/* [leopard] 10.7+ ARC weak-ref helpers absent from 10.6 libobjc. Trivial
+ * non-zeroing implementations consistent with the initWeak/destroyWeak stubs
+ * above. objc_loadWeakRetained returns a +1 reference (caller releases). */
+id objc_loadWeakRetained(id *addr) { return *addr ? [*addr retain] : nil; }
+void objc_moveWeak(id *to, id *from) { *to = *from; *from = nil; }
 }
 
 extern "C" {
