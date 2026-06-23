@@ -213,10 +213,26 @@ phase2_patches() {
 
     local APPLIED=0
     for patch in "$PATCH_DIR"/*.patch; do
-        info "  applying $(basename "$patch")"
-        ( cd "$SOURCE_DIR" && git apply --whitespace=nowarn "$patch" ) \
-            || { err "Failed to apply $(basename "$patch")"; ( cd "$SOURCE_DIR" && git apply --whitespace=nowarn --reject "$patch" || true ); exit 1; }
-        APPLIED=$((APPLIED + 1))
+        # [leopard] The sl-port-610 branch HEAD already contains every patch's
+        # change as committed source (the patches are historical build-up
+        # artifacts). A patch may therefore be: (a) cleanly reverse-applicable
+        # (exactly applied) -> skip; (b) cleanly forward-applicable (pristine
+        # base) -> apply; or (c) neither, because the committed file carries
+        # ADDITIONAL changes beyond this patch (e.g. WebCoreView.m, ScrollAnimator)
+        # so neither direction is clean -> the intent is already in the source,
+        # skip with a note rather than failing the build.
+        if ( cd "$SOURCE_DIR" && git apply --reverse --check "$patch" ) 2>/dev/null; then
+            info "  skipping $(basename "$patch") (already applied)"
+            continue
+        fi
+        if ( cd "$SOURCE_DIR" && git apply --check "$patch" ) 2>/dev/null; then
+            info "  applying $(basename "$patch")"
+            ( cd "$SOURCE_DIR" && git apply --whitespace=nowarn "$patch" ) \
+                || { err "Failed to apply $(basename "$patch") (forward-check passed but apply failed)"; exit 1; }
+            APPLIED=$((APPLIED + 1))
+        else
+            warn "  skipping $(basename "$patch") (neither forward nor reverse applies; committed source already carries the change)"
+        fi
     done
     ok "Applied $APPLIED patch(es) from $PATCH_DIR"
     touch "$stamp"
@@ -300,6 +316,22 @@ EHTYPE_EOF
     clang -target $ARCH-apple-macos10.6 -arch $ARCH -c "$CM/protocol_stubs.m" -o "$CM/protocol_stubs.o" 2>&1 | tail -3
     clang -target $ARCH-apple-macos10.6 -arch $ARCH -c "$CM/ehtype_stubs.c" -o "$CM/ehtype_stubs.o" 2>&1 | tail -3
 
+    # [leopard] leopard_compat.mm + objc_class_stubs.m provide 10.6 compat shims
+    # (libobjc/AppKit class stubs) that phase4 links into every framework via
+    # LINKER_FLAGS. They live in the 605 overlay (copied to $BUILD_DIR/overlay
+    # above); compile them into $CM so the link finds them. leopard_compat.mm
+    # gets the same C++/libc++/sub-framework flags as sdk_stubs_605.mm.
+    cp "$OV605/leopard_compat.mm" "$CM/leopard_compat.mm"
+    cp "$OV605/objc_class_stubs.m" "$CM/objc_class_stubs.m"
+    clang++ -target $ARCH-apple-macos10.6 -arch $ARCH -isysroot "$SDK_DIR" \
+        -I"$OVERLAY_DIR" -stdlib=libc++ -nostdinc++ -isystem "$LIBCXX_DIST/include" \
+        -F"$SDK_DIR/System/Library/Frameworks/ApplicationServices.framework/Frameworks" \
+        -c "$CM/leopard_compat.mm" -o "$CM/leopard_compat.o" \
+        -fallow-unsupported -std=gnu++14 2>&1 | tail -5
+    clang -target $ARCH-apple-macos10.6 -arch $ARCH -isysroot "$SDK_DIR" \
+        -I"$OVERLAY_DIR" -c "$CM/objc_class_stubs.m" -o "$CM/objc_class_stubs.o" \
+        -fallow-unsupported 2>&1 | tail -3
+
     touch "$stamp"
     ok "605 runtime stubs generated"
 }
@@ -336,9 +368,18 @@ phase4_cmake() {
     COMMON_FLAGS="$COMMON_FLAGS -DOS_OBJECT_USE_OBJC=0"
     COMMON_FLAGS="$COMMON_FLAGS -DNS_NONATOMIC_IOSONLY=nonatomic"
     COMMON_FLAGS="$COMMON_FLAGS $FW_FLAGS"
+    # [leopard] WebCore's 610 ANGLE/WebGL files (platform/graphics/angle/*.cpp,
+    # GraphicsContextGL*Cocoa.mm) include <ANGLE/...> and ANGLE-internal headers
+    # (<export.h>, entry_points_*). cmake's WebCore target doesn't add ANGLE's
+    # source include dirs to the WebCore compile, so add them globally here
+    # (matches the dirs ANGLE's own libGLESv2 build uses). Harmless for non-ANGLE TUs.
+    COMMON_FLAGS="$COMMON_FLAGS -I$SOURCE_DIR/Source/ThirdParty/ANGLE/include"
+    COMMON_FLAGS="$COMMON_FLAGS -I$SOURCE_DIR/Source/ThirdParty/ANGLE/src"
+    COMMON_FLAGS="$COMMON_FLAGS -I$SOURCE_DIR/Source/ThirdParty/ANGLE/src/common/third_party/base"
+    COMMON_FLAGS="$COMMON_FLAGS -I$BUILD_DIR/Source/ThirdParty/ANGLE/include"
     COMMON_FLAGS="$COMMON_FLAGS -I$SOURCE_DIR/Source/ThirdParty/woff2/include"
 
-    local CXX_FLAGS="$COMMON_FLAGS -std=gnu++14 -Wno-nontrivial-memcall"
+    local CXX_FLAGS="$COMMON_FLAGS -std=gnu++14 -Wno-nontrivial-memcall -Wno-missing-template-arg-list-after-template-kw"
 
     local LINKER_FLAGS="-target $ARCH-apple-macos10.6"
     # NO wk_stubs (WSI eliminated in 605); NO WebKitLibraries link path.
@@ -557,6 +598,33 @@ PYRULES
         info "  neutered RERUN_CMAKE (build.ninja frozen)"
     fi
 
+    # The RERUN_CMAKE command stub alone is not enough: build.ninja still has a
+    # `build build.ninja <...>: RERUN_CMAKE | <...>` edge, so ninja sees the
+    # manifest as a dirty target, runs the (now no-op) stub, finds it still
+    # dirty, and loops -> "manifest 'build.ninja' still dirty after 100 tries".
+    # Remove that edge (the `build build.ninja ...` line plus its indented
+    # continuation) so ninja never tries to regenerate the manifest.
+    local BNINJA="$BUILD_DIR/build.ninja"
+    if [ -f "$BNINJA" ] && grep -q '^build build.ninja ' "$BNINJA"; then
+        python3 - "$BNINJA" <<'PYEDGE'
+import sys
+p = sys.argv[1]
+lines = open(p).readlines()
+out = []; i = 0; removed = 0
+while i < len(lines):
+    ln = lines[i]
+    if ln.startswith("build build.ninja ") and " RERUN_CMAKE " in ln:
+        i += 1; removed += 1
+        while i < len(lines) and (lines[i].startswith(" ") or lines[i].startswith("\t")):
+            i += 1
+        continue
+    out.append(ln); i += 1
+open(p, "w").writelines(out)
+print("[leopard] removed build.ninja regen edge (%d)" % removed)
+PYEDGE
+        info "  removed build.ninja regen edge"
+    fi
+
     local FWD="$BUILD_DIR/DerivedSources/ForwardingHeaders"
     local SRC_ROOT="$SOURCE_DIR/Source"
     if [ -d "$FWD" ]; then
@@ -598,6 +666,82 @@ for f in glob.glob(fwd_root + "/**/*.h", recursive=True):
 print("[leopard] normalized %d forwarding headers to absolute includes" % fixed)
 PYFWD
         info "  repaired forwarding headers (absolute includes)"
+    fi
+
+    # [leopard] Generate the forwarding headers cmake's WK1-only config omits.
+    # Three categories, all into DerivedSources/ForwardingHeaders (which IS on
+    # the WebCore -I path):
+    #   (a) flat WebCore redirects: WebCore .mm/.cpp do bare #import "Foo.h" for
+    #       headers in subdirs that are NOT -I'd (e.g. platform/text/cocoa/
+    #       LocaleCocoa.h). Create flat ForwardingHeaders/<basename>.h -> real.
+    #   (b) ANGLE redirects: WebCore's WebGL files #include <ANGLE/gl2.h>,
+    #       <ANGLE/entry_points_*>, etc. Map each to the real ANGLE header.
+    #   (c) GLES2/KHR/EGL trees: ANGLE's own headers do <GLES2/gl2platform.h>,
+    #       <KHR/khrplatform.h>, <EGL/...>. Copy those include subtrees in.
+    if [ -d "$FWD" ]; then
+        FWD_ROOT="$FWD" WC_ROOT="$SOURCE_DIR/Source/WebCore" \
+        ANGLE_ROOT="$SOURCE_DIR/Source/ThirdParty/ANGLE" python3 - <<'PYGEN'
+import os, glob
+fwd = os.environ["FWD_ROOT"]
+wc = os.path.abspath(os.environ["WC_ROOT"])
+angle = os.path.abspath(os.environ["ANGLE_ROOT"])
+
+# (a) Flat WebCore redirects (don't clobber existing forwarding headers).
+wc_headers = {}
+for dp, _, files in os.walk(wc):
+    for fn in files:
+        if fn.endswith(".h"):
+            wc_headers.setdefault(fn, os.path.join(dp, fn))
+flat = 0
+for base, real in wc_headers.items():
+    dst = os.path.join(fwd, base)
+    if not os.path.exists(dst):
+        open(dst, "w").write('#include "%s"\n' % real)
+        flat += 1
+print("[leopard] created %d flat WebCore forwarding headers" % flat)
+
+# (b) ANGLE redirects for every <ANGLE/X> include across WebCore.
+import re
+needed = set()
+for dp, _, files in os.walk(wc):
+    for fn in files:
+        if fn.endswith((".cpp", ".mm", ".h")):
+            try:
+                t = open(os.path.join(dp, fn)).read()
+            except Exception:
+                continue
+            for m in re.findall(r'#\s*include\s*<ANGLE/([^>]+)>', t):
+                needed.add(m)
+# index real ANGLE headers by basename
+angle_real = {}
+for dp, _, files in os.walk(angle):
+    for fn in files:
+        if fn.endswith(".h"):
+            angle_real.setdefault(fn, os.path.join(dp, fn))
+adst = os.path.join(fwd, "ANGLE")
+os.makedirs(adst, exist_ok=True)
+amade = 0
+for h in needed:
+    real = angle_real.get(os.path.basename(h))
+    if real:
+        d = os.path.join(adst, os.path.dirname(h))
+        if d: os.makedirs(d, exist_ok=True)
+        open(os.path.join(adst, h), "w").write('#include "%s"\n' % real)
+        amade += 1
+print("[leopard] created %d ANGLE forwarding headers" % amade)
+
+# (c) Copy GLES2/KHR/EGL header subtrees so <GLES2/...> etc. resolve.
+import shutil
+copied = 0
+for sub in ("GLES2", "GLES", "GLES3", "KHR", "EGL"):
+    s = os.path.join(angle, "include", sub)
+    d = os.path.join(fwd, sub)
+    if os.path.isdir(s) and not os.path.isdir(d):
+        shutil.copytree(s, d)
+        copied += 1
+print("[leopard] copied %d ANGLE include subtrees (GLES2/KHR/EGL/...)" % copied)
+PYGEN
+        info "  generated WebCore/ANGLE forwarding headers + GL include trees"
     fi
 
     touch "$stamp"
