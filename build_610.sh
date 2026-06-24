@@ -1155,7 +1155,14 @@ W2PLIST
     local WUI_LOC="$SOURCE_DIR/Source/WebInspectorUI/Localizations/en.lproj/localizedStrings.js"
     [ -f "$WUI_LOC" ] && cp "$WUI_LOC" "$WUI_FW/Versions/A/Resources/localizedStrings.js"
     local BACKEND="$WUI_FW/Versions/A/Resources/Protocol"; mkdir -p "$BACKEND"
-    local BCMDS="$SOURCE_DIR/Source/WebInspectorUI/UserInterface/Protocol/Legacy/10.3/InspectorBackendCommands.js"
+    # Prefer the CURRENT generated protocol commands (match this WebKit 610 backend).
+    # The previous Legacy/10.3 file is an old protocol whose agents do not match 610's
+    # InspectorController, so the frontend saw RuntimeAgent (etc.) undefined and the
+    # Web Inspector failed to initialize. Fall back to Legacy/10.3 only if the
+    # generated file is missing.
+    local BCMDS="$BUILD_DIR/DerivedSources/JavaScriptCore/inspector/InspectorBackendCommands.js"
+    [ -f "$BCMDS" ] || BCMDS="$BUILD_DIR/DerivedSources/WebInspectorUI/UserInterface/Protocol/InspectorBackendCommands.js"
+    [ -f "$BCMDS" ] || BCMDS="$SOURCE_DIR/Source/WebInspectorUI/UserInterface/Protocol/Legacy/10.3/InspectorBackendCommands.js"
     [ -f "$BCMDS" ] && cp "$BCMDS" "$BACKEND/InspectorBackendCommands.js"
     cat > "$WUI_FW/Versions/A/Resources/Info.plist" <<'WUIPLIST'
 <?xml version="1.0" encoding="UTF-8"?>
