@@ -1,0 +1,63 @@
+From 38d5ac8b47f2018725ca213f2660702b4998d1ae Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Tue, 23 Jun 2026 15:28:39 -0500
+Subject: [PATCH 7/8] [sl-port-610] Complex-text + cookie-write 10.6 fixes
+ (Wikipedia over TLS 1.2)
+
+Surfaced loading real HTTPS pages (Wikipedia) through the TLS 1.2 shim:
+
+- FontCocoa.mm (unionBitVectors): null-guard the CFBitVector. On 10.6 the
+  OpenType feature-coverage query can return a null CFBitVector where modern
+  CoreText returns an empty one; CFBitVectorGetCount(null) dereferences null
+  (SIGSEGV at 0x10) during small-caps synthesis in complex text layout. Treat
+  null as no coverage.
+- NetworkStorageSessionCocoa.mm (setCookiesFromDOM): route 10.6 to the public
+  +[NSHTTPCookie cookiesWithResponseHeaderFields:forURL:] instead of the modern
+  private +_parsedCookiesWithResponseHeaderFields:forURL: (unrecognized
+  selector when JS sets document.cookie). The cookieString already appends '='
+  so valueless cookies still parse. Completes the cookie path (read side fixed
+  earlier in 72d84132).
+---
+ Source/WebCore/platform/graphics/cocoa/FontCocoa.mm         | 6 ++++++
+ .../platform/network/cocoa/NetworkStorageSessionCocoa.mm    | 6 +++++-
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm b/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm
+index 14a5a362b8..c94b873a30 100644
+--- a/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm
++++ b/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm
+@@ -308,6 +308,12 @@ static RetainPtr<CFDictionaryRef> smallCapsTrueTypeDictionary(int rawKey, int ra
+ 
+ static void unionBitVectors(BitVector& result, CFBitVectorRef source)
+ {
++    // [leopard] On 10.6 the OpenType coverage query (CTFontCopyDefaultCascadeList /
++    // feature-coverage SPI) can return a null CFBitVector where modern CoreText returns an empty
++    // one. CFBitVectorGetCount(null) dereferences null (SIGSEGV at 0x10 during small-caps synthesis
++    // in complex text layout). Treat null as no coverage.
++    if (!source)
++        return;
+     CFIndex length = CFBitVectorGetCount(source);
+     result.ensureSize(length);
+     CFIndex min = 0;
+diff --git a/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm b/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
+index 80c253cff8..e314f401d6 100644
+--- a/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
++++ b/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
+@@ -473,9 +473,13 @@ void NetworkStorageSession::setCookiesFromDOM(const URL& firstParty, const SameS
+     NSURL *cookieURL = url;
+     NSDictionary *headerFields = @{ @"Set-Cookie": cookieString };
+ 
+-#if PLATFORM(MAC)
++#if PLATFORM(MAC) && !defined(LEOPARD_WEBKIT)
+     NSArray *unfilteredCookies = [NSHTTPCookie _parsedCookiesWithResponseHeaderFields:headerFields forURL:cookieURL];
+ #else
++    // [leopard] +[NSHTTPCookie _parsedCookiesWithResponseHeaderFields:forURL:] is a modern private
++    // SPI absent on 10.6 (unrecognized selector when JS sets document.cookie). Use the public
++    // +cookiesWithResponseHeaderFields:forURL: (10.2+); the cookieString already appends '=' above
++    // so valueless cookies still parse.
+     NSArray *unfilteredCookies = [NSHTTPCookie cookiesWithResponseHeaderFields:headerFields forURL:cookieURL];
+ #endif
+ 
+-- 
+2.50.1 (Apple Git-155)
+

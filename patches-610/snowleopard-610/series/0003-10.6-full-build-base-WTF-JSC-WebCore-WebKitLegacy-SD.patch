@@ -1,0 +1,271 @@
+From 1d5482c4699361a93bf55f89e3cc921070fe4ee2 Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Mon, 22 Jun 2026 16:44:33 -0500
+Subject: [PATCH 3/8] 10.6 full-build base: WTF/JSC/WebCore/WebKitLegacy
+ SDK-compat guards (all frameworks link clean)
+
+---
+ .../jit/ExecutableAllocator.cpp               |  4 +++
+ Source/WTF/wtf/cocoa/FileSystemCocoa.mm       |  1 +
+ Source/WTF/wtf/cocoa/ResourceUsageCocoa.cpp   |  1 +
+ Source/WTF/wtf/mac/FileSystemMac.mm           |  2 ++
+ Source/WTF/wtf/posix/OSAllocatorPOSIX.cpp     |  2 +-
+ .../accessibility/mac/AXObjectCacheMac.mm     |  5 +++
+ .../graphics/cg/GraphicsContextCG.cpp         |  8 +++--
+ .../platform/graphics/cocoa/IOSurface.mm      | 13 +++++++
+ .../WebCore/platform/mac/ScrollbarThemeMac.mm |  5 +++
+ .../network/cocoa/ResourceRequestCocoa.mm     |  1 +
+ .../WebView/WebVideoFullscreenController.mm   | 36 ++++++++++++++++++-
+ 11 files changed, 73 insertions(+), 5 deletions(-)
+
+diff --git a/Source/JavaScriptCore/jit/ExecutableAllocator.cpp b/Source/JavaScriptCore/jit/ExecutableAllocator.cpp
+index e9771b96de..4aa5b6e03e 100644
+--- a/Source/JavaScriptCore/jit/ExecutableAllocator.cpp
++++ b/Source/JavaScriptCore/jit/ExecutableAllocator.cpp
+@@ -284,7 +284,11 @@ static ALWAYS_INLINE void initializeSeparatedWXHeaps(void* stubBase, size_t stub
+     RELEASE_ASSERT(!result);
+ 
+     // Zero out writableAddr to avoid leaking the address of the writable mapping.
++#if defined(LEOPARD_WEBKIT)
++    memset(&writableAddr, 0, sizeof(writableAddr));
++#else
+     memset_s(&writableAddr, sizeof(writableAddr), 0, sizeof(writableAddr));
++#endif
+ 
+ #if ENABLE(SEPARATED_WX_HEAP)
+     g_jscConfig.jitWriteSeparateHeaps = reinterpret_cast<JITWriteSeparateHeapsFunction>(writeThunk.code().executableAddress());
+diff --git a/Source/WTF/wtf/cocoa/FileSystemCocoa.mm b/Source/WTF/wtf/cocoa/FileSystemCocoa.mm
+index 2451f63794..29110f77db 100644
+--- a/Source/WTF/wtf/cocoa/FileSystemCocoa.mm
++++ b/Source/WTF/wtf/cocoa/FileSystemCocoa.mm
+@@ -27,6 +27,7 @@
+  */
+ 
+ #import "config.h"
++#include <sys/param.h>
+ #import <wtf/FileSystem.h>
+ 
+ #import <wtf/SoftLinking.h>
+diff --git a/Source/WTF/wtf/cocoa/ResourceUsageCocoa.cpp b/Source/WTF/wtf/cocoa/ResourceUsageCocoa.cpp
+index fe6dcede2d..80e8aa0297 100644
+--- a/Source/WTF/wtf/cocoa/ResourceUsageCocoa.cpp
++++ b/Source/WTF/wtf/cocoa/ResourceUsageCocoa.cpp
+@@ -24,6 +24,7 @@
+  */
+ 
+ #include "config.h"
++#include <unistd.h>
+ #include <wtf/ResourceUsage.h>
+ 
+ #include <mach/mach_error.h>
+diff --git a/Source/WTF/wtf/mac/FileSystemMac.mm b/Source/WTF/wtf/mac/FileSystemMac.mm
+index 71c80b1ba8..63a2ca2b80 100644
+--- a/Source/WTF/wtf/mac/FileSystemMac.mm
++++ b/Source/WTF/wtf/mac/FileSystemMac.mm
+@@ -68,7 +68,9 @@ void FileSystem::setMetadataURL(const String& path, const String& metadataURLStr
+             [whereFromAttribute addObject:referrer];
+ 
+         MDItemSetAttribute(item.get(), kMDItemWhereFroms, (__bridge CFArrayRef)whereFromAttribute.get());
++#if !defined(LEOPARD_WEBKIT)  /* kMDItemDownloadedDate is 10.7+ */
+         MDItemSetAttribute(item.get(), kMDItemDownloadedDate, (__bridge CFArrayRef)@[ [NSDate date] ]);
++#endif
+     });
+ }
+ 
+diff --git a/Source/WTF/wtf/posix/OSAllocatorPOSIX.cpp b/Source/WTF/wtf/posix/OSAllocatorPOSIX.cpp
+index 4454059c51..36336d8969 100644
+--- a/Source/WTF/wtf/posix/OSAllocatorPOSIX.cpp
++++ b/Source/WTF/wtf/posix/OSAllocatorPOSIX.cpp
+@@ -69,7 +69,7 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
+         protection |= PROT_EXEC;
+ 
+     int flags = MAP_PRIVATE | MAP_ANON;
+-#if OS(DARWIN)
++#if OS(DARWIN) && !defined(LEOPARD_WEBKIT)  /* MAP_JIT is 10.7+; on 10.6 PROT_EXEC suffices */
+     if (executable)
+         flags |= MAP_JIT;
+ #endif
+diff --git a/Source/WebCore/accessibility/mac/AXObjectCacheMac.mm b/Source/WebCore/accessibility/mac/AXObjectCacheMac.mm
+index 8eed01028c..c08d8f49e3 100644
+--- a/Source/WebCore/accessibility/mac/AXObjectCacheMac.mm
++++ b/Source/WebCore/accessibility/mac/AXObjectCacheMac.mm
+@@ -282,7 +282,12 @@ static void AXPostNotificationWithUserInfo(AccessibilityObjectWrapper *object, N
+     if (skipSystemNotification)
+         return;
+ 
++#if defined(LEOPARD_WEBKIT)
++    UNUSED_PARAM(userInfo); /* [leopard] WithUserInfo variant is 10.7+; 10.6 has no userInfo */
++    NSAccessibilityPostNotification(object, notification);
++#else
+     NSAccessibilityPostNotificationWithUserInfo(object, notification, userInfo);
++#endif
+ }
+ 
+ void AXObjectCache::postPlatformNotification(AXCoreObject* obj, AXNotification notification)
+diff --git a/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp b/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp
+index d9088808ab..a9f7e057c1 100644
+--- a/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp
++++ b/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp
+@@ -98,8 +98,9 @@ CGColorSpaceRef linearRGBColorSpaceRef()
+     static CGColorSpaceRef linearRGBColorSpace;
+     static std::once_flag onceFlag;
+     std::call_once(onceFlag, [] {
+-#if PLATFORM(WIN)
++#if PLATFORM(WIN) || defined(LEOPARD_WEBKIT)
+         // FIXME: Windows should be able to use linear sRGB, this is tracked by http://webkit.org/b/80000.
++        // [leopard] kCGColorSpaceLinearSRGB is 10.11+; fall back to sRGB on 10.6.
+         linearRGBColorSpace = sRGBColorSpaceRef();
+ #else
+         linearRGBColorSpace = CGColorSpaceCreateWithName(kCGColorSpaceLinearSRGB);
+@@ -114,7 +115,7 @@ CGColorSpaceRef extendedSRGBColorSpaceRef()
+     static std::once_flag onceFlag;
+     std::call_once(onceFlag, [] {
+         CGColorSpaceRef colorSpace = NULL;
+-#if PLATFORM(COCOA)
++#if PLATFORM(COCOA) && !defined(LEOPARD_WEBKIT)
+         colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedSRGB);
+ #endif
+         // If there is no support for extended sRGB, fall back to sRGB.
+@@ -131,9 +132,10 @@ CGColorSpaceRef displayP3ColorSpaceRef()
+     static CGColorSpaceRef displayP3ColorSpace;
+     static std::once_flag onceFlag;
+     std::call_once(onceFlag, [] {
+-#if PLATFORM(COCOA)
++#if PLATFORM(COCOA) && !defined(LEOPARD_WEBKIT)
+         displayP3ColorSpace = CGColorSpaceCreateWithName(kCGColorSpaceDisplayP3);
+ #else
++        // [leopard] kCGColorSpaceDisplayP3 is 10.11+; fall back to sRGB on 10.6.
+         displayP3ColorSpace = sRGBColorSpaceRef();
+ #endif
+     });
+diff --git a/Source/WebCore/platform/graphics/cocoa/IOSurface.mm b/Source/WebCore/platform/graphics/cocoa/IOSurface.mm
+index 91b141a503..5ef13f5cd4 100644
+--- a/Source/WebCore/platform/graphics/cocoa/IOSurface.mm
++++ b/Source/WebCore/platform/graphics/cocoa/IOSurface.mm
+@@ -326,22 +326,34 @@ GraphicsContext& IOSurface::ensureGraphicsContext()
+ 
+ IOSurface::SurfaceState IOSurface::state() const
+ {
++#if defined(LEOPARD_WEBKIT)
++    return IOSurface::SurfaceState::Valid; /* [leopard] IOSurfaceSetPurgeable is 10.7+ */
++#else
+     uint32_t previousState = 0;
+     IOReturn ret = IOSurfaceSetPurgeable(m_surface.get(), kIOSurfacePurgeableKeepCurrent, &previousState);
+     ASSERT_UNUSED(ret, ret == kIOReturnSuccess);
+     return previousState == kIOSurfacePurgeableEmpty ? IOSurface::SurfaceState::Empty : IOSurface::SurfaceState::Valid;
++#endif
+ }
+ 
+ bool IOSurface::isVolatile() const
+ {
++#if defined(LEOPARD_WEBKIT)
++    return false; /* [leopard] IOSurfaceSetPurgeable is 10.7+; surfaces always resident */
++#else
+     uint32_t previousState = 0;
+     IOReturn ret = IOSurfaceSetPurgeable(m_surface.get(), kIOSurfacePurgeableKeepCurrent, &previousState);
+     ASSERT_UNUSED(ret, ret == kIOReturnSuccess);
+     return previousState != kIOSurfacePurgeableNonVolatile;
++#endif
+ }
+ 
+ IOSurface::SurfaceState IOSurface::setIsVolatile(bool isVolatile)
+ {
++#if defined(LEOPARD_WEBKIT)
++    UNUSED_PARAM(isVolatile); /* [leopard] IOSurfaceSetPurgeable is 10.7+; no-op, surface stays valid */
++    return IOSurface::SurfaceState::Valid;
++#else
+     uint32_t previousState = 0;
+     IOReturn ret = IOSurfaceSetPurgeable(m_surface.get(), isVolatile ? kIOSurfacePurgeableVolatile : kIOSurfacePurgeableNonVolatile, &previousState);
+     ASSERT_UNUSED(ret, ret == kIOReturnSuccess);
+@@ -350,6 +362,7 @@ IOSurface::SurfaceState IOSurface::setIsVolatile(bool isVolatile)
+         return IOSurface::SurfaceState::Empty;
+ 
+     return IOSurface::SurfaceState::Valid;
++#endif
+ }
+ 
+ IOSurface::Format IOSurface::format() const
+diff --git a/Source/WebCore/platform/mac/ScrollbarThemeMac.mm b/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
+index 864429663f..31e6dd55a9 100644
+--- a/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
++++ b/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
+@@ -564,7 +564,12 @@ void ScrollbarThemeMac::paintScrollCorner(GraphicsContext& context, const IntRec
+ 
+     auto cornerDrawingOptions = @{ (__bridge NSString *)kCUIWidgetKey: (__bridge NSString *)kCUIWidgetScrollBarTrackCorner,
+         (__bridge NSString *)kCUIIsFlippedKey: (__bridge NSNumber *)kCFBooleanTrue };
++#if defined(LEOPARD_WEBKIT)
++    /* [leopard] NSAppearance _drawInRect: is 10.9+; skip on 10.6 (legacy scrollbars). */
++    (void)cornerDrawingOptions;
++#else
+     [[NSAppearance currentAppearance] _drawInRect:cornerRect context:localContext.cgContext() options:cornerDrawingOptions];
++#endif
+ }
+ 
+ #if ENABLE(RUBBER_BANDING)
+diff --git a/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm b/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
+index 24513cfefa..3bda75d921 100644
+--- a/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
++++ b/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
+@@ -24,6 +24,7 @@
+  */
+ 
+ #import "config.h"
++#import <wtf/cocoa/VectorCocoa.h>
+ #import "ResourceRequest.h"
+ 
+ #if PLATFORM(COCOA)
+diff --git a/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm b/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm
+index 0650dbf153..44b21287b0 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm
++++ b/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm
+@@ -25,7 +25,7 @@
+ 
+ #import "WebVideoFullscreenController.h"
+ 
+-#if ENABLE(VIDEO) && PLATFORM(MAC)
++#if ENABLE(VIDEO) && PLATFORM(MAC) && !defined(LEOPARD_WEBKIT)
+ 
+ #import <AVFoundation/AVPlayer.h>
+ #import <WebCore/HTMLVideoElement.h>
+@@ -346,4 +346,38 @@ static WebAVPlayerView *allocWebAVPlayerViewInstance()
+ 
+ ALLOW_DEPRECATED_DECLARATIONS_END
+ 
++// [leopard] WebVideoFullscreenController is built on AVKit (PlaybackSessionInterfaceAVKit,
++// WebAVPlayerController, AVPlayerView) which is 10.9+. On 10.6 provide a minimal no-op
++// stub so WebView.mm can instantiate it; WK1 video fullscreen is unsupported on 10.6.
++#if ENABLE(VIDEO) && PLATFORM(MAC) && defined(LEOPARD_WEBKIT)
++
++#import <WebCore/HTMLVideoElement.h>
++
++@implementation WebVideoFullscreenController {
++    NakedPtr<WebCore::HTMLVideoElement> _stubVideoElement;
++}
++
++- (void)setVideoElement:(NakedPtr<WebCore::HTMLVideoElement>)videoElement
++{
++    _stubVideoElement = videoElement;
++}
++
++- (NakedPtr<WebCore::HTMLVideoElement>)videoElement
++{
++    return _stubVideoElement;
++}
++
++- (void)enterFullscreen:(NSScreen *)screen
++{
++    UNUSED_PARAM(screen);
++}
++
++- (void)exitFullscreen
++{
++}
++
++@end
++
++#endif
++
+ #endif
+-- 
+2.50.1 (Apple Git-155)
+

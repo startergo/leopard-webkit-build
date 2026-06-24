@@ -1,0 +1,115 @@
+From 77a47b092c4d405d486d213f8da53e458d8e012a Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Tue, 23 Jun 2026 10:54:29 -0500
+Subject: [PATCH 6/8] [sl-port-610] Software paint path: disable CA
+ compositing, guard 10.6-absent CG/AX SPIs
+
+After google.com loaded, the software repaint path surfaced three more
+10.6 incompatibilities (CA compositing init, a CG shadow SPI, and an
+accessibility SPI). Fixes keep painting on the software path that the
+QEMU software-GPU VM can actually run.
+
+WebKitLegacy:
+- WebPreferences.mm: default WebKitAcceleratedCompositingEnabled to NO under
+  LEOPARD_WEBKIT. CoreAnimation accelerated compositing instantiates CALayer
+  classes whose init sends post-10.6 selectors (SIGTRAP via _class_initialize
+  in PlatformCALayerCocoa::commonInit) and is pointless on the software-only
+  QEMU GPU. The software rendering path renders correctly; WebGL uses the
+  ContentsProvided/ANGLE path rather than root CA compositing.
+
+WebCore:
+- GraphicsContextCG.cpp (applyShadowOffsetWorkaroundIfNeeded): skip
+  CGContextDrawsWithCorrectShadowOffsets under LEOPARD_WEBKIT. The symbol is
+  not exported by 10.6 CoreGraphics (SIGBUS at the unbound stub when painting
+  CSS box-shadows); 10.6 predates correct-offset behavior, so always apply the
+  offset workaround.
+- ThemeMac.mm (userPrefersReducedMotion): guard
+  -[NSWorkspace accessibilityDisplayShouldReduceMotion] (10.9+, unrecognized
+  selector on 10.6) with respondsToSelector:, returning false; add an
+  NSWorkspace (SLReduceMotionCompat) category so the call typechecks on the
+  10.6 SDK.
+---
+ .../platform/graphics/cg/GraphicsContextCG.cpp  |  7 +++++++
+ Source/WebCore/platform/mac/ThemeMac.mm         | 17 +++++++++++++++++
+ .../WebKitLegacy/mac/WebView/WebPreferences.mm  |  8 ++++++++
+ 3 files changed, 32 insertions(+)
+
+diff --git a/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp b/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp
+index a9f7e057c1..814ae3d769 100644
+--- a/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp
++++ b/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp
+@@ -1202,8 +1202,15 @@ static void applyShadowOffsetWorkaroundIfNeeded(const GraphicsContext& context,
+     if (context.isAcceleratedContext())
+         return;
+ 
++#if defined(LEOPARD_WEBKIT)
++    // [leopard] CGContextDrawsWithCorrectShadowOffsets is not an exported symbol in 10.6's
++    // CoreGraphics (SIGBUS at the unbound stub when painting CSS box-shadows). 10.6 predates the
++    // correct-offset behavior, so fall through and always apply the offset workaround below.
++    UNUSED_PARAM(context);
++#else
+     if (CGContextDrawsWithCorrectShadowOffsets(context.platformContext()))
+         return;
++#endif
+ 
+     // Work around <rdar://problem/5539388> by ensuring that the offsets will get truncated
+     // to the desired integer. Also see: <rdar://problem/10056277>
+diff --git a/Source/WebCore/platform/mac/ThemeMac.mm b/Source/WebCore/platform/mac/ThemeMac.mm
+index a8cff60268..5e3d224394 100644
+--- a/Source/WebCore/platform/mac/ThemeMac.mm
++++ b/Source/WebCore/platform/mac/ThemeMac.mm
+@@ -26,6 +26,14 @@
+ #import "config.h"
+ #import "ThemeMac.h"
+ 
++#if defined(LEOPARD_WEBKIT)
++// [leopard] The 10.6 SDK's NSWorkspace.h does not declare accessibilityDisplayShouldReduceMotion;
++// declare it so the respondsToSelector:-guarded call below typechecks (it returns BOOL).
++@interface NSWorkspace (SLReduceMotionCompat)
++- (BOOL)accessibilityDisplayShouldReduceMotion;
++@end
++#endif
++
+ #if PLATFORM(MAC)
+ 
+ #import "AXObjectCache.h"
+@@ -994,7 +1002,16 @@ void ThemeMac::paint(ControlPart part, ControlStates& states, GraphicsContext& c
+ 
+ bool ThemeMac::userPrefersReducedMotion() const
+ {
++#if defined(LEOPARD_WEBKIT)
++    // [leopard] -[NSWorkspace accessibilityDisplayShouldReduceMotion] is 10.9+ (unrecognized
++    // selector on 10.6). No reduced-motion preference exists on 10.6; report false.
++    NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
++    if (![workspace respondsToSelector:@selector(accessibilityDisplayShouldReduceMotion)])
++        return false;
++    return [workspace accessibilityDisplayShouldReduceMotion];
++#else
+     return [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldReduceMotion];
++#endif
+ }
+ 
+ }
+diff --git a/Source/WebKitLegacy/mac/WebView/WebPreferences.mm b/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
+index ae9078b332..4bbb8a724e 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
++++ b/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
+@@ -486,7 +486,15 @@ public:
+         @YES, WebKitZoomsTextOnlyPreferenceKey,
+         @NO, WebKitJavaScriptCanAccessClipboardPreferenceKey,
+         @YES, WebKitXSSAuditorEnabledPreferenceKey,
++#if defined(LEOPARD_WEBKIT)
++        // [leopard] CoreAnimation accelerated compositing is fragile on 10.6's CALayer surface
++        // (post-10.6 CA selectors in layer init -> SIGTRAP) and pointless on the software-only
++        // QEMU GPU. Default OFF so the proven software rendering path is used. WebGL uses the
++        // ContentsProvided/ANGLE path, not root CA compositing.
++        @NO, WebKitAcceleratedCompositingEnabledPreferenceKey,
++#else
+         @YES, WebKitAcceleratedCompositingEnabledPreferenceKey,
++#endif
+ #if PLATFORM(MAC)
+ #define DEFAULT_SUBPIXEL_ANTIALIASED_LAYER_TEXT_ENABLED YES
+ #else
+-- 
+2.50.1 (Apple Git-155)
+

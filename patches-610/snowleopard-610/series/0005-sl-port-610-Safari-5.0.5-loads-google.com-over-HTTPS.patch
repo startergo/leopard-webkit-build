@@ -1,0 +1,431 @@
+From 72d84132cb6dc83277e313e1b22f97d52fcee878 Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Tue, 23 Jun 2026 09:09:25 -0500
+Subject: [PATCH 5/8] =?UTF-8?q?[sl-port-610]=20Safari=205.0.5=20loads=20go?=
+ =?UTF-8?q?ogle.com=20over=20HTTPS=20=E2=80=94=20runtime=20crash=20cascade?=
+ =?UTF-8?q?=20fixed?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Milestone: WebKit 610.1.15 on 10.6.8 launches Safari 5.0.5, loads
+https://www.google.com (TLS), parses/styles/renders, runs JS (timers,
+cookies, focus), and survives the full load-delegate chain.
+
+WTF:
+- ThreadingPrimitives.h / posix/ThreadingPOSIX.cpp: out-of-line
+  WTF_EXPORT_PRIVATE Mutex()/ThreadCondition() ctors + timedWait(Mutex&,double)
+  overload for Safari 5.0.5 ABI (empty bodies; PTHREAD_*_INITIALIZER in-class).
+- PlatformHave.h: HAVE_AVASSETREADER off under LEOPARD_WEBKIT (drops dangling
+  ImageDecoderAVFObjC refs from the excluded decoder).
+
+WebCore:
+- WebCoreResourceHandleAsOperationQueueDelegate.mm: run work synchronously when
+  already on main thread — fixes operation-queue main-thread self-deadlock.
+- ResourceRequestCocoa.mm: iterate allHTTPHeaderFields allKeys snapshot to avoid
+  mutate-while-enumerate hang on 10.6.
+- PlatformScreenMac.mm: guard 10.8+ accessibilityDisplayShouldInvertColors with
+  respondsToSelector: + category decl for BOOL typecheck on the 10.6 SDK.
+- ColorMac.mm: makeRGBAFromNSColor uses colorUsingColorSpaceName:
+  NSCalibratedRGBColorSpace (10.6 getRed: rejects NSCustomColorSpace).
+- NetworkStorageSessionCocoa.mm: httpCookiesForURL uses sharedHTTPCookieStorage
+  for default CF storage; cookiesForURL falls back to basic -cookiesForURL: when
+  the 10.9+ partition completionHandler SPI is absent.
+- PlatformMac.cmake: compile platform/mac/WebCoreView.m (base NSView/NSScrollView
+  _webcore_effectiveFirstResponder categories; fixes JS .focus() crash).
+- MediaPlayer.cpp: AVFObjC exclusion guard.
+
+WebKitLegacy:
+- WebFrameLoaderClient.h/.mm: m_policyListener WeakObjCPtr -> RetainPtr (10.6
+  lacks zeroing-weak runtime; matches 605).
+- WebHTMLView.mm: guard FontAttributes::createDictionary() call sites under
+  LEOPARD_WEBKIT (FontAttributesCocoa.mm excluded on 10.6).
+- WebHistoryItem.mm: reimplement _transientPropertyForKey:/_setTransientProperty:
+  forKey: via objc associated objects (Safari 5.0.5 calls these post-load).
+---
+ Source/WTF/wtf/PlatformHave.h                 |  4 ++-
+ Source/WTF/wtf/ThreadingPrimitives.h          | 11 ++++++++
+ Source/WTF/wtf/posix/ThreadingPOSIX.cpp       | 25 +++++++++++++++++++
+ Source/WebCore/PlatformMac.cmake              |  1 +
+ .../WebCore/platform/graphics/MediaPlayer.cpp |  2 ++
+ .../WebCore/platform/graphics/mac/ColorMac.mm |  9 ++++++-
+ .../WebCore/platform/mac/PlatformScreenMac.mm | 15 ++++++++++-
+ .../cocoa/NetworkStorageSessionCocoa.mm       | 20 ++++++++++++++-
+ .../network/cocoa/ResourceRequestCocoa.mm     |  7 +++++-
+ ...eResourceHandleAsOperationQueueDelegate.mm | 11 ++++++++
+ .../mac/History/WebHistoryItem.mm             | 24 ++++++++++++++++++
+ .../mac/WebCoreSupport/WebFrameLoaderClient.h |  2 +-
+ .../WebCoreSupport/WebFrameLoaderClient.mm    |  2 +-
+ .../WebKitLegacy/mac/WebView/WebHTMLView.mm   | 12 +++++++++
+ 14 files changed, 138 insertions(+), 7 deletions(-)
+
+diff --git a/Source/WTF/wtf/PlatformHave.h b/Source/WTF/wtf/PlatformHave.h
+index 88b6324878..99fb26a6ef 100644
+--- a/Source/WTF/wtf/PlatformHave.h
++++ b/Source/WTF/wtf/PlatformHave.h
+@@ -285,7 +285,9 @@
+ #define HAVE_QOS_CLASSES 1
+ #endif
+ 
+-#if PLATFORM(COCOA)
++#if PLATFORM(COCOA) && !defined(LEOPARD_WEBKIT)
++// [leopard] AVAssetReader-based image decoding (ImageDecoderAVFObjC) is excluded on 10.6;
++// disabling HAVE_AVASSETREADER removes all dangling references to the excluded decoder.
+ #define HAVE_AVASSETREADER 1
+ #endif
+ 
+diff --git a/Source/WTF/wtf/ThreadingPrimitives.h b/Source/WTF/wtf/ThreadingPrimitives.h
+index 6d699f816a..6c965fcaa7 100644
+--- a/Source/WTF/wtf/ThreadingPrimitives.h
++++ b/Source/WTF/wtf/ThreadingPrimitives.h
+@@ -71,7 +71,11 @@ class Mutex final {
+     WTF_MAKE_NONCOPYABLE(Mutex);
+     WTF_MAKE_FAST_ALLOCATED;
+ public:
++#if defined(LEOPARD_WEBKIT)
++    WTF_EXPORT_PRIVATE Mutex();
++#else
+     constexpr Mutex() = default;
++#endif
+     WTF_EXPORT_PRIVATE ~Mutex();
+ 
+     WTF_EXPORT_PRIVATE void lock();
+@@ -94,12 +98,19 @@ class ThreadCondition final {
+     WTF_MAKE_NONCOPYABLE(ThreadCondition);
+     WTF_MAKE_FAST_ALLOCATED;
+ public:
++#if defined(LEOPARD_WEBKIT)
++    WTF_EXPORT_PRIVATE ThreadCondition();
++#else
+     constexpr ThreadCondition() = default;
++#endif
+     WTF_EXPORT_PRIVATE ~ThreadCondition();
+     
+     WTF_EXPORT_PRIVATE void wait(Mutex& mutex);
+     // Returns true if the condition was signaled before absoluteTime, false if the absoluteTime was reached or is in the past.
+     WTF_EXPORT_PRIVATE bool timedWait(Mutex&, WallTime absoluteTime);
++#if defined(LEOPARD_WEBKIT)
++    WTF_EXPORT_PRIVATE bool timedWait(Mutex&, double absoluteTime);
++#endif
+     WTF_EXPORT_PRIVATE void signal();
+     WTF_EXPORT_PRIVATE void broadcast();
+     
+diff --git a/Source/WTF/wtf/posix/ThreadingPOSIX.cpp b/Source/WTF/wtf/posix/ThreadingPOSIX.cpp
+index 752831649b..9f86d8cbaa 100644
+--- a/Source/WTF/wtf/posix/ThreadingPOSIX.cpp
++++ b/Source/WTF/wtf/posix/ThreadingPOSIX.cpp
+@@ -477,6 +477,15 @@ void Thread::destructTLS(void* data)
+ #endif
+ }
+ 
++#if defined(LEOPARD_WEBKIT)
++__attribute__((used, visibility("default")))
++Mutex::Mutex()
++{
++    /* [leopard] m_mutex is already initialized by its in-class PTHREAD_MUTEX_INITIALIZER;
++       this out-of-line ctor exists only to export __ZN3WTF5MutexC1Ev for Safari 5.0.5. */
++}
++#endif
++
+ Mutex::~Mutex()
+ {
+     int result = pthread_mutex_destroy(&m_mutex);
+@@ -508,6 +517,15 @@ void Mutex::unlock()
+     ASSERT_UNUSED(result, !result);
+ }
+ 
++#if defined(LEOPARD_WEBKIT)
++__attribute__((used, visibility("default")))
++ThreadCondition::ThreadCondition()
++{
++    /* [leopard] m_condition is already initialized by its in-class PTHREAD_COND_INITIALIZER;
++       this out-of-line ctor exists only to export the symbol for Safari 5.0.5. */
++}
++#endif
++
+ ThreadCondition::~ThreadCondition()
+ {
+     pthread_cond_destroy(&m_condition);
+@@ -541,6 +559,13 @@ bool ThreadCondition::timedWait(Mutex& mutex, WallTime absoluteTime)
+     return pthread_cond_timedwait(&m_condition, &mutex.impl(), &targetTime) == 0;
+ }
+ 
++#if defined(LEOPARD_WEBKIT)
++bool ThreadCondition::timedWait(Mutex& mutex, double absoluteTime)
++{
++    return timedWait(mutex, WallTime::fromRawSeconds(absoluteTime));
++}
++#endif
++
+ void ThreadCondition::signal()
+ {
+     int result = pthread_cond_signal(&m_condition);
+diff --git a/Source/WebCore/PlatformMac.cmake b/Source/WebCore/PlatformMac.cmake
+index 5ede9dba2b..fe27ba6aa0 100644
+--- a/Source/WebCore/PlatformMac.cmake
++++ b/Source/WebCore/PlatformMac.cmake
+@@ -391,6 +391,7 @@ list(APPEND WebCore_SOURCES
+     platform/mac/RemoteCommandListenerMac.mm
+     platform/mac/SSLKeyGeneratorMac.mm
+     platform/mac/ScrollAnimatorMac.mm
++    platform/mac/WebCoreView.m  # [leopard] base NSView/NSScrollView _webcore_effectiveFirstResponder categories (was missing -> focus crash)
+     platform/mac/ScrollViewMac.mm
+     platform/mac/ScrollbarThemeMac.mm
+     platform/mac/SerializedPlatformDataCueMac.mm
+diff --git a/Source/WebCore/platform/graphics/MediaPlayer.cpp b/Source/WebCore/platform/graphics/MediaPlayer.cpp
+index 3c08d543c9..ca422f1f2d 100644
+--- a/Source/WebCore/platform/graphics/MediaPlayer.cpp
++++ b/Source/WebCore/platform/graphics/MediaPlayer.cpp
+@@ -242,9 +242,11 @@ static void buildMediaEnginesVector()
+ #if PLATFORM(COCOA)
+         if (registerRemoteEngine)
+             registerRemoteEngine(addMediaEngine, MediaPlayerEnums::MediaEngineIdentifier::AVFoundation);
++#if !defined(LEOPARD_WEBKIT)
+         else
+             MediaPlayerPrivateAVFoundationObjC::registerMediaEngine(addMediaEngine);
+ #endif
++#endif
+ 
+ #if ENABLE(MEDIA_SOURCE)
+         MediaPlayerPrivateMediaSourceAVFObjC::registerMediaEngine(addMediaEngine);
+diff --git a/Source/WebCore/platform/graphics/mac/ColorMac.mm b/Source/WebCore/platform/graphics/mac/ColorMac.mm
+index f391cc3dbc..87f875d926 100644
+--- a/Source/WebCore/platform/graphics/mac/ColorMac.mm
++++ b/Source/WebCore/platform/graphics/mac/ColorMac.mm
+@@ -63,7 +63,14 @@ static RGBA32 makeRGBAFromNSColor(NSColor *color)
+     CGFloat alpha;
+ 
+     BEGIN_BLOCK_OBJC_EXCEPTIONS;
+-    NSColor *rgbColor = [color colorUsingColorSpace:NSColorSpace.deviceRGBColorSpace];
++    // [leopard] On 10.6, converting to deviceRGBColorSpace yields an "NSCustomColorSpace
++    // Device RGB" color whose -getRed:green:blue:alpha: throws ("need to first convert
++    // colorspace"). Convert to sRGB instead (matches 605), which -getRed: accepts on 10.6.
++    // [leopard] On 10.6, -colorUsingColorSpace: (NSColorSpace*) yields an NSCustomColorSpace
++    // color whose -getRed:green:blue:alpha: throws (even for sRGB). The classic string-based
++    // -colorUsingColorSpaceName:NSCalibratedRGBColorSpace returns a color that -getRed: accepts
++    // on 10.6 (matches 605).
++    NSColor *rgbColor = [color colorUsingColorSpaceName:NSCalibratedRGBColorSpace];
+     if (!rgbColor) {
+         // The color space conversion above can fail if the NSColor is in the NSPatternColorSpace.
+         // These colors are actually a repeating pattern, not just a solid color. To workaround
+diff --git a/Source/WebCore/platform/mac/PlatformScreenMac.mm b/Source/WebCore/platform/mac/PlatformScreenMac.mm
+index f871241011..43d9e60759 100644
+--- a/Source/WebCore/platform/mac/PlatformScreenMac.mm
++++ b/Source/WebCore/platform/mac/PlatformScreenMac.mm
+@@ -40,6 +40,12 @@
+ #import <pal/cocoa/MediaToolboxSoftLink.h>
+ #endif
+ 
++// [leopard] Declare the 10.8+ NSWorkspace accessibility selector so calls typecheck as BOOL
++// on the 10.6 SDK (where it is absent). Guarded at call sites with respondsToSelector:.
++@interface NSWorkspace (SLInvertedColorsCompat)
++- (BOOL)accessibilityDisplayShouldInvertColors;
++@end
++
+ namespace WebCore {
+ 
+ // These functions scale between screen and page coordinates because JavaScript/DOM operations
+@@ -100,7 +106,11 @@ ScreenProperties collectScreenProperties()
+     ASSERT(hasProcessPrivilege(ProcessPrivilege::CanCommunicateWithWindowServer));
+ 
+     ScreenProperties screenProperties;
+-    bool screenHasInvertedColors = [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldInvertColors];
++    // [leopard] -[NSWorkspace accessibilityDisplayShouldInvertColors] is 10.8+. On 10.6 the
++    // selector is absent; respondsToSelector: guard yields false (no inverted-colors setting).
++    bool screenHasInvertedColors = false;
++    if ([[NSWorkspace sharedWorkspace] respondsToSelector:@selector(accessibilityDisplayShouldInvertColors)])
++        screenHasInvertedColors = [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldInvertColors];
+ 
+     for (NSScreen *screen in [NSScreen screens]) {
+         auto displayID = WebCore::displayID(screen);
+@@ -246,6 +256,9 @@ bool screenHasInvertedColors()
+ 
+     // This is a system-wide accessibility setting, same on all screens.
+     ASSERT(hasProcessPrivilege(ProcessPrivilege::CanCommunicateWithWindowServer));
++    // [leopard] 10.8+ selector; guard for 10.6 (returns false).
++    if (![[NSWorkspace sharedWorkspace] respondsToSelector:@selector(accessibilityDisplayShouldInvertColors)])
++        return false;
+     return [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldInvertColors];
+ }
+ 
+diff --git a/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm b/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
+index 79660e6063..80c253cff8 100644
+--- a/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
++++ b/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
+@@ -251,6 +251,16 @@ static NSArray *cookiesForURL(NSHTTPCookieStorage *storage, NSURL *url, NSURL *m
+     auto completionHandler = [&cookiesPtr] (NSArray *cookies) {
+         cookiesPtr = retainPtr(cookies);
+     };
++    // [leopard] The _getCookiesForURL:...:completionHandler: SPIs are 10.9+ (cookie partitioning/ITP)
++    // and do not exist on 10.6 (unrecognized selector). Fall back to the basic public
++    // -[NSHTTPCookieStorage cookiesForURL:] (10.2+), matching the 605 reference. Partition and
++    // SameSite are not enforceable on 10.6's cookie store.
++    if (![storage respondsToSelector:@selector(_getCookiesForURL:mainDocumentURL:partition:completionHandler:)]) {
++        UNUSED_PARAM(mainDocumentURL);
++        UNUSED_PARAM(sameSiteInfo);
++        UNUSED_PARAM(partition);
++        return [storage cookiesForURL:url];
++    }
+ // FIXME: Seems like this newer code path can be used for watchOS and tvOS too.
+ #if !PLATFORM(WATCHOS) && !PLATFORM(APPLETV)
+     if ([storage respondsToSelector:@selector(_getCookiesForURL:mainDocumentURL:partition:policyProperties:completionHandler:)])
+@@ -306,7 +316,15 @@ NSArray *NetworkStorageSession::httpCookiesForURL(CFHTTPCookieStorageRef cookieS
+ 
+     // FIXME: Stop creating a new NSHTTPCookieStorage object each time we want to query the cookie jar.
+     // NetworkStorageSession could instead keep a NSHTTPCookieStorage object for us.
+-    RetainPtr<NSHTTPCookieStorage> nsCookieStorage = adoptNS([[NSHTTPCookieStorage alloc] _initWithCFHTTPCookieStorage:cookieStorage]);
++    // [leopard] -[NSHTTPCookieStorage _initWithCFHTTPCookieStorage:] is a modern private SPI absent
++    // on 10.6 (unrecognized selector). When the CF storage is the process default (always true here,
++    // since a null storage is replaced with _CFHTTPCookieStorageGetDefault above), the shared
++    // NSHTTPCookieStorage wraps the same jar -- use it directly, matching nsCookieStorage().
++    RetainPtr<NSHTTPCookieStorage> nsCookieStorage;
++    if (cookieStorage == _CFHTTPCookieStorageGetDefault(kCFAllocatorDefault))
++        nsCookieStorage = [NSHTTPCookieStorage sharedHTTPCookieStorage];
++    else
++        nsCookieStorage = adoptNS([[NSHTTPCookieStorage alloc] _initWithCFHTTPCookieStorage:cookieStorage]);
+     return WebCore::cookiesForURL(nsCookieStorage.get(), url, firstParty, sameSiteInfo);
+ }
+ 
+diff --git a/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm b/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
+index 3bda75d921..aa36fa352e 100644
+--- a/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
++++ b/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
+@@ -191,7 +191,12 @@ void ResourceRequest::doUpdatePlatformRequest()
+     [nsRequest _setProperty:m_isTopSite ? @YES : @NO forKey:@"_kCFHTTPCookiePolicyPropertyIsTopLevelNavigation"];
+ 
+     // Cannot just use setAllHTTPHeaderFields here, because it does not remove headers.
+-    for (NSString *oldHeaderName in [nsRequest allHTTPHeaderFields])
++    // [leopard] On 10.6, -[NSMutableURLRequest allHTTPHeaderFields] returns the internal
++    // mutable dictionary, so mutating it via setValue:nil:forHTTPHeaderField: inside a
++    // fast-enumeration over it throws "mutated while being enumerated" (hangs page load).
++    // Iterate over a snapshot of the keys (a separate array) to decouple enumeration
++    // from the mutation.
++    for (NSString *oldHeaderName in [[nsRequest allHTTPHeaderFields] allKeys])
+         [nsRequest setValue:nil forHTTPHeaderField:oldHeaderName];
+     for (const auto& header : httpHeaderFields())
+         [nsRequest setValue:header.value forHTTPHeaderField:header.key];
+diff --git a/Source/WebCore/platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.mm b/Source/WebCore/platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.mm
+index 19e620580b..25a09e5fc2 100644
+--- a/Source/WebCore/platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.mm
++++ b/Source/WebCore/platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.mm
+@@ -59,6 +59,17 @@ static bool scheduledWithCustomRunLoopMode(const Optional<SchedulePairHashSet>&
+ 
+ - (void)callFunctionOnMainThread:(Function<void()>&&)function
+ {
++    // [leopard] On 10.6, -[NSURLConnection setDelegateQueue:] does not actually deliver
++    // delegate callbacks on the background operation queue; they arrive on the main thread.
++    // The willSendRequest/didReceiveResponse pattern dispatches work to the main thread and
++    // then blocks on a semaphore waiting for it. If we are already on the main thread, that
++    // enqueue-and-wait deadlocks (the run loop can never drain the work while blocked on the
++    // semaphore). When already on the main thread, run the work synchronously instead.
++    if (isMainThread()) {
++        function();
++        return;
++    }
++
+     // Sync xhr uses the message queue.
+     if (m_messageQueue)
+         return m_messageQueue->append(makeUnique<Function<void()>>(WTFMove(function)));
+diff --git a/Source/WebKitLegacy/mac/History/WebHistoryItem.mm b/Source/WebKitLegacy/mac/History/WebHistoryItem.mm
+index 6765682819..0cbdf40b6d 100644
+--- a/Source/WebKitLegacy/mac/History/WebHistoryItem.mm
++++ b/Source/WebKitLegacy/mac/History/WebHistoryItem.mm
+@@ -28,6 +28,7 @@
+ 
+ #import "WebHistoryItemInternal.h"
+ #import "WebHistoryItemPrivate.h"
++#import <objc/runtime.h>  // [leopard] associated objects for transient properties
+ 
+ #import "WebFrameInternal.h"
+ #import "WebFrameView.h"
+@@ -500,6 +501,29 @@ WebHistoryItem *kit(HistoryItem* item)
+ }
+ #endif
+ 
++// [leopard] Safari 5.0.5 calls -[WebHistoryItem _transientPropertyForKey:] after a load completes
++// (CallFrameLoadDelegate -> dispatchDidFinishLoad). 610 removed the transient-property API from
++// WebCore::HistoryItem (605 had getTransientProperty/setTransientProperty). Reimplement locally via
++// objc associated objects so the SPI exists without a WebCore change.
++- (id)_transientPropertyForKey:(NSString *)key
++{
++    NSMutableDictionary *props = objc_getAssociatedObject(self, @selector(_transientPropertyForKey:));
++    return [props objectForKey:key];
++}
++
++- (void)_setTransientProperty:(id)property forKey:(NSString *)key
++{
++    NSMutableDictionary *props = objc_getAssociatedObject(self, @selector(_transientPropertyForKey:));
++    if (!props) {
++        props = [NSMutableDictionary dictionary];
++        objc_setAssociatedObject(self, @selector(_transientPropertyForKey:), props, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
++    }
++    if (property)
++        [props setObject:property forKey:key];
++    else
++        [props removeObjectForKey:key];
++}
++
+ - (BOOL)lastVisitWasFailure
+ {
+     return core(_private)->lastVisitWasFailure();
+diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.h b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.h
+index 808f5c75cc..b291936388 100644
+--- a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.h
++++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.h
+@@ -254,7 +254,7 @@ private:
+ 
+     RetainPtr<WebFrame> m_webFrame;
+ 
+-    WeakObjCPtr<WebFramePolicyListener> m_policyListener;
++    RetainPtr<WebFramePolicyListener> m_policyListener; // [leopard] strong (was WeakObjCPtr); 10.6 lacks zeroing-weak runtime, matches 605
+ };
+ 
+ WebDataSource *dataSource(WebCore::DocumentLoader*);
+diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm
+index bd97246928..634fa25143 100644
+--- a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm
++++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm
+@@ -1535,7 +1535,7 @@ RetainPtr<WebFramePolicyListener> WebFrameLoaderClient::setUpPolicyListener(WebC
+ #endif
+         policyListener = adoptNS([[WebFramePolicyListener alloc] initWithFrame:core(m_webFrame.get()) identifier:identifier policyFunction:WTFMove(function) defaultPolicy:defaultPolicy]);
+ 
+-    m_policyListener = policyListener.get();
++    m_policyListener = policyListener;
+ 
+     return policyListener;
+ }
+diff --git a/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm b/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
+index d2c8204249..4ae0a63374 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
++++ b/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
+@@ -5051,7 +5051,14 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
+ {
+     auto* coreFrame = core([self _frame]);
+     auto string = adoptNS([[NSAttributedString alloc] initWithString:@"x"
++#if defined(LEOPARD_WEBKIT)
++        // [leopard] FontAttributes::createDictionary() lives in FontAttributesCocoa.mm, excluded on
++        // 10.6 (uses 10.13+ NSTextListMarker* constants). RTF-with-font-attributes degrades to plain
++        // attributes; pass nil so we do not reference the absent WebCore symbol.
++        attributes:nil]);
++#else
+         attributes:coreFrame ? coreFrame->editor().fontAttributesAtSelectionStart().createDictionary().get() : nil]);
++#endif
+     return [string RTFFromRange:NSMakeRange(0, [string length]) documentAttributes:@{ }];
+ }
+ 
+@@ -5713,7 +5720,12 @@ static BOOL writingDirectionKeyBindingsEnabled()
+     if (auto* coreFrame = core([self _frame])) {
+         if (const WebCore::Font* fd = coreFrame->editor().fontForSelection(multipleFonts))
+             font = (NSFont *)fd->platformData().registeredFont();
++#if defined(LEOPARD_WEBKIT)
++        // [leopard] createDictionary() unavailable on 10.6 (see above); leave attributes empty.
++        attributes = nil;
++#else
+         attributes = coreFrame->editor().fontAttributesAtSelectionStart().createDictionary();
++#endif
+     }
+ 
+     // FIXME: for now, return a bogus font that distinguishes the empty selection from the non-empty
+-- 
+2.50.1 (Apple Git-155)
+
