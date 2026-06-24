@@ -180,9 +180,15 @@ phase1_libcxx() {
 
     info "Phase 1c: Building libc++ 5.0.1..."
     cd "$LIBCXX_SRC/src"; rm -f *.o
+    # [leopard] Force-include a shim declaring the C99 long long rounding functions
+    # (llrintf/llrintl/llroundf/llroundl/llrint/llround). They exist in 10.6 libSystem
+    # at runtime but are NOT declared in the 10.6 SDK math.h, so libc++'s <cmath> fails
+    # to compile (hash.cpp et al.), silently dropping __next_prime from the built dylib
+    # and causing a dyld "Symbol not found: __next_prime" in JSC's FTL at runtime.
+    local MATH_SHIM="$PROJECT_ROOT/shims/leopard_math_shim.h"
     for FILE in *.cpp; do
         clang++ -c -O2 $TF -std=c++11 -nostdinc++ -isystem "$LIBCXX_SRC/include" \
-            -I"$LIBCXXABI_SRC/include" -DLIBCXX_BUILDING_LIBCXXABI -DNDEBUG \
+            -I"$LIBCXXABI_SRC/include" -include "$MATH_SHIM" -DLIBCXX_BUILDING_LIBCXXABI -DNDEBUG \
             -D_LIBCPP_DISABLE_AVAILABILITY "$FILE" 2>/dev/null || true
     done
     clang++ $TF -o "$LIBCXX_DIST/lib/libc++.1.dylib" -dynamiclib -nodefaultlibs \
