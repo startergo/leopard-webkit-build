@@ -646,24 +646,52 @@ def best(basename, fw):
         if fw == "WebKitLegacy" and "/Source/WebKit/" in p: s += 100
         if "/win/" in p: s += 80
         if "/mac/" in p: s -= 8
+        if "/cocoa/" in p: s -= 8
+        if "/cf/" in p: s -= 4
         if "/DOM/" in p and basename.startswith("DOM"): s -= 8
+        # Penalize foreign (non-Mac) platform variants so an ambiguous basename
+        # (Handle.h, Utilities.h, Initialization.h) never redirects to a GTK/
+        # Win/etc. header that pulls <gcrypt.h> and friends.
+        for frag in ("/gcrypt/", "/gtk/", "/glib/", "/gstreamer/", "/curl/",
+                     "/cairo/", "/soup/", "/efl/", "/wpe/", "/playstation/",
+                     "/directx/", "/direct2d/", "/d3d/", "/texmap/",
+                     "/nicosia/", "/freetype/", "/harfbuzz/", "/x11/",
+                     "/wayland/", "/win/"):
+            if frag in p: s += 200
         return (s, len(p))
     return sorted(c, key=score)[0]
 fixed = 0
+copied_to_redirect = 0
 for f in glob.glob(fwd_root + "/**/*.h", recursive=True):
     try:
         content = open(f).read()
     except Exception:
         continue
+    rel = f.split("/ForwardingHeaders/")[1]
+    fw = rel.split("/")[0]
+    basename = os.path.basename(f)
     lines = [l for l in content.split("\n") if l.strip()]
-    # Only single-line #include redirects (leave full-content copies alone).
-    if len(lines) == 1 and lines[0].strip().startswith('#include "'):
-        fw = f.split("/ForwardingHeaders/")[1].split("/")[0]
-        t = best(os.path.basename(f), fw)
+    is_redirect = (len(lines) == 1 and lines[0].strip().startswith('#include "'))
+    if is_redirect:
+        # Normalize existing redirect to point at the best real source.
+        t = best(basename, fw)
         if t:
             open(f, "w").write('#include "%s"\n' % t)
             fixed += 1
-print("[leopard] normalized %d forwarding headers to absolute includes" % fixed)
+    else:
+        # Full-content COPY. cmake emits these per-framework; when the SAME
+        # header is also reachable by another spelling (e.g. flat redirect),
+        # the copy is a DISTINCT path so #pragma once does NOT dedupe and the
+        # definitions collide (redefinition of DictationContextType, etc.).
+        # Replace the copy with a redirect to the one canonical real source so
+        # every include spelling resolves to the same path. Only do this when a
+        # real source is found AND it is not the file itself.
+        t = best(basename, fw)
+        if t and os.path.abspath(t) != os.path.abspath(f):
+            open(f, "w").write('#include "%s"\n' % t)
+            copied_to_redirect += 1
+print("[leopard] normalized %d redirects, converted %d copies->redirects"
+      % (fixed, copied_to_redirect))
 PYFWD
         info "  repaired forwarding headers (absolute includes)"
     fi
@@ -680,25 +708,107 @@ PYFWD
     #       <KHR/khrplatform.h>, <EGL/...>. Copy those include subtrees in.
     if [ -d "$FWD" ]; then
         FWD_ROOT="$FWD" WC_ROOT="$SOURCE_DIR/Source/WebCore" \
-        ANGLE_ROOT="$SOURCE_DIR/Source/ThirdParty/ANGLE" python3 - <<'PYGEN'
+        ANGLE_ROOT="$SOURCE_DIR/Source/ThirdParty/ANGLE" JSC_ROOT="$SOURCE_DIR/Source/JavaScriptCore" \
+        PAL_ROOT="$SOURCE_DIR/Source/WebCore/PAL/pal" \
+        BMALLOC_ROOT="$SOURCE_DIR/Source/bmalloc/bmalloc" \
+        WTF_ROOT="$SOURCE_DIR/Source/WTF/wtf" \
+        WKL_ROOT="$SOURCE_DIR/Source/WebKitLegacy" \
+        WC_COPY_NAMES="$(grep -o 'ForwardingHeaders/WebCore/[A-Za-z0-9_]*\.h' "$BUILD_DIR/build.ninja" 2>/dev/null | sed 's:.*/::' | sort -u | paste -sd, -)" \
+        WC_INC_DIRS="$(grep 'INCLUDES = ' "$BUILD_DIR/build.ninja" 2>/dev/null | grep 'Source/WebCore/editing' | head -1 | grep -o '\-I[^ ]*' | sed 's/^-I//' | paste -sd: -)" \
+        python3 - <<'PYGEN'
 import os, glob
 fwd = os.environ["FWD_ROOT"]
 wc = os.path.abspath(os.environ["WC_ROOT"])
 angle = os.path.abspath(os.environ["ANGLE_ROOT"])
 
 # (a) Flat WebCore redirects (don't clobber existing forwarding headers).
-wc_headers = {}
+# Basenames that JavaScriptCore / WTF / bmalloc resolve LOCALLY by bare name
+# (e.g. JSC heap/Handle.h). A flat WebCore redirect of the same basename would
+# hijack their bare #include "Foo.h" and pull in the wrong (often foreign-
+# platform) header. Exclude every such basename from the flat WebCore set.
+wc_copy_names = set(
+    n for n in os.environ.get("WC_COPY_NAMES", "").split(",") if n
+)
+local_owned = set()
+for rootenv in ("JSC_ROOT", "WTF_ROOT", "BMALLOC_ROOT"):
+    r = os.environ.get(rootenv, "")
+    if r and os.path.isdir(r):
+        for dp, _, files in os.walk(r):
+            for fn in files:
+                if fn.endswith(".h"):
+                    local_owned.add(fn)
+# Foreign-platform path fragments: a WebCore header living ONLY under one of
+# these is for a non-Mac port (GTK/Win/etc.) and must not become a bare flat
+# redirect (e.g. PAL/pal/crypto/gcrypt/Handle.h -> <gcrypt.h>).
+FOREIGN = ("/gcrypt/", "/gtk/", "/glib/", "/gstreamer/", "/win/", "/curl/",
+           "/cairo/", "/soup/", "/efl/", "/wpe/", "/playstation/",
+           "/directx/", "/direct2d/", "/d3d/", "/texmap/", "/nicosia/",
+           "/freetype/", "/harfbuzz/", "/x11/", "/wayland/")
+def prefer_mac(paths):
+    # Prefer Mac/Cocoa/CF variants; penalize foreign-platform ones.
+    def score(p):
+        s = len(p)
+        for frag in ("/cocoa/", "/mac/", "/cf/", "/cg/", "/commoncrypto/"):
+            if frag in p: s -= 1000
+        for frag in FOREIGN:
+            if frag in p: s += 1000
+        return s
+    return sorted(paths, key=score)[0]
+wc_all = {}
 for dp, _, files in os.walk(wc):
     for fn in files:
         if fn.endswith(".h"):
-            wc_headers.setdefault(fn, os.path.join(dp, fn))
+            wc_all.setdefault(fn, []).append(os.path.join(dp, fn))
 flat = 0
-for base, real in wc_headers.items():
+skipped_local = 0
+skipped_foreign = 0
+skipped_staged = 0
+skipped_oninclude = 0
+wc_inc_dirs = set(
+    os.path.abspath(d) for d in os.environ.get("WC_INC_DIRS", "").split(":") if d
+)
+for base, paths in wc_all.items():
+    if base in local_owned:
+        skipped_local += 1
+        continue
+    # Drop foreign-only headers entirely (no Mac-relevant variant).
+    non_foreign = [p for p in paths if not any(fr in p for fr in FOREIGN)]
+    chosen_pool = non_foreign if non_foreign else None
+    if chosen_pool is None:
+        skipped_foreign += 1
+        continue
+    real = prefer_mac(chosen_pool)
+    # If the chosen real header lives in a directory already on WebCore's -I
+    # include path, a bare #include "X.h" resolves to it DIRECTLY. Adding a flat
+    # ForwardingHeaders/X redirect then creates a SECOND physical path to the
+    # same header; #pragma once keys on path so the two do not dedupe and the
+    # contents redefine (DictationContextType, etc.) in any TU that also pulls
+    # the cmake <WebCore/X> copy. Only emit a flat redirect when the header's
+    # directory is NOT already an -I dir (genuine gap, e.g. some cocoa subdirs).
+    real_dir = os.path.dirname(os.path.abspath(real))
     dst = os.path.join(fwd, base)
+    # Skip the flat redirect ONLY when BOTH hold:
+    #  (1) the header's dir is on WebCore's -I path (WebCore resolves it
+    #      directly, so the flat redirect is redundant for WebCore), AND
+    #  (2) cmake stages a ForwardingHeaders/WebCore/<base> copy (so WebKitLegacy
+    #      -- which has NO WebCore subdirs -- resolves it via <WebCore/base>).
+    # If (1) holds but (2) does not, WebKitLegacy has no other way to find the
+    # header (no subdir, no copy) and DOES need the flat redirect (e.g.
+    # AttributedString.h). If (1) is false, WebCore itself needs the flat
+    # redirect (e.g. ExtensionsGLANGLE.h, whose angle dir is not on the path).
+    # Skipping only when both hold removes the redundant second physical path
+    # that made #pragma once fail (DictationContextType) without starving any
+    # consumer that genuinely needs the redirect.
+    if real_dir in wc_inc_dirs and base in wc_copy_names:
+        skipped_oninclude += 1
+        continue
     if not os.path.exists(dst):
         open(dst, "w").write('#include "%s"\n' % real)
         flat += 1
-print("[leopard] created %d flat WebCore forwarding headers" % flat)
+print("[leopard] created %d flat WebCore forwarding headers "
+      "(skipped %d JSC/WTF/bmalloc-owned, %d foreign-only, %d cmake-staged)"
+      % (flat, skipped_local, skipped_foreign, skipped_staged))
+print("[leopard]   (also skipped %d already on WebCore -I path)" % skipped_oninclude)
 
 # (b) ANGLE redirects for every <ANGLE/X> include across WebCore.
 import re
@@ -710,7 +820,7 @@ for dp, _, files in os.walk(wc):
                 t = open(os.path.join(dp, fn)).read()
             except Exception:
                 continue
-            for m in re.findall(r'#\s*include\s*<ANGLE/([^>]+)>', t):
+            for m in re.findall(r'#\s*(?:include|import)\s*<ANGLE/([^>]+)>', t):
                 needed.add(m)
 # index real ANGLE headers by basename
 angle_real = {}
@@ -730,6 +840,54 @@ for h in needed:
         amade += 1
 print("[leopard] created %d ANGLE forwarding headers" % amade)
 
+# (b2) Framework-prefixed redirects. WebCore/WebKitLegacy do
+# #include <Prefix/Foo.h> for internal headers (e.g. <JavaScriptCore/
+# JSExportMacros.h>, <pal/ExportMacros.h> via WebCore/config.h) that cmake's
+# forwarding-header pass (public API only) omits. For each (prefix, real-root)
+# pair, scan WebCore for <prefix/X> includes and fill in every missing redirect.
+prefix_roots = [
+    ("JavaScriptCore", os.path.abspath(os.environ["JSC_ROOT"])),
+    ("pal",            os.path.abspath(os.environ["PAL_ROOT"])),
+    ("bmalloc",        os.path.abspath(os.environ["BMALLOC_ROOT"])),
+    ("wtf",            os.path.abspath(os.environ["WTF_ROOT"])),
+    ("WebCore",        wc),
+]
+for prefix, proot in prefix_roots:
+    if not os.path.isdir(proot):
+        print("[leopard] %s root missing: %s" % (prefix, proot))
+        continue
+    needed = set()
+    scan_dirs = [wc]
+    wkl = os.path.abspath(os.environ.get("WKL_ROOT", ""))
+    if wkl and os.path.isdir(wkl):
+        scan_dirs.append(wkl)
+    for sd in scan_dirs:
+        for dp, _, files in os.walk(sd):
+            for fn in files:
+                if fn.endswith((".cpp", ".mm", ".h")):
+                    try:
+                        t = open(os.path.join(dp, fn)).read()
+                    except Exception:
+                        continue
+                    for m in re.findall(r'#\s*(?:include|import)\s*<' + re.escape(prefix) + r'/([^>]+)>', t):
+                        needed.add(os.path.basename(m))
+    preal = {}
+    for dp, _, files in os.walk(proot):
+        for fn in files:
+            if fn.endswith(".h"):
+                preal.setdefault(fn, os.path.join(dp, fn))
+    pdst = os.path.join(fwd, prefix)
+    os.makedirs(pdst, exist_ok=True)
+    pmade = 0
+    for h in needed:
+        dst = os.path.join(pdst, h)
+        if not os.path.exists(dst):
+            real = preal.get(h)
+            if real:
+                open(dst, "w").write('#include "%s"\n' % real)
+                pmade += 1
+    print("[leopard] created %d %s forwarding headers" % (pmade, prefix))
+
 # (c) Copy GLES2/KHR/EGL header subtrees so <GLES2/...> etc. resolve.
 import shutil
 copied = 0
@@ -742,6 +900,24 @@ for sub in ("GLES2", "GLES", "GLES3", "KHR", "EGL"):
 print("[leopard] copied %d ANGLE include subtrees (GLES2/KHR/EGL/...)" % copied)
 PYGEN
         info "  generated WebCore/ANGLE forwarding headers + GL include trees"
+    fi
+
+    # [leopard] UserAgentScripts.h is an optional generated DerivedSource (gated
+    # by WebCore_USER_AGENT_SCRIPTS, which our config leaves unset, so cmake
+    # emits no rule for it). RenderThemeMac.mm #imports it unconditionally, but
+    # nothing we compile references its symbols (QuickTimePluginReplacement.mm
+    # is not in the build), so we only need the HEADER to exist for the import
+    # to resolve. Generate it with the same make-js-file-arrays.py the proven
+    # 605 build used, into DerivedSources/WebCore (already on the -I path).
+    local UAS_H="$BUILD_DIR/DerivedSources/WebCore/UserAgentScripts.h"
+    local UAS_CPP="$BUILD_DIR/DerivedSources/WebCore/UserAgentScriptsData.cpp"
+    local MJFA="$SOURCE_DIR/Source/JavaScriptCore/Scripts/make-js-file-arrays.py"
+    local QTPR_JS="$SOURCE_DIR/Source/WebCore/Modules/plugins/QuickTimePluginReplacement.js"
+    if [ ! -f "$UAS_H" ] && [ -f "$MJFA" ] && [ -f "$QTPR_JS" ]; then
+        local PY27="/Library/Frameworks/Python.framework/Versions/2.7/bin/python2.7"
+        [ -x "$PY27" ] || PY27="python3"
+        mkdir -p "$BUILD_DIR/DerivedSources/WebCore"
+        ( cd "$BUILD_DIR/Source/WebCore" && "$PY27" "$MJFA" -n WebCore "$UAS_H" "$UAS_CPP" "$QTPR_JS" )             && info "  generated UserAgentScripts.h ($(wc -c < "$UAS_H" | tr -d ' ') bytes)"             || warn "  UserAgentScripts.h generation failed (RenderThemeMac.mm may not compile)"
     fi
 
     touch "$stamp"
