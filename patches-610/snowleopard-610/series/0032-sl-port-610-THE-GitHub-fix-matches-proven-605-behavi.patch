@@ -1,7 +1,7 @@
 From 61d45dedbdab585b26ad45c445d3ac7376612e24 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 21:03:46 -0500
-Subject: [PATCH 32/36] [sl-port-610] THE GitHub fix (matches proven 605
+Subject: [PATCH 32/38] [sl-port-610] THE GitHub fix (matches proven 605
  behavior): checkRedirectionCrossOriginAccessControl validated
  URL(redirectResponse.url(), Location-header) instead of the resolved
  newRequest.url(). On 10.6 the redirect is often synthetic with no Location

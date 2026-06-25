@@ -1,7 +1,7 @@
 From 2fa22c0e80ff1cb7b6b8ff6945a2c896a1db7eaf Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 15:50:29 -0500
-Subject: [PATCH 24/36] [sl-port-610] Fix scrollbar mouse-hover crash:
+Subject: [PATCH 24/38] [sl-port-610] Fix scrollbar mouse-hover crash:
  -[NSScrollerImp mouseEnteredScroller/mouseExitedScroller] absent on 10.6
  partial NSScrollerImp -> doesNotRecognizeSelector on mouse-move over
  scrollbars. Guard with respondsToSelector: (companion to the

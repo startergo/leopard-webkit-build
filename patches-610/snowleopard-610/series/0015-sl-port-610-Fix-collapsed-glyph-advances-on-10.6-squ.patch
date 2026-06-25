@@ -1,7 +1,7 @@
 From 4d8620c60c9cda15973901d10d1f5fd8bc94d312 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 10:03:13 -0500
-Subject: [PATCH 15/36] [sl-port-610] Fix collapsed glyph advances on 10.6
+Subject: [PATCH 15/38] [sl-port-610] Fix collapsed glyph advances on 10.6
  (squished-text regression): platformWidthForGlyph used
  CTFontGetUnsummedAdvancesForGlyphsAndStyle (10.12+, returns 0 on 10.6 -> all
  glyphs ~0 width). Gate on __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ <

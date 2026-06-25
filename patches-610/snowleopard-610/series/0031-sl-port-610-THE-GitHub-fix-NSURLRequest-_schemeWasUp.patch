@@ -1,7 +1,7 @@
 From 504303638125f50707ab82b35ed16cc20e422523 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 20:33:21 -0500
-Subject: [PATCH 31/36] [sl-port-610] THE GitHub fix: -[NSURLRequest
+Subject: [PATCH 31/38] [sl-port-610] THE GitHub fix: -[NSURLRequest
  _schemeWasUpgradedDueToDynamicHSTS] is a 10.7+ SPI absent on 10.6.
  synthesizeRedirectResponseIfNecessary sent it unguarded, mis-evaluating the
  same-scheme guard so a SYNTHETIC REDIRECT was fabricated for every

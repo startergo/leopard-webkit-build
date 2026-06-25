@@ -1,7 +1,7 @@
 From a55c63a5c9dc3523b11d36fefe220c26bd3d6785 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 08:42:47 -0500
-Subject: [PATCH 13/36] =?UTF-8?q?[sl-port-610]=20QoS=20guards:=20gate=20on?=
+Subject: [PATCH 13/38] =?UTF-8?q?[sl-port-610]=20QoS=20guards:=20gate=20on?=
  =?UTF-8?q?=20=5F=5FENVIRONMENT=5FMAC=5FOS=5FX=5FVERSION=5FMIN=5FREQUIRED?=
  =?UTF-8?q?=5F=5F=20(=3D1060)=20not=20=5F=5FMAC=5FOS=5FX=5FVERSION=5FMIN?=
  =?UTF-8?q?=5FREQUIRED=20(undefined=20in=20this=20toolchain/SDK).=20Verifi?=

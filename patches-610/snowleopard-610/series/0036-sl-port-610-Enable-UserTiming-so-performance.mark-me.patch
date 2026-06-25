@@ -1,7 +1,7 @@
 From caa5df97d5e44a0c9870648c75b784c2b4926f89 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Thu, 25 Jun 2026 04:06:20 -0500
-Subject: [PATCH 36/36] [sl-port-610] Enable UserTiming so
+Subject: [PATCH 36/38] [sl-port-610] Enable UserTiming so
  performance.mark/measure exist. GitHub calls performance.mark at js-parse-end
  in every module init; with UserTiming gated off, performance.mark was
  undefined and ~40 script modules threw TypeError. The IDL gates

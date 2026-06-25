@@ -1,7 +1,7 @@
 From 0c76797d9de806866ac8dd1caf0afdc24e7ce2d5 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 19:26:00 -0500
-Subject: [PATCH 28/36] [sl-port-610] Two fixes: (1) ThemeMac toggle-button
+Subject: [PATCH 28/38] [sl-port-610] Two fixes: (1) ThemeMac toggle-button
  paint crash: -[NSButtonCell _stateAnimationRunning] /
  _renderCurrentAnimationFrameInContext: are 10.7+ SPIs, absent on 10.6 ->
  unrecognized selector when painting checkboxes/radios. Guard with

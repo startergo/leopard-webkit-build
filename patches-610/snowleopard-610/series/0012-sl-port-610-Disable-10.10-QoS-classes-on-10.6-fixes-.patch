@@ -1,7 +1,7 @@
 From 8bbbd8e88d4ad05cd939463c92dcffb96915795f Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 08:36:35 -0500
-Subject: [PATCH 12/36] [sl-port-610] Disable 10.10+ QoS classes on 10.6 (fixes
+Subject: [PATCH 12/38] [sl-port-610] Disable 10.10+ QoS classes on 10.6 (fixes
  bmalloc scavenger SIGSEGV on youtube.com): guard
  pthread_set_qos_class_self_np in Scavenger.cpp + gate HAVE_QOS_CLASSES on
  deployment target in WTF PlatformHave.h

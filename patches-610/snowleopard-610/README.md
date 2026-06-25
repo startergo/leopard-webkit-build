@@ -5,7 +5,7 @@ for Snow Leopard, cross-compiled from an Apple Silicon host. Output is a
 framework-injection wrapper around system Safari 5.0.5.
 
 ## Source baseline
-Upstream tag: Safari-610.1.15.5  (8 commits / 129 files on top)
+Upstream tag: Safari-610.1.15.5  (38 commits / 144 files on top)
 
 ## Reproduce
 1. Check out WebKit at tag Safari-610.1.15.5.

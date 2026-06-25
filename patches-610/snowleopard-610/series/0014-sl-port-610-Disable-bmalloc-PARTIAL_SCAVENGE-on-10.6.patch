@@ -1,7 +1,7 @@
 From 69480b3f9132697ae355f3c518f2328ed8c202c9 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 09:35:07 -0500
-Subject: [PATCH 14/36] [sl-port-610] Disable bmalloc PARTIAL_SCAVENGE on 10.6:
+Subject: [PATCH 14/38] [sl-port-610] Disable bmalloc PARTIAL_SCAVENGE on 10.6:
  scavengeToHighWatermark + IsoDirectory partial machinery NULL-crash the
  scavenger thread under memory pressure (SIGSEGV in partialScavenge,
  youtube.com). Full-scavenge path is stable. Gated via

@@ -1,7 +1,7 @@
 From de09f9675e2db70fbd01daa47d97879c4d08e32a Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 17:25:46 -0500
-Subject: [PATCH 25/36] [sl-port-610] Fix scrollbar mouse-down crash:
+Subject: [PATCH 25/38] [sl-port-610] Fix scrollbar mouse-down crash:
  -[NSScrollerImp setTracking:] absent on 10.6 partial NSScrollerImp ->
  doesNotRecognizeSelector on scrollbar mouse-down. Guard with
  respondsToSelector: (companion to mouseEntered/ExitedScroller guards)

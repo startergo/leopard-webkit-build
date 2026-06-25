@@ -1,7 +1,7 @@
 From e2e6910224a1fb5c2ebaee2994137a34d2b07756 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 19:58:30 -0500
-Subject: [PATCH 29/36] [sl-port-610] Fix GitHub/modern sites rendering
+Subject: [PATCH 29/38] [sl-port-610] Fix GitHub/modern sites rendering
  unstyled: 10.6's HTTP stack cannot decode Brotli (Content-Encoding: br), but
  CDNs (github.githubassets.com) serve br when advertised -> undecodable empty
  body -> CSS/JS fail to load (0 bytes transferred). Force Accept-Encoding:

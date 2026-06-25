@@ -1,0 +1,65 @@
+From 3fcbe46df607eb6e2a5190a711b83d1d2c3f7948 Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Thu, 25 Jun 2026 18:22:19 -0400
+Subject: [PATCH 38/38] [sl-port-610] Fix CoreText font crash on real pages:
+ EXC_BAD_ACCESS in CFNumberGetValue <-
+ TFontFeatures::CopyNonDefaultFeatureSettings <-
+ CTFontCreateCopyWithAttributes <- preparePlatformFont. For fonts with
+ GSUB/GPOS tables (openTypeShaping true), preparePlatformFont built a
+ font-feature dict via appendOpenTypeFeature using
+ kCTFontOpenTypeFeatureTag/kCTFontOpenTypeFeatureValue. Those keys are 10.10+
+ and ABSENT from the 10.6 SDK, so at runtime they are null; CFDictionaryCreate
+ then makes a null-keyed dict, and 10.6 CoreText crashes iterating it
+ (CFNumberGetValue on a null entry). The legacy AAT path
+ (appendRawTrueTypeFeature,
+ kCTFontFeatureTypeIdentifierKey/SelectorIdentifierKey) is valid on 10.6.
+ Three guards: (1) appendOpenTypeFeature early-returns if the OpenType
+ constants are null (runtime weak-symbol check = the canonical 10.6
+ detection); known tags still work via the AAT path, only arbitrary OpenType
+ tags are skipped on 10.6. (2) Only add kCTFontFeatureSettingsAttribute if the
+ feature array ended up non-empty. (3) Fall back to originalFont if
+ CTFontCreateCopyWithAttributes returns null, matching the function's own
+ early-out idiom. Lives in WebCore; needs WebCore relink + repackage.
+
+---
+ .../platform/graphics/cocoa/FontCacheCoreText.cpp      | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/Source/WebCore/platform/graphics/cocoa/FontCacheCoreText.cpp b/Source/WebCore/platform/graphics/cocoa/FontCacheCoreText.cpp
+index f8cdb4ad11..0c6a535211 100644
+--- a/Source/WebCore/platform/graphics/cocoa/FontCacheCoreText.cpp
++++ b/Source/WebCore/platform/graphics/cocoa/FontCacheCoreText.cpp
+@@ -141,6 +141,8 @@ static inline void appendTrueTypeFeature(CFMutableArrayRef features, const FontF
+ 
+ static inline void appendOpenTypeFeature(CFMutableArrayRef features, const FontFeature& feature)
+ {
++    if (!kCTFontOpenTypeFeatureTag || !kCTFontOpenTypeFeatureValue)
++        return;
+     auto featureKey = adoptCF(CFStringCreateWithBytes(kCFAllocatorDefault, reinterpret_cast<const UInt8*>(feature.tag().data()), feature.tag().size() * sizeof(FontTag::value_type), kCFStringEncodingASCII, false));
+     int rawFeatureValue = feature.value();
+     auto featureValue = adoptCF(CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &rawFeatureValue));
+@@ -661,7 +663,8 @@ RetainPtr<CTFontRef> preparePlatformFont(CTFontRef originalFont, const FontDescr
+             if (fontType.openTypeShaping)
+                 appendOpenTypeFeature(featureArray.get(), feature);
+         }
+-        CFDictionaryAddValue(attributes.get(), kCTFontFeatureSettingsAttribute, featureArray.get());
++        if (CFArrayGetCount(featureArray.get()))
++            CFDictionaryAddValue(attributes.get(), kCTFontFeatureSettingsAttribute, featureArray.get());
+     }
+ 
+ #if ENABLE(VARIATION_FONTS)
+@@ -694,7 +697,10 @@ RetainPtr<CTFontRef> preparePlatformFont(CTFontRef originalFont, const FontDescr
+     addAttributesForInstalledFonts(attributes.get(), fontDescription.shouldAllowUserInstalledFonts());
+ 
+     auto descriptor = adoptCF(CTFontDescriptorCreateWithAttributes(attributes.get()));
+-    return adoptCF(CTFontCreateCopyWithAttributes(originalFont, CTFontGetSize(originalFont), nullptr, descriptor.get()));
++    auto modifiedFont = adoptCF(CTFontCreateCopyWithAttributes(originalFont, CTFontGetSize(originalFont), nullptr, descriptor.get()));
++    if (!modifiedFont)
++        return originalFont;
++    return modifiedFont;
+ }
+ 
+ RefPtr<Font> FontCache::similarFont(const FontDescription& description, const AtomString& family)
+-- 
+2.54.0
+
