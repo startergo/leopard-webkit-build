@@ -22,7 +22,7 @@
 #       not the variable the 604 stubs used), NSWindowWillOrder{On,Off}ScreenNotification.
 #
 #  Reuse: the SDK-compat overlay header (TargetConditionals_compat.h + sub-headers)
-#  and the dependency tree (dist/: ICU 55, libc++ 5.0.1, crt) are pure 10.6-SDK
+#  and the dependency tree (dist/: ICU 62.2, libc++ 5.0.1, crt) are pure 10.6-SDK
 #  artifacts — identical for 604 and 605 — so they are shared with build.sh's
 #  build/overlay-includes/ and dist/ rather than duplicated. (If absent, generate
 #  once with `./build.sh --patches` then interrupt after Phase 3.)
@@ -142,7 +142,7 @@ phase0_prerequisites() {
     mkdir -p "$BUILD_DIR" "$STAMP_DIR" "$BUILD_DIR/cmake"
 }
 
-# ── Phase 1: Dependencies (shared dist/ — ICU 55 + libc++ 5.0.1) ────────────
+# ── Phase 1: Dependencies (shared dist/ — ICU 62.2 + libc++ 5.0.1) ────────────
 phase1_icu() {
     if [ -f "$ICU_DIST/lib/libicuuc.a" ]; then info "ICU: present (shared dist/)"; return 0; fi
     info "Phase 1a: Building ICU 62.2 for x86_64..."
@@ -397,9 +397,9 @@ phase4_cmake() {
     LINKER_FLAGS="$LINKER_FLAGS -licuuc -licui18n -licudata"
     LINKER_FLAGS="$LINKER_FLAGS -Wl,-undefined,dynamic_lookup"
     LINKER_FLAGS="$LINKER_FLAGS -Wl,-reexport_library,/usr/lib/libobjc.A.dylib"
-    # NOTE: plain -licu* leaves the static ICU 55 archives unreferenced (ICU
+    # NOTE: plain -licu* leaves the static ICU 62.2 archives unreferenced (ICU
     # symbols leak to the transitive dynamic libicucore), so the linker drops
-    # the 25M icudt55 data blob and the frameworks silently fall back to 10.6's
+    # the 26M icudt62 data blob and the frameworks silently fall back to 10.6's
     # ancient system ICU (~4.2) at runtime. We force-load ICU into the JSC and
     # WebCore framework links in phase5_post_cmake (targeted build.ninja
     # surgery) -- NOT here, so WebKitLegacy stays lean (it doesn't use ICU
@@ -550,8 +550,8 @@ phase5_post_cmake() {
         sed -i '' 's#/usr/lib/libicucore\.dylib##g' "$NINJA"
         info "  stripped redundant /usr/lib/libicucore.dylib refs (ninja dep-graph fix)"
 
-        # Force-load the static ICU 55 archives into the JSC and WebCore
-        # FRAMEWORK links so their modern data (icudt55l: emoji, Unicode 7/8
+        # Force-load the static ICU 62.2 archives into the JSC and WebCore
+        # FRAMEWORK links so their modern data (icudt62l: emoji, Unicode 11
         # properties, collation) is EMBEDDED and used at runtime -- 10.6's
         # system libicucore (~ICU 4.2) is far too old for 2018-era WebKit.
         # Plain -licu* leaves the archives unreferenced (ICU symbols leak to
@@ -567,7 +567,7 @@ phase5_post_cmake() {
                 s{-licuuc -licui18n -licudata}{-Wl,-force_load,'"$ICU_DIST"'/lib/libicuuc.a -Wl,-force_load,'"$ICU_DIST"'/lib/libicui18n.a -Wl,-force_load,'"$ICU_DIST"'/lib/libicudata.a}g;
             }
         ' "$NINJA"
-        info "  force-loaded static ICU 55 into JSC + WebCore framework links"
+        info "  force-loaded static ICU 62.2 into JSC + WebCore framework links"
         info "  scrubbed host-only framework links from build.ninja"
     fi
 
@@ -1321,11 +1321,35 @@ branch-specific compatibility patches for the 10.6 SDK.
 
 INSTALLATION
 ------------
-1. Run "install.command" (or drag WebKit.app to /Applications).
-2. Run "enable advanced features.command" to enable WebGL, accelerated
-   compositing, etc. in Safari.
-3. Launch /Applications/WebKit.app — it starts Safari using the updated
-   WebKit frameworks.
+This build serves the WebKit1 (WK1) API, which only Safari 5.0.5 can load.
+Snow Leopard ships Safari 5.1.x (WebKit2), which will NOT use this build, so
+Safari 5.0.5 must be in /Applications first.
+
+STEP 1 — Put Safari 5.0.5 in /Applications
+  Download Safari 5.0.5 for Snow Leopard:
+    http://appldnld.apple.com.edgesuite.net/content.info.apple.com/Safari5/041-0564.20110413.Fi9pb/Safari5.0.5SnowLeopard.dmg
+  (If that link is dead, the Internet Archive mirrors it: search
+   "Apple Safari Mac OS X" on archive.org.)
+
+  Apple's installer refuses to run on Snow Leopard (an OS-version check in the
+  package). Extracting the package payload bypasses that — no Pacifist needed.
+  Quit Safari, then in Terminal:
+
+    hdiutil attach ~/Downloads/Safari5.0.5SnowLeopard.dmg
+    pkgutil --expand "/Volumes/Safari 5.0.5 for Snow Leopard/Safari5.0.5SnowLeopard.pkg" /tmp/safari505
+    ditto -x -z "/tmp/safari505/Safari5.0.5SnowLeopard.pkg/Payload" /tmp/safari505-out
+    sudo ditto /tmp/safari505-out/Applications/Safari.app /Applications/Safari.app
+    hdiutil detach "/Volumes/Safari 5.0.5 for Snow Leopard"
+    rm -rf /tmp/safari505 /tmp/safari505-out
+
+  (Verify: Safari > About Safari should read 5.0.5.)
+
+STEP 2 — Install this WebKit build
+  1. Run "install.command" (or drag WebKit.app to /Applications).
+  2. Run "enable advanced features.command" to enable WebGL, accelerated
+     compositing, etc. in Safari.
+  3. Launch /Applications/WebKit.app — it starts Safari 5.0.5 using the
+     updated WebKit frameworks.
 
 UNINSTALLATION
 --------------
@@ -1338,23 +1362,24 @@ WHAT'S INCLUDED
 - WebKit.framework          (${VERSION}, WebKitLegacy in the WebKit slot — 10.6 dyld)
 - WebKitLegacy.framework    (${VERSION})
 - libc++ / libc++abi        (5.0.1)
-- ICU                       (55.1)
+- ICU                       (62.2)
 
 NOTES
 -----
 ENABLE_WEBKIT=OFF: the modern WK2/WebKit tree is not built (it needs APIs and a
 process model unavailable on 10.6). This package targets the WebKit1 (WK1) API
 served by WebKitLegacy. IMPORTANT: only Safari 5.0.5 (the last pure-WebKit1
-Safari) can load it — Safari 5.1.x uses WK2 and will NOT use this build. Replace
-the stock 10.6 Safari 5.1.10 with Safari 5.0.5 in /Applications first.
+Safari) can load it — Safari 5.1.x uses WK2 and will NOT use this build.
 WebGL/WebGL2, indexed DB, crypto, and accelerated compositing are enabled;
 media features needing AVFoundation (10.7+) and WebGPU/Metal (10.11+) are off.
 
 REQUIREMENTS
 ------------
 - Mac OS X 10.6 Snow Leopard (x86_64)
-- Safari 5.0.5 in /Applications (WebKit1). NOT Safari 5.1.x (WK2). Replace the
-  stock 10.6 Safari 5.1.10 with Safari 5.0.5 before launching WebKit.app.
+- Safari 5.0.5 in /Applications (WebKit1), NOT Safari 5.1.x (WK2). See
+  INSTALLATION Step 1 to downgrade from the stock 10.6 Safari 5.1.10.
+- Pacifist 3.0.10 (http://www.charlessoft.com) if you prefer a GUI to the
+  Terminal payload-extraction in Step 1.
 READEOF
 
     # makehybrid → HFS+/Apple partition scheme, mountable on 10.6 (no APFS/GPT).
