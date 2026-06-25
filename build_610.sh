@@ -1298,6 +1298,25 @@ rm -rf "/Applications/WebKit.app"
 echo "Done. WebKit has been uninstalled."
 EOF
 
+    cat > "$S/enable TLS 1.2.command" <<'EOF'
+#!/bin/bash
+# Install the TLS 1.2 shim so WebKit.app's Safari negotiates AES-GCM / TLS 1.2
+# sites (10.6's stock Security stack only does TLS 1.0). WebKit.app's launcher
+# auto-loads it from /usr/local/lib when present.
+DIR="$(cd "$(dirname "$0")" && pwd)"
+echo "Installing TLS 1.2 shim to /usr/local/lib (requires your admin password)..."
+sudo mkdir -p /usr/local/lib
+sudo cp "$DIR/TLS12/libsecurity_ssl_tls12.dylib" /usr/local/lib/libsecurity_ssl_tls12.dylib
+echo "Done. Launch WebKit.app — HTTPS sites needing modern ciphers now work."
+EOF
+
+    cat > "$S/disable TLS 1.2.command" <<'EOF'
+#!/bin/bash
+echo "Removing the TLS 1.2 shim (requires your admin password)..."
+sudo rm -f /usr/local/lib/libsecurity_ssl_tls12.dylib
+echo "Done. WebKit.app falls back to stock 10.6 TLS 1.0."
+EOF
+
     chmod +x "$S/"*.command
     ok "Install scripts created in $S/"
 }
@@ -1311,6 +1330,9 @@ phase10_dmg() {
     rm -rf "$STAGE" "$DMG"; mkdir -p "$STAGE"
     cp -R "$BUILD_DIR/WebKit.app" "$STAGE/"
     cp -R "$BUILD_DIR/scripts/"*.command "$STAGE/" 2>/dev/null || true
+    mkdir -p "$STAGE/TLS12"
+    cp "$PROJECT_ROOT/bundle/tls12/libsecurity_ssl_tls12.dylib" "$STAGE/TLS12/" 2>/dev/null \
+        || info "  (TLS 1.2 dylib not found at bundle/tls12/ - DMG built without it)"
 
     cat > "$STAGE/Readme.txt" <<READEOF
 WebKit ${VERSION} for Mac OS X 10.6 Snow Leopard (x86_64)
@@ -1348,7 +1370,11 @@ STEP 2 — Install this WebKit build
   1. Run "install.command" (or drag WebKit.app to /Applications).
   2. Run "enable advanced features.command" to enable WebGL, accelerated
      compositing, etc. in Safari.
-  3. Launch /Applications/WebKit.app — it starts Safari 5.0.5 using the
+  3. (Optional) Run "enable TLS 1.2.command" for modern HTTPS. Snow Leopard's
+     stock TLS tops out at 1.0; this shim adds TLS 1.2 with AES-GCM and ECDSA,
+     so sites like google.com, github.com, and cnn.com load over HTTPS.
+     ("disable TLS 1.2.command" removes it.)
+  4. Launch /Applications/WebKit.app — it starts Safari 5.0.5 using the
      updated WebKit frameworks.
 
 UNINSTALLATION
@@ -1363,6 +1389,7 @@ WHAT'S INCLUDED
 - WebKitLegacy.framework    (${VERSION})
 - libc++ / libc++abi        (5.0.1)
 - ICU                       (62.2)
+- TLS 1.2 shim              (libsecurity_ssl_tls12.dylib — optional; AES-GCM/ECDSA HTTPS)
 
 NOTES
 -----
