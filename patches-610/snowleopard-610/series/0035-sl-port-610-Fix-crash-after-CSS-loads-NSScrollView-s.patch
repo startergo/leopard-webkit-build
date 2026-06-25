@@ -1,0 +1,35 @@
+From 3a28e7d48594c1eac4f4a3e829819fea832de9b2 Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Thu, 25 Jun 2026 03:48:43 -0500
+Subject: [PATCH 35/36] [sl-port-610] Fix crash after CSS loads: -[NSScrollView
+ setScrollerKnobStyle:] (ScrollViewMac.mm) is a 10.7+ overlay-scrollbar SPI
+ absent on 10.6. recalculateScrollbarOverlayStyle now actually runs once
+ GitHub's stylesheets load and set a background color, sending this selector
+ -> unrecognized selector crash. Guard with respondsToSelector: (10.6 has
+ legacy scrollbars, no overlay knob style)
+
+---
+ Source/WebCore/platform/mac/ScrollViewMac.mm | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/Source/WebCore/platform/mac/ScrollViewMac.mm b/Source/WebCore/platform/mac/ScrollViewMac.mm
+index 3cb47675f2..f07247c725 100644
+--- a/Source/WebCore/platform/mac/ScrollViewMac.mm
++++ b/Source/WebCore/platform/mac/ScrollViewMac.mm
+@@ -296,7 +296,12 @@ static inline NSScrollerKnobStyle toNSScrollerKnobStyle(ScrollbarOverlayStyle st
+ 
+ void ScrollView::platformSetScrollbarOverlayStyle(ScrollbarOverlayStyle overlayStyle)
+ {
+-    [scrollView() setScrollerKnobStyle:toNSScrollerKnobStyle(overlayStyle)];
++    // [leopard] -[NSScrollView setScrollerKnobStyle:] is a 10.7+ overlay-scrollbar SPI;
++    // absent on 10.6 (legacy scrollbars only) -> unrecognized selector when a stylesheet
++    // changes the scrollbar overlay style (e.g. after GitHub's CSS loads and sets a
++    // background color). Guard with respondsToSelector:; 10.6 has no overlay knob style.
++    if ([scrollView() respondsToSelector:@selector(setScrollerKnobStyle:)])
++        [scrollView() setScrollerKnobStyle:toNSScrollerKnobStyle(overlayStyle)];
+ }
+ 
+ void ScrollView::platformSetScrollOrigin(const IntPoint& origin, bool updatePositionAtAll, bool updatePositionSynchronously)
+-- 
+2.54.0
+

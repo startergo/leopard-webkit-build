@@ -266,10 +266,22 @@ index 0fa57be43b..7a5eda618d 100644
  
  EGLint WindowSurfaceCGL::isPostSubBufferSupported() const
 diff --git a/Source/WTF/wtf/PlatformHave.h b/Source/WTF/wtf/PlatformHave.h
-index b47c83be16..99fb26a6ef 100644
+index b47c83be16..8ae3867c69 100644
 --- a/Source/WTF/wtf/PlatformHave.h
 +++ b/Source/WTF/wtf/PlatformHave.h
-@@ -285,7 +285,9 @@
+@@ -281,11 +281,20 @@
+ #define HAVE_NSCURSOR 1
+ #endif
+ 
+-#if !defined(HAVE_QOS_CLASSES) && PLATFORM(COCOA)
++#if !defined(HAVE_QOS_CLASSES) && PLATFORM(COCOA) && !(defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1090)
++// [leopard] QoS classes (pthread_set_qos_class_self_np / pthread_attr_set_qos_
++// class_np / QOS_CLASS_*) are 10.10+. On 10.6 these symbols are unbound, so any
++// HAVE(QOS_CLASSES)-guarded call jumps to NULL (SIGSEGV) - seen on the bmalloc
++// scavenger thread under memory pressure (youtube.com). __MAC_OS_X_VERSION_MIN_
++// REQUIRED is NOT defined by this toolchain/SDK, but the compiler builtin
++// __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ (=1060 here) always is; gate on
++// it so 10.6 leaves HAVE_QOS_CLASSES undefined and every QoS call compiles out.
  #define HAVE_QOS_CLASSES 1
  #endif
  
@@ -280,7 +292,7 @@ index b47c83be16..99fb26a6ef 100644
  #define HAVE_AVASSETREADER 1
  #endif
  
-@@ -310,8 +312,11 @@
+@@ -310,8 +319,11 @@
  #endif
  
  #if PLATFORM(MAC)
@@ -292,7 +304,7 @@ index b47c83be16..99fb26a6ef 100644
  
  #if PLATFORM(COCOA) && !(PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101500) && !PLATFORM(WATCHOS) && !PLATFORM(APPLETV)
  #define HAVE_HSTS_STORAGE_PATH 1
-@@ -348,8 +353,13 @@
+@@ -348,8 +360,13 @@
  #endif
  
  #if PLATFORM(MAC) || PLATFORM(IOS) || PLATFORM(MACCATALYST)
@@ -306,7 +318,7 @@ index b47c83be16..99fb26a6ef 100644
  
  #if PLATFORM(MAC)
  #define HAVE_CG_FONT_RENDERING_GET_FONT_SMOOTHING_DISABLED 1
-@@ -631,3 +641,13 @@
+@@ -631,3 +648,13 @@
  #if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101600) || (PLATFORM(IOS_FAMILY) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 140000)
  #define HAVE_LOGGING_PRIVACY_LEVEL 1
  #endif
@@ -1214,7 +1226,7 @@ index 9bbd4619a3..fbfa9628b0 100644
      auto options = adoptNS([@{
          NSPopUpMenuPopupButtonBounds : [NSValue valueWithRect:adjustedPopupBounds],
 diff --git a/Source/WebCore/PlatformMac.cmake b/Source/WebCore/PlatformMac.cmake
-index ff51893581..fe27ba6aa0 100644
+index ff51893581..6ee7ea9286 100644
 --- a/Source/WebCore/PlatformMac.cmake
 +++ b/Source/WebCore/PlatformMac.cmake
 @@ -6,7 +6,6 @@ find_library(AUDIOUNIT_LIBRARY AudioUnit)
@@ -1293,9 +1305,11 @@ index ff51893581..fe27ba6aa0 100644
      editing/mac/TextUndoInsertionMarkupMac.mm
  
      html/HTMLSlotElement.cpp
-@@ -188,22 +204,22 @@ list(APPEND WebCore_SOURCES
+@@ -187,23 +203,24 @@ list(APPEND WebCore_SOURCES
+     platform/ScrollableArea.cpp
  
      platform/audio/AudioSession.cpp
++    platform/leopard/LeopardMissingSymbols.mm
  
 -    platform/audio/cocoa/WebAudioBufferList.cpp
 +    # [leopard] removed: platform/audio/cocoa/WebAudioBufferList.cpp
@@ -1322,7 +1336,7 @@ index ff51893581..fe27ba6aa0 100644
      platform/cf/RunLoopObserver.cpp
      platform/cf/SharedBufferCF.cpp
  
-@@ -225,10 +241,10 @@ list(APPEND WebCore_SOURCES
+@@ -225,10 +242,10 @@ list(APPEND WebCore_SOURCES
      platform/cocoa/SystemVersion.mm
      platform/cocoa/TelephoneNumberDetectorCocoa.cpp
      platform/cocoa/ThemeCocoa.mm
@@ -1335,7 +1349,7 @@ index ff51893581..fe27ba6aa0 100644
  
      platform/gamepad/mac/HIDGamepad.cpp
      platform/gamepad/mac/HIDGamepadProvider.cpp
-@@ -237,34 +253,34 @@ list(APPEND WebCore_SOURCES
+@@ -237,34 +254,34 @@ list(APPEND WebCore_SOURCES
      platform/graphics/DisplayRefreshMonitorManager.cpp
      platform/graphics/FourCC.cpp
  
@@ -1398,7 +1412,7 @@ index ff51893581..fe27ba6aa0 100644
  
      platform/graphics/ca/GraphicsLayerCA.cpp
      platform/graphics/ca/LayerPool.cpp
-@@ -318,16 +334,15 @@ list(APPEND WebCore_SOURCES
+@@ -318,16 +335,15 @@ list(APPEND WebCore_SOURCES
      platform/graphics/cocoa/IOSurface.mm
      platform/graphics/cocoa/IOSurfacePoolCocoa.mm
      platform/graphics/cocoa/IntRectCocoa.mm
@@ -1421,7 +1435,7 @@ index ff51893581..fe27ba6aa0 100644
  
      platform/graphics/gpu/Texture.cpp
      platform/graphics/gpu/TilingData.cpp
-@@ -359,8 +374,6 @@ list(APPEND WebCore_SOURCES
+@@ -359,8 +375,6 @@ list(APPEND WebCore_SOURCES
  
      platform/mac/BlacklistUpdater.mm
      platform/mac/CursorMac.mm
@@ -1430,7 +1444,7 @@ index ff51893581..fe27ba6aa0 100644
      platform/mac/KeyEventMac.mm
      platform/mac/LocalCurrentGraphicsContextMac.mm
      platform/mac/LoggingMac.mm
-@@ -378,6 +391,7 @@ list(APPEND WebCore_SOURCES
+@@ -378,6 +392,7 @@ list(APPEND WebCore_SOURCES
      platform/mac/RemoteCommandListenerMac.mm
      platform/mac/SSLKeyGeneratorMac.mm
      platform/mac/ScrollAnimatorMac.mm
@@ -1438,7 +1452,7 @@ index ff51893581..fe27ba6aa0 100644
      platform/mac/ScrollViewMac.mm
      platform/mac/ScrollbarThemeMac.mm
      platform/mac/SerializedPlatformDataCueMac.mm
-@@ -387,7 +401,7 @@ list(APPEND WebCore_SOURCES
+@@ -387,7 +402,7 @@ list(APPEND WebCore_SOURCES
      platform/mac/ThreadCheck.mm
      platform/mac/UserActivityMac.mm
      platform/mac/ValidationBubbleMac.mm
@@ -1447,7 +1461,7 @@ index ff51893581..fe27ba6aa0 100644
      platform/mac/WebCoreFullScreenWarningView.mm
      platform/mac/WebCoreFullScreenWindow.mm
      platform/mac/WebCoreNSURLExtras.mm
-@@ -396,9 +410,9 @@ list(APPEND WebCore_SOURCES
+@@ -396,9 +411,9 @@ list(APPEND WebCore_SOURCES
      platform/mac/WebNSAttributedStringExtras.mm
      platform/mac/WidgetMac.mm
  
@@ -1459,7 +1473,7 @@ index ff51893581..fe27ba6aa0 100644
      platform/network/cf/DNSResolveQueueCFNet.cpp
      platform/network/cf/FormDataStreamCFNet.cpp
      platform/network/cf/NetworkStorageSessionCFNet.cpp
-@@ -414,7 +428,7 @@ list(APPEND WebCore_SOURCES
+@@ -414,7 +429,7 @@ list(APPEND WebCore_SOURCES
      platform/network/cocoa/ProtectionSpaceCocoa.mm
      platform/network/cocoa/ResourceRequestCocoa.mm
      platform/network/cocoa/ResourceResponseCocoa.mm
@@ -1468,7 +1482,7 @@ index ff51893581..fe27ba6aa0 100644
  
      platform/network/mac/AuthenticationMac.mm
      platform/network/mac/BlobDataFileReferenceMac.mm
-@@ -519,7 +533,6 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
+@@ -519,7 +534,6 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
      platform/cocoa/LocalCurrentGraphicsContext.h
      platform/cocoa/NetworkExtensionContentFilter.h
      platform/cocoa/PlatformView.h
@@ -1476,7 +1490,7 @@ index ff51893581..fe27ba6aa0 100644
      platform/cocoa/PlaybackSessionModel.h
      platform/cocoa/PlaybackSessionModelMediaElement.h
      platform/cocoa/ScrollController.h
-@@ -567,7 +580,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
+@@ -567,7 +581,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
      platform/graphics/cocoa/FontCacheCoreText.h
      platform/graphics/cocoa/FontFamilySpecificationCoreText.h
      platform/graphics/cocoa/IOSurface.h
@@ -1485,7 +1499,7 @@ index ff51893581..fe27ba6aa0 100644
      platform/graphics/cocoa/WebCoreCALayerExtras.h
  
      platform/graphics/mac/ColorMac.h
-@@ -658,7 +671,7 @@ list(APPEND WebCore_IDL_FILES
+@@ -658,7 +672,7 @@ list(APPEND WebCore_IDL_FILES
      Modules/applepay/paymentrequest/ApplePayModifier.idl
      Modules/applepay/paymentrequest/ApplePayRequest.idl
  
@@ -1494,7 +1508,7 @@ index ff51893581..fe27ba6aa0 100644
  
      Modules/remoteplayback/RemotePlayback.idl
      Modules/remoteplayback/RemotePlaybackAvailabilityCallback.idl
-@@ -698,7 +711,7 @@ list(APPEND WebCoreTestSupport_SOURCES
+@@ -698,7 +712,7 @@ list(APPEND WebCoreTestSupport_SOURCES
      testing/MockPreviewLoaderClient.cpp
      testing/ServiceWorkerInternals.mm
  
@@ -2068,6 +2082,27 @@ index ca274deb1e..cfa455fcf7 100644
          || sourceType == SourceImageData
          || sourceType == SourceImageBitmap) {
          if (!validateTexImageSourceFormatAndType(functionName, functionType, internalformat, format, type))
+diff --git a/Source/WebCore/loader/SubresourceLoader.cpp b/Source/WebCore/loader/SubresourceLoader.cpp
+index 7b50f4a91b..5c054c241a 100644
+--- a/Source/WebCore/loader/SubresourceLoader.cpp
++++ b/Source/WebCore/loader/SubresourceLoader.cpp
+@@ -633,8 +633,14 @@ Expected<void, String> SubresourceLoader::checkRedirectionCrossOriginAccessContr
+     // Implementing https://fetch.spec.whatwg.org/#concept-http-redirect-fetch step 7 & 8.
+     if (options().mode == FetchOptions::Mode::Cors) {
+         if (m_resource->isCrossOrigin()) {
+-            auto locationString = redirectResponse.httpHeaderField(HTTPHeaderName::Location);
+-            String errorMessage = validateCrossOriginRedirectionURL(URL(redirectResponse.url(), locationString));
++            // [leopard] 605 validates the already-resolved newRequest.url() here; 610
++            // rebuilt the redirect URL from redirectResponse.url() + the Location header.
++            // On 10.6 the redirect can be synthetic with no Location, so the rebuilt URL
++            // has an empty scheme and validateCrossOriginRedirectionURL returns the
++            // "non CORS scheme" error, blocking every cross-origin CDN asset
++            // (github.githubassets.com CSS/JS) -> pages render unstyled. Validate the
++            // resolved newRequest.url() (a proper https URL) like 605 does instead.
++            String errorMessage = validateCrossOriginRedirectionURL(newRequest.url());
+             if (!errorMessage.isNull())
+                 return makeUnexpected(WTFMove(errorMessage));
+         }
 diff --git a/Source/WebCore/loader/archive/cf/LegacyWebArchive.cpp b/Source/WebCore/loader/archive/cf/LegacyWebArchive.cpp
 index 92cf6bc558..876315d86d 100644
 --- a/Source/WebCore/loader/archive/cf/LegacyWebArchive.cpp
@@ -2171,6 +2206,19 @@ index fa6c40b3b7..8af5bf5715 100644
  }
  
  #if ENABLE(VIDEO)
+diff --git a/Source/WebCore/page/RuntimeEnabledFeatures.h b/Source/WebCore/page/RuntimeEnabledFeatures.h
+index 9847388043..49bcb57c08 100644
+--- a/Source/WebCore/page/RuntimeEnabledFeatures.h
++++ b/Source/WebCore/page/RuntimeEnabledFeatures.h
+@@ -435,7 +435,7 @@ private:
+     bool m_isMediaPreloadingEnabled { false };
+     bool m_isPaintTimingEnabled { false };
+     bool m_isResourceTimingEnabled { false };
+-    bool m_isUserTimingEnabled { false };
++    bool m_isUserTimingEnabled { true };
+     bool m_isInteractiveFormValidationEnabled { false };
+     bool m_isWebAuthenticationEnabled { false };
+     bool m_isWebAuthenticationLocalAuthenticatorEnabled { false };
 diff --git a/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm b/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm
 index 21115732f5..a443354ec6 100644
 --- a/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm
@@ -2286,6 +2334,49 @@ index 16deaf0041..9ed1cfddc8 100644
          break;
      }
      }
+diff --git a/Source/WebCore/platform/audio/AudioSession.cpp b/Source/WebCore/platform/audio/AudioSession.cpp
+index 51a8d3a282..fe6f0b53af 100644
+--- a/Source/WebCore/platform/audio/AudioSession.cpp
++++ b/Source/WebCore/platform/audio/AudioSession.cpp
+@@ -81,7 +81,7 @@ void AudioSession::endInterruption(MayResume)
+ }
+ #endif
+ 
+-#if !PLATFORM(COCOA)
++#if !PLATFORM(COCOA) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
+ class AudioSessionPrivate {
+     WTF_MAKE_FAST_ALLOCATED;
+ };
+@@ -161,7 +161,28 @@ String AudioSession::routingContextUID() const
+     return emptyString();
+ }
+ 
+-#endif // !PLATFORM(COCOA)
++void AudioSession::addMutedStateObserver(MutedStateObserver*)
++{
++    notImplemented();
++}
++
++void AudioSession::removeMutedStateObserver(MutedStateObserver*)
++{
++    notImplemented();
++}
++
++void AudioSession::handleMutedStateChange()
++{
++    notImplemented();
++}
++
++bool AudioSession::isMuted() const
++{
++    notImplemented();
++    return false;
++}
++
++#endif // !PLATFORM(COCOA) || 10.6 Mac stub
+ 
+ String convertEnumerationToString(RouteSharingPolicy enumerationValue)
+ {
 diff --git a/Source/WebCore/platform/audio/PlatformMediaSession.cpp b/Source/WebCore/platform/audio/PlatformMediaSession.cpp
 index ac051e0ae6..18e20de9c2 100644
 --- a/Source/WebCore/platform/audio/PlatformMediaSession.cpp
@@ -2641,7 +2732,7 @@ index e3b1f33dc4..d2a69b55e1 100644
  }
  
 diff --git a/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm b/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm
-index 14a5a362b8..c94b873a30 100644
+index 14a5a362b8..458298641f 100644
 --- a/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm
 +++ b/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm
 @@ -308,6 +308,12 @@ static RetainPtr<CFDictionaryRef> smallCapsTrueTypeDictionary(int rawKey, int ra
@@ -2657,6 +2748,67 @@ index 14a5a362b8..c94b873a30 100644
      CFIndex length = CFBitVectorGetCount(source);
      result.ensureSize(length);
      CFIndex min = 0;
+@@ -622,6 +628,7 @@ float Font::platformWidthForGlyph(Glyph glyph) const
+     bool horizontal = platformData().orientation() == FontOrientation::Horizontal;
+     CGFontRenderingStyle style = kCGFontRenderingStyleAntialiasing | kCGFontRenderingStyleSubpixelPositioning | kCGFontRenderingStyleSubpixelQuantization | kCGFontAntialiasingStyleUnfiltered;
+ 
++#if !(defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 101200)
+     if (platformData().size()) {
+         CTFontOrientation orientation = horizontal || m_isBrokenIdeographFallback ? kCTFontOrientationHorizontal : kCTFontOrientationVertical;
+         // FIXME: Remove this special-casing when <rdar://problem/28197291> and <rdar://problem/28662086> are fixed.
+@@ -630,6 +637,19 @@ float Font::platformWidthForGlyph(Glyph glyph) const
+         else
+             CTFontGetUnsummedAdvancesForGlyphsAndStyle(m_platformData.ctFont(), orientation, style, &glyph, &advance, 1);
+     }
++#else
++    // [leopard] CTFontGetUnsummedAdvancesForGlyphsAndStyle is 10.12+; on 10.6 it
++    // is unbound and returns a zero advance, collapsing every glyph to ~0 width
++    // (illegible overlapping text on all pages). CTFontGetAdvancesForGlyphs is
++    // available on 10.6 and returns correct advances; use it directly. (610
++    // dropped 605's canUseFastGlyphAdvanceGetter/CGFont fast path, so don't
++    // depend on it here.)
++    UNUSED_PARAM(style);
++    if (platformData().size()) {
++        CTFontOrientation orientation = horizontal || m_isBrokenIdeographFallback ? kCTFontOrientationHorizontal : kCTFontOrientationVertical;
++        CTFontGetAdvancesForGlyphs(m_platformData.ctFont(), orientation, &glyph, &advance, 1);
++    }
++#endif
+     return advance.width + m_syntheticBoldOffset;
+ }
+ 
+diff --git a/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm b/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm
+index 55bb4e9088..780862b52a 100644
+--- a/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm
++++ b/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm
+@@ -64,9 +64,27 @@ namespace WebCore {
+ 
+ static bool drawFocusRingAtTime(CGContextRef context, NSTimeInterval timeOffset, const Color& color)
+ {
+-#if USE(APPKIT)
++#if USE(APPKIT) && !(defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070)
+     CGFocusRingStyle focusRingStyle;
+     BOOL needsRepaint = NSInitializeCGFocusRingStyleForTime(NSFocusRingOnly, &focusRingStyle, timeOffset);
++#elif USE(APPKIT)
++    // [leopard] NSInitializeCGFocusRingStyleForTime is 10.7+ and absent from 10.6
++    // AppKit; calling it jumps to a null symbol (SIGSEGV when painting any focus
++    // ring, e.g. a focused text field). CGStyleCreateFocusRingWithColor IS present
++    // on 10.6, so initialize the CGFocusRingStyle manually with standard Aqua focus
++    // ring values and proceed.
++    BOOL needsRepaint = NO;
++    UNUSED_PARAM(timeOffset);
++
++    CGFocusRingStyle focusRingStyle;
++    bzero(&focusRingStyle, sizeof(focusRingStyle));
++    focusRingStyle.version = 0;
++    focusRingStyle.tint = kCGFocusRingTintBlue;
++    focusRingStyle.ordering = kCGFocusRingOrderingNone;
++    focusRingStyle.alpha = 0.5;
++    focusRingStyle.radius = 3;
++    focusRingStyle.threshold = 0.5;
++    focusRingStyle.bounds = CGRectZero;
+ #else
+     BOOL needsRepaint = NO;
+     UNUSED_PARAM(timeOffset);
 diff --git a/Source/WebCore/platform/graphics/cocoa/GraphicsContextGLOpenGLCocoa.mm b/Source/WebCore/platform/graphics/cocoa/GraphicsContextGLOpenGLCocoa.mm
 index 641406d84e..e8bc4b64ef 100644
 --- a/Source/WebCore/platform/graphics/cocoa/GraphicsContextGLOpenGLCocoa.mm
@@ -2810,6 +2962,84 @@ index f391cc3dbc..87f875d926 100644
      if (!rgbColor) {
          // The color space conversion above can fail if the NSColor is in the NSPatternColorSpace.
          // These colors are actually a repeating pattern, not just a solid color. To workaround
+diff --git a/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm b/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm
+new file mode 100644
+index 0000000000..72c5443d82
+--- /dev/null
++++ b/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm
+@@ -0,0 +1,72 @@
++// [leopard] Definitions for symbols whose implementing source files were
++// removed from the 10.6 build (they soft-link 10.7+ frameworks). Each is
++// referenced by compiled WebCore code, so without these dyld traps at first
++// use (e.g. CertificateInfo on the HTTPS path, DictionaryLookup on hit-test,
++// MediaSessionManagerCocoa now-playing, ResourceUsageThread). No-op / empty
++// returns are correct here: media, now-playing, and resource-usage telemetry
++// are all disabled on this build, and cert summary display is non-essential.
++#include "config.h"
++
++#include "CertificateInfo.h"
++#include "DictionaryLookup.h"
++#include "HitTestResult.h"
++#include "MediaSessionManagerCocoa.h"
++#include "NotImplemented.h"
++#include "Range.h"
++#include "ResourceUsageThread.h"
++
++namespace WebCore {
++
++CertificateInfo::Type CertificateInfo::type() const
++{
++    return Type::None;
++}
++
++Optional<CertificateInfo::SummaryInfo> CertificateInfo::summaryInfo() const
++{
++    return WTF::nullopt;
++}
++
++std::tuple<RefPtr<Range>, NSDictionary *> DictionaryLookup::rangeAtHitTestResult(const HitTestResult&)
++{
++    return { nullptr, nil };
++}
++
++void MediaSessionManagerCocoa::clearNowPlayingInfo()
++{
++}
++
++void MediaSessionManagerCocoa::setNowPlayingInfo(bool, const NowPlayingInfo&)
++{
++}
++
++#if ENABLE(RESOURCE_USAGE)
++void ResourceUsageThread::platformSaveStateBeforeStarting()
++{
++}
++
++void ResourceUsageThread::platformCollectCPUData(JSC::VM*, ResourceUsageData&)
++{
++}
++
++void ResourceUsageThread::platformCollectMemoryData(JSC::VM*, ResourceUsageData&)
++{
++}
++#endif // ENABLE(RESOURCE_USAGE)
++
++} // namespace WebCore
++
++namespace WTF {
++namespace Persistence {
++
++void Coder<WebCore::CertificateInfo>::encode(Encoder&, const WebCore::CertificateInfo&)
++{
++}
++
++WTF::Optional<WebCore::CertificateInfo> Coder<WebCore::CertificateInfo>::decode(Decoder&)
++{
++    return WebCore::CertificateInfo { };
++}
++
++} // namespace Persistence
++} // namespace WTF
 diff --git a/Source/WebCore/platform/mac/LocalDefaultSystemAppearance.mm b/Source/WebCore/platform/mac/LocalDefaultSystemAppearance.mm
 index 78eff24e5c..7f78fb85dc 100644
 --- a/Source/WebCore/platform/mac/LocalDefaultSystemAppearance.mm
@@ -2842,7 +3072,7 @@ index dad045f0d6..519969d669 100644
  
  void ScrollerStyle::setUseOverlayScrollbars(bool useOverlayScrollbars)
 diff --git a/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm b/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
-index 4df3d95ac3..db9e01c265 100644
+index 4df3d95ac3..6fd611cc52 100644
 --- a/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
 +++ b/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
 @@ -171,6 +171,7 @@ static int clickCountForEvent(NSEvent *event)
@@ -2948,6 +3178,22 @@ index 4df3d95ac3..db9e01c265 100644
  
          // Mac specific
          m_modifierFlags = [event modifierFlags];
+@@ -784,7 +817,14 @@ public:
+         m_phase = phaseForEvent(event);
+         m_momentumPhase = momentumPhaseForEvent(event);
+         m_hasPreciseScrollingDeltas = continuous;
+-        m_directionInvertedFromDevice = [event isDirectionInvertedFromDevice];
++        // [leopard] -[NSEvent isDirectionInvertedFromDevice] is 10.7+; on 10.6 it is
++        // an unrecognized selector (doesNotRecognizeSelector abort on every scroll).
++        // Runtime-check with respondsToSelector: so this is correct regardless of
++        // SDK/deployment-target macro resolution; 10.6 has no natural-scroll concept.
++        if ([event respondsToSelector:@selector(isDirectionInvertedFromDevice)])
++            m_directionInvertedFromDevice = [event isDirectionInvertedFromDevice];
++        else
++            m_directionInvertedFromDevice = false;
+     }
+ };
+ 
 diff --git a/Source/WebCore/platform/mac/PlatformPasteboardMac.mm b/Source/WebCore/platform/mac/PlatformPasteboardMac.mm
 index fbea5361b9..49ea86a18e 100644
 --- a/Source/WebCore/platform/mac/PlatformPasteboardMac.mm
@@ -3089,8 +3335,78 @@ index 8f37dd71f0..dac9bf87ff 100644
  namespace WebCore {
  
  PowerObserver::PowerObserver(WTF::Function<void()>&& powerOnHander)
+diff --git a/Source/WebCore/platform/mac/ScrollAnimatorMac.mm b/Source/WebCore/platform/mac/ScrollAnimatorMac.mm
+index 6118f76a22..acc9b98940 100644
+--- a/Source/WebCore/platform/mac/ScrollAnimatorMac.mm
++++ b/Source/WebCore/platform/mac/ScrollAnimatorMac.mm
+@@ -738,9 +738,19 @@ ScrollAnimatorMac::ScrollAnimatorMac(ScrollableArea& scrollableArea)
+     m_scrollAnimationHelper = adoptNS([[NSClassFromString(@"NSScrollAnimationHelper") alloc] initWithDelegate:m_scrollAnimationHelperDelegate.get()]);
+ 
+     m_scrollerImpPairDelegate = adoptNS([[WebScrollerImpPairDelegate alloc] initWithScrollableArea:&scrollableArea]);
+-    m_scrollerImpPair = adoptNS([[NSScrollerImpPair alloc] init]);
+-    [m_scrollerImpPair setDelegate:m_scrollerImpPairDelegate.get()];
+-    [m_scrollerImpPair setScrollerStyle:ScrollerStyle::recommendedScrollerStyle()];
++    // [leopard] 10.6 has only legacy (always-visible) scrollbars; its private
++    // NSScrollerImpPair is an older, incompatible class that responds to some
++    // selectors (e.g. overlayScrollerStateIsLocked) but NOT others added later
++    // (e.g. mouseMovedInContentArea) -> doesNotRecognizeSelector crash on mouse
++    // move over any scrollable area. Only build the overlay-scroller machinery
++    // when the class supports the modern content-area API; otherwise leave
++    // m_scrollerImpPair nil. All [m_scrollerImpPair ...] sends below are then
++    // safe no-ops (messaging nil returns 0/nil in Objective-C).
++    if ([NSScrollerImpPair instancesRespondToSelector:@selector(mouseMovedInContentArea)]) {
++        m_scrollerImpPair = adoptNS([[NSScrollerImpPair alloc] init]);
++        [m_scrollerImpPair setDelegate:m_scrollerImpPairDelegate.get()];
++        [m_scrollerImpPair setScrollerStyle:ScrollerStyle::recommendedScrollerStyle()];
++    }
+ }
+ 
+ ScrollAnimatorMac::~ScrollAnimatorMac()
+@@ -966,8 +976,13 @@ void ScrollAnimatorMac::mouseEnteredScrollbar(Scrollbar* scrollbar) const
+     if ([m_scrollerImpPair overlayScrollerStateIsLocked])
+         return;
+ 
+-    if (NSScrollerImp *painter = scrollerImpForScrollbar(*scrollbar))
+-        [painter mouseEnteredScroller];
++    if (NSScrollerImp *painter = scrollerImpForScrollbar(*scrollbar)) {
++        // [leopard] -[NSScrollerImp mouseEnteredScroller] is a later addition; the
++        // 10.6 NSScrollerImp is a partial class lacking it -> doesNotRecognizeSelector
++        // crash on mouse-move over a scrollbar. Legacy scrollbars need no hover state.
++        if ([painter respondsToSelector:@selector(mouseEnteredScroller)])
++            [painter mouseEnteredScroller];
++    }
+ }
+ 
+ void ScrollAnimatorMac::mouseExitedScrollbar(Scrollbar* scrollbar) const
+@@ -979,8 +994,12 @@ void ScrollAnimatorMac::mouseExitedScrollbar(Scrollbar* scrollbar) const
+     if ([m_scrollerImpPair overlayScrollerStateIsLocked])
+         return;
+ 
+-    if (NSScrollerImp *painter = scrollerImpForScrollbar(*scrollbar))
+-        [painter mouseExitedScroller];
++    if (NSScrollerImp *painter = scrollerImpForScrollbar(*scrollbar)) {
++        // [leopard] -[NSScrollerImp mouseExitedScroller] is a later addition; absent on
++        // the 10.6 partial NSScrollerImp -> doesNotRecognizeSelector crash on mouse-move.
++        if ([painter respondsToSelector:@selector(mouseExitedScroller)])
++            [painter mouseExitedScroller];
++    }
+ }
+ 
+ void ScrollAnimatorMac::mouseIsDownInScrollbar(Scrollbar* scrollbar, bool mouseIsDown) const
+@@ -989,7 +1008,10 @@ void ScrollAnimatorMac::mouseIsDownInScrollbar(Scrollbar* scrollbar, bool mouseI
+         return;
+ 
+     if (NSScrollerImp *painter = scrollerImpForScrollbar(*scrollbar)) {
+-        [painter setTracking:mouseIsDown];
++        // [leopard] -[NSScrollerImp setTracking:] is a later addition; absent on the 10.6
++        // partial NSScrollerImp -> doesNotRecognizeSelector crash on scrollbar mouse-down.
++        if ([painter respondsToSelector:@selector(setTracking:)])
++            [painter setTracking:mouseIsDown];
+         if (mouseIsDown)
+             [m_scrollerImpPair beginScrollGesture];
+         else
 diff --git a/Source/WebCore/platform/mac/ScrollViewMac.mm b/Source/WebCore/platform/mac/ScrollViewMac.mm
-index 3341d4dbe8..38747b11ae 100644
+index 3341d4dbe8..f07247c725 100644
 --- a/Source/WebCore/platform/mac/ScrollViewMac.mm
 +++ b/Source/WebCore/platform/mac/ScrollViewMac.mm
 @@ -37,7 +37,11 @@
@@ -3149,6 +3465,31 @@ index 3341d4dbe8..38747b11ae 100644
  
      return visibleContentRect;
      END_BLOCK_OBJC_EXCEPTIONS;
+@@ -208,8 +222,10 @@ void ScrollView::platformSetScrollPosition(const IntPoint& scrollPoint)
+ 
+     // AppKit has the inset factored into all of its scroll positions. In WebCore, we use positions that ignore
+     // the insets so that they are equivalent whether or not there is an inset.
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+     tempPoint.x = tempPoint.x - scrollView().contentInsets.left;
+     tempPoint.y = tempPoint.y - scrollView().contentInsets.top;
++#endif
+ 
+     [documentView() scrollPoint:tempPoint];
+     END_BLOCK_OBJC_EXCEPTIONS;
+@@ -280,7 +296,12 @@ static inline NSScrollerKnobStyle toNSScrollerKnobStyle(ScrollbarOverlayStyle st
+ 
+ void ScrollView::platformSetScrollbarOverlayStyle(ScrollbarOverlayStyle overlayStyle)
+ {
+-    [scrollView() setScrollerKnobStyle:toNSScrollerKnobStyle(overlayStyle)];
++    // [leopard] -[NSScrollView setScrollerKnobStyle:] is a 10.7+ overlay-scrollbar SPI;
++    // absent on 10.6 (legacy scrollbars only) -> unrecognized selector when a stylesheet
++    // changes the scrollbar overlay style (e.g. after GitHub's CSS loads and sets a
++    // background color). Guard with respondsToSelector:; 10.6 has no overlay knob style.
++    if ([scrollView() respondsToSelector:@selector(setScrollerKnobStyle:)])
++        [scrollView() setScrollerKnobStyle:toNSScrollerKnobStyle(overlayStyle)];
+ }
+ 
+ void ScrollView::platformSetScrollOrigin(const IntPoint& origin, bool updatePositionAtAll, bool updatePositionSynchronously)
 diff --git a/Source/WebCore/platform/mac/ScrollbarThemeMac.mm b/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
 index 42588a00de..31e6dd55a9 100644
 --- a/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
@@ -3189,7 +3530,7 @@ index 42588a00de..31e6dd55a9 100644
  }
  
 diff --git a/Source/WebCore/platform/mac/ThemeMac.mm b/Source/WebCore/platform/mac/ThemeMac.mm
-index a8cff60268..941f72f31c 100644
+index a8cff60268..187265ed1f 100644
 --- a/Source/WebCore/platform/mac/ThemeMac.mm
 +++ b/Source/WebCore/platform/mac/ThemeMac.mm
 @@ -26,6 +26,14 @@
@@ -3207,7 +3548,22 @@ index a8cff60268..941f72f31c 100644
  #if PLATFORM(MAC)
  
  #import "AXObjectCache.h"
-@@ -226,12 +234,23 @@ static void updateStates(NSCell* cell, const ControlStates& controlStates, bool
+@@ -210,7 +218,13 @@ static void updateStates(NSCell* cell, const ControlStates& controlStates, bool
+     bool oldPressed = [cell isHighlighted];
+     bool pressed = states & ControlStates::PressedState;
+     if (pressed != oldPressed) {
+-        [(NSButtonCell*)cell _setHighlighted:pressed animated:useAnimation];
++        // [leopard] -[NSButtonCell _setHighlighted:animated:] is 10.7+; unrecognized on
++        // 10.6 -> crash when a toggle button changes pressed state. Fall back to the
++        // public -setHighlighted: (10.0+); 10.6 has no control-state animation.
++        if ([(NSButtonCell*)cell respondsToSelector:@selector(_setHighlighted:animated:)])
++            [(NSButtonCell*)cell _setHighlighted:pressed animated:useAnimation];
++        else
++            [(NSButtonCell*)cell setHighlighted:pressed];
+     }
+     
+     // Enabled state
+@@ -226,12 +240,23 @@ static void updateStates(NSCell* cell, const ControlStates& controlStates, bool
      bool oldChecked = [cell state] == NSControlStateValueOn;
      if (oldIndeterminate != indeterminate || checked != oldChecked) {
          NSControlStateValue newState = indeterminate ? NSControlStateValueMixed : (checked ? NSControlStateValueOn : NSControlStateValueOff);
@@ -3233,7 +3589,46 @@ index a8cff60268..941f72f31c 100644
  
      // Window inactive state does not need to be checked explicitly, since we paint parented to 
      // a view in a window whose key state can be detected.
-@@ -994,7 +1013,16 @@ void ThemeMac::paint(ControlPart part, ControlStates& states, GraphicsContext& c
+@@ -467,7 +492,14 @@ static void paintToggleButton(ControlPart buttonType, ControlStates& controlStat
+     bool useImageBuffer = pageScaleFactor != 1.0f || zoomFactor != 1.0f;
+     bool isCellFocused = controlStates.states() & ControlStates::FocusState;
+ 
+-    if ([toggleButtonCell _stateAnimationRunning]) {
++    // [leopard] -[NSButtonCell _stateAnimationRunning] and
++    // -[NSButtonCell _renderCurrentAnimationFrameInContext:atLocation:] are 10.7+ SPIs.
++    // On 10.6 they are absent (unrecognized selector -> crash when painting toggle
++    // buttons). 10.6 has no button state animations, so treat the animation as never
++    // running and always take the normal (non-animated) cell-draw path.
++    BOOL stateAnimationRunning = [toggleButtonCell respondsToSelector:@selector(_stateAnimationRunning)] && [toggleButtonCell _stateAnimationRunning];
++
++    if (stateAnimationRunning) {
+         context.translate(inflatedRect.location());
+         context.scale(FloatSize(1, -1));
+         context.translate(0, -inflatedRect.height());
+@@ -480,7 +512,7 @@ static void paintToggleButton(ControlPart buttonType, ControlStates& controlStat
+ 
+     [toggleButtonCell setControlView:nil];
+ 
+-    needsRepaint |= [toggleButtonCell _stateAnimationRunning];
++    needsRepaint |= ([toggleButtonCell respondsToSelector:@selector(_stateAnimationRunning)] && [toggleButtonCell _stateAnimationRunning]);
+     controlStates.setNeedsRepaint(needsRepaint);
+     if (needsRepaint)
+         controlStates.setPlatformControl(toggleButtonCell.get());
+@@ -701,7 +733,12 @@ NSView *ThemeMac::ensuredView(ScrollView* scrollView, const ControlStates& contr
+     // Use a fake view.
+     static WebCoreThemeView *themeView = [[WebCoreThemeView alloc] init];
+     [themeView setFrameSize:NSSizeFromCGSize(scrollView->totalContentsSize())];
+-    [themeView setAppearance:[NSAppearance currentAppearance]];
++    // [leopard] NSAppearance / -setAppearance: / +currentAppearance are 10.9+.
++    // On 10.6 NSAppearance does not exist; touching +[NSAppearance currentAppearance]
++    // traps during class init (SIGTRAP in _class_initialize). 10.6 has only the
++    // default Aqua appearance, so skip setting it.
++    if ([themeView respondsToSelector:@selector(setAppearance:)] && NSClassFromString(@"NSAppearance"))
++        [themeView setAppearance:[NSAppearance currentAppearance]];
+ 
+     themeWindowHasKeyAppearance = !(controlStates.states() & ControlStates::WindowInactiveState);
+ 
+@@ -994,7 +1031,16 @@ void ThemeMac::paint(ControlPart part, ControlStates& states, GraphicsContext& c
  
  bool ThemeMac::userPrefersReducedMotion() const
  {
@@ -3334,6 +3729,22 @@ index 40302e2685..9aa03068f5 100644
          { &createMediaPlayerDecodingConfigurationCocoa, nullptr },
  #endif
  #if USE(GSTREAMER)
+diff --git a/Source/WebCore/platform/network/ResourceResponseBase.cpp b/Source/WebCore/platform/network/ResourceResponseBase.cpp
+index 01d3ddce84..4864de5e85 100644
+--- a/Source/WebCore/platform/network/ResourceResponseBase.cpp
++++ b/Source/WebCore/platform/network/ResourceResponseBase.cpp
+@@ -144,6 +144,11 @@ ResourceResponse ResourceResponseBase::syntheticRedirectResponse(const URL& from
+     redirectResponse.setHTTPVersion("HTTP/1.1"_s);
+     redirectResponse.setHTTPHeaderField(HTTPHeaderName::Location, toURL.string());
+     redirectResponse.setHTTPHeaderField(HTTPHeaderName::CacheControl, "no-store"_s);
++    // [leopard] Allow CORS redirect checks to pass on synthetic (HSTS scheme-upgrade)
++    // redirects. Without this, a scheme-change redirect to a cross-origin asset host
++    // (e.g. github.githubassets.com for GitHub's CSS/JS) is denied by the CORS check
++    // and the resources fail to load, leaving the page unstyled.
++    redirectResponse.setHTTPHeaderField(HTTPHeaderName::AccessControlAllowOrigin, "*"_s);
+ 
+     return redirectResponse;
+ }
 diff --git a/Source/WebCore/platform/network/cocoa/CookieCocoa.mm b/Source/WebCore/platform/network/cocoa/CookieCocoa.mm
 index aa39027182..6423b645b9 100644
 --- a/Source/WebCore/platform/network/cocoa/CookieCocoa.mm
@@ -3417,7 +3828,7 @@ index dca4a74c4f..e314f401d6 100644
  #endif
  
 diff --git a/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm b/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
-index 24513cfefa..aa36fa352e 100644
+index 24513cfefa..c9b24e1772 100644
 --- a/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
 +++ b/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
 @@ -24,6 +24,7 @@
@@ -3428,7 +3839,7 @@ index 24513cfefa..aa36fa352e 100644
  #import "ResourceRequest.h"
  
  #if PLATFORM(COCOA)
-@@ -190,7 +191,12 @@ void ResourceRequest::doUpdatePlatformRequest()
+@@ -190,11 +191,24 @@ void ResourceRequest::doUpdatePlatformRequest()
      [nsRequest _setProperty:m_isTopSite ? @YES : @NO forKey:@"_kCFHTTPCookiePolicyPropertyIsTopLevelNavigation"];
  
      // Cannot just use setAllHTTPHeaderFields here, because it does not remove headers.
@@ -3442,11 +3853,41 @@ index 24513cfefa..aa36fa352e 100644
          [nsRequest setValue:nil forHTTPHeaderField:oldHeaderName];
      for (const auto& header : httpHeaderFields())
          [nsRequest setValue:header.value forHTTPHeaderField:header.key];
+ 
++    // [leopard] 10.6's HTTP stack cannot decode Brotli (Content-Encoding: br). Modern
++    // CDNs (e.g. github.githubassets.com) serve br when it is advertised, and the
++    // undecodable body comes back empty -> CSS/JS silently fail to load (pages render
++    // unstyled with no scripts). Force Accept-Encoding to gzip/deflate AFTER the header
++    // copy above (which would otherwise restore a br-containing value), so the server
++    // sends a 10.6-decodable encoding.
++    [nsRequest setValue:@"gzip, deflate" forHTTPHeaderField:@"Accept-Encoding"];
++
+     [nsRequest setContentDispositionEncodingFallbackArray:createNSArray(m_responseContentDispositionEncodingFallbackArray, [] (auto& name) -> NSNumber * {
+         auto encoding = CFStringConvertEncodingToNSStringEncoding(CFStringConvertIANACharSetNameToEncoding(name.createCFString().get()));
+         if (encoding == kCFStringEncodingInvalidId)
 diff --git a/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm b/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm
-index 51a9fe6555..ad2c9b360d 100644
+index 51a9fe6555..7a6aa4205a 100644
 --- a/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm
 +++ b/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm
-@@ -91,6 +91,7 @@ CertificateInfo ResourceResponse::platformCertificateInfo() const
+@@ -64,7 +64,16 @@ void ResourceResponse::initNSURLResponse() const
+     for (auto& header : m_httpHeaderFields)
+         [headerDictionary setObject:(NSString *)header.value forKey:(NSString *)header.key];
+ 
+-    m_nsResponse = adoptNS([[NSHTTPURLResponse alloc] initWithURL:m_url statusCode:m_httpStatusCode HTTPVersion:(NSString*)kCFHTTPVersion1_1 headerFields:headerDictionary]);
++    // [leopard] The public initWithURL:statusCode:HTTPVersion:headerFields: is 10.7+.
++    // On 10.6, use the private initWithURL:statusCode:headerFields:requestTime: SPI.
++    // Without a proper NSHTTPURLResponse, CORS checks reject cross-origin redirects
++    // (e.g. github.githubassets.com CSS/JS assets fail to load -> unstyled page).
++    if ([NSHTTPURLResponse instancesRespondToSelector:@selector(initWithURL:statusCode:HTTPVersion:headerFields:)])
++        m_nsResponse = adoptNS([[NSHTTPURLResponse alloc] initWithURL:m_url statusCode:m_httpStatusCode HTTPVersion:(NSString*)kCFHTTPVersion1_1 headerFields:headerDictionary]);
++    else if ([NSHTTPURLResponse instancesRespondToSelector:@selector(initWithURL:statusCode:headerFields:requestTime:)])
++        m_nsResponse = adoptNS([[NSHTTPURLResponse alloc] initWithURL:m_url statusCode:m_httpStatusCode headerFields:headerDictionary requestTime:0]);
++    else
++        m_nsResponse = adoptNS([[NSHTTPURLResponse alloc] initWithURL:m_url MIMEType:m_mimeType expectedContentLength:static_cast<NSInteger>(m_expectedContentLength) textEncodingName:nsStringNilIfEmpty(m_textEncodingName)]);
+ 
+     // Mime type sniffing doesn't work with a synthesized response.
+     [m_nsResponse.get() _setMIMEType:(NSString *)m_mimeType];
+@@ -91,6 +100,7 @@ CertificateInfo ResourceResponse::platformCertificateInfo() const
      auto trust = checked_cf_cast<SecTrustRef>(trustValue);
  
      SecTrustResultType trustResultType;
@@ -3454,7 +3895,7 @@ index 51a9fe6555..ad2c9b360d 100644
      OSStatus result = SecTrustGetTrustResult(trust, &trustResultType);
      if (result != errSecSuccess)
          return { };
-@@ -99,6 +100,14 @@ CertificateInfo ResourceResponse::platformCertificateInfo() const
+@@ -99,6 +109,14 @@ CertificateInfo ResourceResponse::platformCertificateInfo() const
          if (!SecTrustEvaluateWithError(trust, nullptr))
              return { };
      }
@@ -3568,6 +4009,37 @@ index 19e620580b..25a09e5fc2 100644
      // Sync xhr uses the message queue.
      if (m_messageQueue)
          return m_messageQueue->append(makeUnique<Function<void()>>(WTFMove(function)));
+diff --git a/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm b/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm
+index 32e10732a3..40e31a93bd 100644
+--- a/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm
++++ b/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm
+@@ -335,7 +335,25 @@ NSURLResponse *synthesizeRedirectResponseIfNecessary(NSURLRequest *currentReques
+     if (redirectResponse)
+         return redirectResponse;
+ 
+-    if ([[[newRequest URL] scheme] isEqualToString:[[currentRequest URL] scheme]] && ![newRequest _schemeWasUpgradedDueToDynamicHSTS])
++    // [leopard] -[NSURLRequest _schemeWasUpgradedDueToDynamicHSTS] is a 10.7+ SPI. On
++    // 10.6 NSURLRequest does not implement it, so sending it returns garbage (or worse).
++    // When the selector is absent, treat it as NO (10.6 has no dynamic-HSTS upgrade).
++    // Without this guard the condition mis-evaluates and a synthetic redirect is created
++    // for EVERY same-scheme cross-origin request (e.g. github.githubassets.com CSS/JS),
++    // which then fails the CORS redirect check ("non CORS scheme") -> assets never load.
++    // [leopard] On 10.6 currentRequest is nil on the initial load of a subresource (no
++    // prior request -> not a redirect at all). With a nil currentRequest, [currentRequest
++    // URL] scheme] is nil and -[NSString isEqualToString:nil] is NO, so the same-scheme
++    // guard below fails and a synthetic redirect gets fabricated for EVERY first request
++    // (cur=(null) in logs). That phantom redirect then fails the CORS redirect check and
++    // every cross-origin CDN asset (github.githubassets.com CSS/JS) is denied -> unstyled
++    // page. A synthetic redirect only makes sense when there is a real prior request whose
++    // scheme actually changed; if currentRequest is nil, there is no redirect to synthesize.
++    if (!currentRequest)
++        return nil;
++
++    BOOL schemeUpgradedByHSTS = [newRequest respondsToSelector:@selector(_schemeWasUpgradedDueToDynamicHSTS)] && [newRequest _schemeWasUpgradedDueToDynamicHSTS];
++    if ([[[newRequest URL] scheme] isEqualToString:[[currentRequest URL] scheme]] && !schemeUpgradedByHSTS)
+         return nil;
+ 
+     return [[ResourceResponse::syntheticRedirectResponse(URL([currentRequest URL]), URL([newRequest URL])).nsURLResponse() retain] autorelease];
 diff --git a/Source/WebCore/platform/sql/SQLiteStatement.cpp b/Source/WebCore/platform/sql/SQLiteStatement.cpp
 index dea8fff8a5..03f7cca83a 100644
 --- a/Source/WebCore/platform/sql/SQLiteStatement.cpp
@@ -3688,7 +4160,7 @@ index 519f0ec931..a9dc397163 100644
  
  }
 diff --git a/Source/WebCore/rendering/RenderThemeMac.mm b/Source/WebCore/rendering/RenderThemeMac.mm
-index a808dd3e0f..d51e02a131 100644
+index a808dd3e0f..9f5862ba81 100644
 --- a/Source/WebCore/rendering/RenderThemeMac.mm
 +++ b/Source/WebCore/rendering/RenderThemeMac.mm
 @@ -106,6 +106,18 @@
@@ -3761,6 +4233,19 @@ index a808dd3e0f..d51e02a131 100644
  
  #if ENABLE(SERVICE_CONTROLS)
  
+@@ -2334,7 +2354,11 @@ NSSearchFieldCell* RenderThemeMac::search() const
+         [m_search.get() setBezeled:YES];
+         [m_search.get() setEditable:YES];
+         [m_search.get() setFocusRingType:NSFocusRingTypeExterior];
+-        [m_search.get() setCenteredLook:NO];
++        // [leopard] -[NSSearchFieldCell setCenteredLook:] is a 10.7+ private SPI; absent
++        // on 10.6 -> unrecognized selector when rendering search fields (e.g. the Web
++        // Inspector console filter box). Guard it; the centered look is cosmetic.
++        if ([m_search.get() respondsToSelector:@selector(setCenteredLook:)])
++            [m_search.get() setCenteredLook:NO];
+     }
+ 
+     return m_search.get();
 diff --git a/Source/WebCore/style/StyleAdjuster.cpp b/Source/WebCore/style/StyleAdjuster.cpp
 index 140625f905..e6653a80fe 100644
 --- a/Source/WebCore/style/StyleAdjuster.cpp
@@ -3808,6 +4293,109 @@ index d58b5cd4d8..1d20289706 100644
  
  #if !PLATFORM(COCOA)
  
+diff --git a/Source/WebInspectorUI/UserInterface/Views/Layers3DContentView.js b/Source/WebInspectorUI/UserInterface/Views/Layers3DContentView.js
+index 1b273d6c12..94467e557f 100644
+--- a/Source/WebInspectorUI/UserInterface/Views/Layers3DContentView.js
++++ b/Source/WebInspectorUI/UserInterface/Views/Layers3DContentView.js
+@@ -96,6 +96,8 @@ WI.Layers3DContentView = class Layers3DContentView extends WI.ContentView
+ 
+     selectLayerById(layerId)
+     {
++        if (!this._renderer)
++            return;
+         let layerGroup = this._layerGroupsById.get(layerId);
+         this._updateLayerGroupSelection(layerGroup);
+         this._updateLayerInfoElement();
+@@ -150,10 +152,39 @@ WI.Layers3DContentView = class Layers3DContentView extends WI.ContentView
+         super.detached();
+     }
+ 
++    static _webGLAvailable()
++    {
++        if (Layers3DContentView.__webGLAvailable !== undefined)
++            return Layers3DContentView.__webGLAvailable;
++        let available = false;
++        try {
++            let canvas = document.createElement("canvas");
++            available = !!(window.WebGLRenderingContext && (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")));
++        } catch (e) {
++            available = false;
++        }
++        Layers3DContentView.__webGLAvailable = available;
++        return available;
++    }
++
+     initialLayout()
+     {
+         super.initialLayout();
+ 
++        // [leopard] On the 10.6 software-GPU VM there is no usable WebGL context, so
++        // THREE.WebGLRenderer's constructor calls gl.getExtension() on a null context
++        // and throws, which aborts the entire Web Inspector layout (blank Inspector).
++        // Detect WebGL up front and, if absent, show a placeholder and skip 3D init so
++        // the rest of the Inspector (Elements, Network, Console, etc.) works normally.
++        if (!Layers3DContentView._webGLAvailable()) {
++            if (!this._unavailableMessageElement) {
++                this._unavailableMessageElement = this.element.appendChild(document.createElement("div"));
++                this._unavailableMessageElement.className = "message-text-view";
++                this._unavailableMessageElement.textContent = WI.UIString("3D Layers view is unavailable (no WebGL).");
++            }
++            return;
++        }
++
+         this._renderer = new THREE.WebGLRenderer({antialias: true});
+         this._renderer.setSize(this.element.offsetWidth, this.element.offsetHeight);
+ 
+@@ -191,6 +222,12 @@ WI.Layers3DContentView = class Layers3DContentView extends WI.ContentView
+ 
+     layout()
+     {
++        // [leopard] When WebGL is unavailable the 3D renderer/scene were never created
++        // (see initialLayout), so the document/layer update chain below would deref a
++        // null this._scene. Skip it entirely; the "unavailable" placeholder is shown.
++        if (!this._renderer)
++            return;
++
+         if (this.layoutReason === WI.View.LayoutReason.Resize)
+             return;
+ 
+@@ -213,6 +250,9 @@ WI.Layers3DContentView = class Layers3DContentView extends WI.ContentView
+     {
+         super.sizeDidChange();
+ 
++        if (!this._renderer)
++            return;
++
+         this._stopAnimation();
+         this._camera.aspect = this.element.offsetWidth / this.element.offsetHeight;
+         this._camera.updateProjectionMatrix();
+@@ -229,6 +269,8 @@ WI.Layers3DContentView = class Layers3DContentView extends WI.ContentView
+ 
+     _animate()
+     {
++        if (!this._renderer)
++            return;
+         this._controls.update();
+         this._restrictPan();
+         this._renderer.render(this._scene, this._camera);
+@@ -257,6 +299,8 @@ WI.Layers3DContentView = class Layers3DContentView extends WI.ContentView
+ 
+     _updateLayers(newLayers)
+     {
++        if (!this._renderer)
++            return;
+         // FIXME: This should be made into the basic usage of the manager, if not the agent itself.
+         //        At that point, we can remove this duplication from the visualization and sidebar.
+         let {removals, additions} = WI.layerTreeManager.layerTreeMutations(this._layers, newLayers);
+@@ -366,6 +410,8 @@ WI.Layers3DContentView = class Layers3DContentView extends WI.ContentView
+ 
+     _updateLayerGroupSelection(layerGroup)
+     {
++        if (!this._renderer)
++            return;
+         let setColor = ({fill, stroke}) => {
+             let [plane, outline] = this._selectedLayerGroup.children;
+             plane.material.color.set(fill);
 diff --git a/Source/WebKitLegacy/PlatformMac.cmake b/Source/WebKitLegacy/PlatformMac.cmake
 index 81950e3053..3817d82311 100644
 --- a/Source/WebKitLegacy/PlatformMac.cmake
@@ -3841,6 +4429,38 @@ index 81950e3053..3817d82311 100644
  
  set(WebKitLegacy_OUTPUT_NAME WebKitLegacy)
  
+diff --git a/Source/WebKitLegacy/mac/DOM/DOMHTML.mm b/Source/WebKitLegacy/mac/DOM/DOMHTML.mm
+index 97b36bcc78..6d796be116 100644
+--- a/Source/WebKitLegacy/mac/DOM/DOMHTML.mm
++++ b/Source/WebKitLegacy/mac/DOM/DOMHTML.mm
+@@ -201,7 +201,12 @@
+ 
+ @end
+ 
+-#if PLATFORM(IOS_FAMILY)
++// [leopard] FormPromptAdditions (_isEdited) was restricted to PLATFORM(IOS_FAMILY)
++// upstream, but Safari 5.0.5 (the desktop wrapper hosting this injected WebKit) still
++// sends -[DOMHTMLInputElement _isEdited] when handling text fields -> unrecognized
++// selector crash on 10.6. lastChangeWasUserEdit() is available on all platforms, so
++// compile this category on Mac too.
++#if PLATFORM(IOS_FAMILY) || PLATFORM(MAC)
+ 
+ @implementation DOMHTMLInputElement (FormPromptAdditions)
+ 
+@@ -221,6 +226,13 @@
+ 
+ @end
+ 
++#endif // PLATFORM(IOS_FAMILY) || PLATFORM(MAC) -- end of _isEdited (Safari 5.0.5 needs it on Mac)
++
++// [leopard] The autocapitalize SPIs below use iOS-only WebCore APIs
++// (AutocapitalizeType / HTMLInputElement::autocapitalizeType()) that do not exist on
++// Mac, so this section stays iOS-only (Safari 5.0.5 desktop does not call them).
++#if PLATFORM(IOS_FAMILY)
++
+ static WebAutocapitalizeType webAutocapitalizeType(AutocapitalizeType type)
+ {
+     switch (type) {
 diff --git a/Source/WebKitLegacy/mac/History/WebHistoryItem.mm b/Source/WebKitLegacy/mac/History/WebHistoryItem.mm
 index 6765682819..0cbdf40b6d 100644
 --- a/Source/WebKitLegacy/mac/History/WebHistoryItem.mm
@@ -4008,10 +4628,23 @@ index e95375fba3..634fa25143 100644
      return policyListener;
  }
 diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
-index 66f6672773..361b0e1e60 100644
+index 66f6672773..059bd25a2d 100644
 --- a/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
 +++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
-@@ -231,7 +231,7 @@ String WebInspectorFrontendClient::localizedStringsURL() const
+@@ -221,9 +221,11 @@ void WebInspectorFrontendClient::startWindowDrag()
+     [[m_frontendWindowController window] performWindowDragWithEvent:[NSApp currentEvent]];
+ }
+ 
++static NSBundle *webInspectorUIBundle();
++
+ String WebInspectorFrontendClient::localizedStringsURL() const
+ {
+-    NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.apple.WebInspectorUI"];
++    NSBundle *bundle = webInspectorUIBundle();
+     if (!bundle)
+         return String();
+ 
+@@ -231,7 +233,7 @@ String WebInspectorFrontendClient::localizedStringsURL() const
      if (!path.length)
          return String();
      
@@ -4020,7 +4653,7 @@ index 66f6672773..361b0e1e60 100644
  }
  
  void WebInspectorFrontendClient::bringToFront()
-@@ -274,6 +274,7 @@ void WebInspectorFrontendClient::setForcedAppearance(InspectorFrontendClient::Ap
+@@ -274,6 +276,7 @@ void WebInspectorFrontendClient::setForcedAppearance(InspectorFrontendClient::Ap
      NSWindow *window = [m_frontendWindowController window];
      ASSERT(window);
  
@@ -4028,7 +4661,7 @@ index 66f6672773..361b0e1e60 100644
      switch (appearance) {
      case InspectorFrontendClient::Appearance::System:
          window.appearance = nil;
-@@ -287,6 +288,10 @@ void WebInspectorFrontendClient::setForcedAppearance(InspectorFrontendClient::Ap
+@@ -287,6 +290,10 @@ void WebInspectorFrontendClient::setForcedAppearance(InspectorFrontendClient::Ap
          window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
          break;
      }
@@ -4039,10 +4672,55 @@ index 66f6672773..361b0e1e60 100644
  }
  
  bool WebInspectorFrontendClient::supportsDockSide(DockSide dockSide)
-@@ -570,9 +575,14 @@ void WebInspectorFrontendClient::append(const String& suggestedURL, const String
+@@ -529,9 +536,29 @@ void WebInspectorFrontendClient::append(const String& suggestedURL, const String
+ 
+ // MARK: -
+ 
+-- (NSString *)inspectorPagePath
++static NSBundle *webInspectorUIBundle()
+ {
++    // [leopard] +[NSBundle bundleWithIdentifier:] only finds ALREADY-LOADED bundles.
++    // In the injected-framework setup the WebInspectorUI bundle is not registered, so
++    // bundleWithIdentifier: returns nil -> inspectorPagePath returns nil -> the
++    // Inspector tries [NSURL fileURLWithPath:nil] and throws (Inspector never opens).
++    // Locate the framework by path: it is a sibling of WebKitLegacy.framework in the
++    // same Frameworks/<ver> directory, so load it relative to this code's bundle.
+     NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.apple.WebInspectorUI"];
++    if (bundle)
++        return bundle;
++
++    NSString *frameworksDir = [[NSBundle bundleForClass:[WebInspectorWindowController class]] bundlePath].stringByDeletingLastPathComponent;
++    NSString *uiPath = [frameworksDir stringByAppendingPathComponent:@"WebInspectorUI.framework"];
++    bundle = [NSBundle bundleWithPath:uiPath];
++    if (bundle && ![bundle isLoaded])
++        [bundle load];
++    return bundle;
++}
++
++- (NSString *)inspectorPagePath
++{
++    NSBundle *bundle = webInspectorUIBundle();
+     if (!bundle)
+         return nil;
+ 
+@@ -540,7 +567,7 @@ void WebInspectorFrontendClient::append(const String& suggestedURL, const String
+ 
+ - (NSString *)inspectorTestPagePath
+ {
+-    NSBundle *bundle = [NSBundle bundleWithIdentifier:@"com.apple.WebInspectorUI"];
++    NSBundle *bundle = webInspectorUIBundle();
+     if (!bundle)
+         return nil;
+ 
+@@ -569,10 +596,18 @@ void WebInspectorFrontendClient::append(const String& suggestedURL, const String
+ 
      CGFloat approximatelyHalfScreenSize = (window.screen.frame.size.width / 2) - 4;
      CGFloat minimumFullScreenWidth = std::max<CGFloat>(636, approximatelyHalfScreenSize);
-     [window setMinFullScreenContentSize:NSMakeSize(minimumFullScreenWidth, minimumWindowHeight)];
+-    [window setMinFullScreenContentSize:NSMakeSize(minimumFullScreenWidth, minimumWindowHeight)];
++    // [leopard] -[NSWindow setMinFullScreenContentSize:] is 10.11+; unrecognized
++    // selector on 10.6 (crashes when the Inspector frontend configures its window).
++    if ([window respondsToSelector:@selector(setMinFullScreenContentSize:)])
++        [window setMinFullScreenContentSize:NSMakeSize(minimumFullScreenWidth, minimumWindowHeight)];
 +#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
 +    // [leopard-webkit-build] NSWindowCollectionBehaviorFullScreenAllowsTiling +
 +    // titlebarAppearsTransparent are 10.10+; on < 10.10 skip (inspector window just
@@ -4110,10 +4788,23 @@ index 56dcca8a72..609416c285 100644
      if (fabsf(deltaY) > fabsf(deltaX)) {
          if (![self allowsVerticalScrolling]) {
 diff --git a/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm b/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
-index 5e4a8905ec..4ae0a63374 100644
+index 5e4a8905ec..74e4e2e380 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
 +++ b/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
-@@ -4393,7 +4393,11 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
+@@ -3612,6 +3612,12 @@ static RetainPtr<NSMenuItem> createShareMenuItem(const WebCore::HitTestResult& h
+     if (![items count])
+         return nil;
+ 
++    // [leopard] +[NSMenuItem standardShareMenuItemForItems:] is 10.8+; on 10.6 it is
++    // an unrecognized selector (crashes building the context menu, e.g. when opening
++    // the Web Inspector via Inspect Element). No system Share menu on 10.6; omit it.
++    if (![NSMenuItem respondsToSelector:@selector(standardShareMenuItemForItems:)])
++        return nil;
++
+     return [NSMenuItem standardShareMenuItemForItems:items.get()];
+ }
+ 
+@@ -4393,7 +4399,11 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
  {
      ASSERT(![self _webView] || [self _isTopHTMLView]);
  
@@ -4125,7 +4816,7 @@ index 5e4a8905ec..4ae0a63374 100644
  
      if (auto* page = core([self _webView]))
          page->dragController().dragEnded();
-@@ -4467,8 +4471,10 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
+@@ -4467,8 +4477,10 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
  {
  #if PLATFORM(MAC)
      NSEvent *lastPressureEvent = [[self _webView] _pressureEvent];
@@ -4136,7 +4827,7 @@ index 5e4a8905ec..4ae0a63374 100644
  
      RefPtr<WebCore::Frame> coreFrame = core([self _frame]);
      if (!coreFrame)
-@@ -5045,7 +5051,14 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
+@@ -5045,7 +5057,14 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
  {
      auto* coreFrame = core([self _frame]);
      auto string = adoptNS([[NSAttributedString alloc] initWithString:@"x"
@@ -4151,7 +4842,7 @@ index 5e4a8905ec..4ae0a63374 100644
      return [string RTFFromRange:NSMakeRange(0, [string length]) documentAttributes:@{ }];
  }
  
-@@ -5707,7 +5720,12 @@ static BOOL writingDirectionKeyBindingsEnabled()
+@@ -5707,7 +5726,12 @@ static BOOL writingDirectionKeyBindingsEnabled()
      if (auto* coreFrame = core([self _frame])) {
          if (const WebCore::Font* fd = coreFrame->editor().fontForSelection(multipleFonts))
              font = (NSFont *)fd->platformData().registeredFont();
@@ -4164,7 +4855,7 @@ index 5e4a8905ec..4ae0a63374 100644
      }
  
      // FIXME: for now, return a bogus font that distinguishes the empty selection from the non-empty
-@@ -6176,7 +6194,13 @@ static BOOL writingDirectionKeyBindingsEnabled()
+@@ -6176,7 +6200,13 @@ static BOOL writingDirectionKeyBindingsEnabled()
      if (_private) {
          ASSERT(!_private->drawingIntoLayer);
          _private->drawingIntoLayer = YES;
@@ -4178,7 +4869,7 @@ index 5e4a8905ec..4ae0a63374 100644
      }
  
      [super drawLayer:layer inContext:ctx];
-@@ -6254,7 +6278,9 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
+@@ -6254,7 +6284,9 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
          NSUnderlineColorAttributeName,
          NSMarkedClauseSegmentAttributeName,
          NSTextInputReplacementRangeAttributeName,
@@ -4188,7 +4879,7 @@ index 5e4a8905ec..4ae0a63374 100644
          NSTextInsertionUndoableAttributeName,
          nil];
      LOG(TextInput, "validAttributesForMarkedText -> (...)");
-@@ -6295,7 +6321,11 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
+@@ -6295,7 +6327,11 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
  
      if (window) {
          NSRect screenRect = { thePoint, NSZeroSize };
@@ -4200,7 +4891,7 @@ index 5e4a8905ec..4ae0a63374 100644
      }
      thePoint = [self convertPoint:thePoint fromView:nil];
  
-@@ -6338,7 +6368,11 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
+@@ -6338,7 +6374,11 @@ ALLOW_DEPRECATED_IMPLEMENTATIONS_END
  
      NSWindow *window = [self window];
      if (window)
@@ -4280,7 +4971,7 @@ index 1bc67d3684..96d84b7947 100644
  
  + (Class)_PDFViewClass
 diff --git a/Source/WebKitLegacy/mac/WebView/WebPreferences.mm b/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
-index ae9078b332..4bbb8a724e 100644
+index ae9078b332..8b3abc60a2 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
 +++ b/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
 @@ -486,7 +486,15 @@ public:
@@ -4299,6 +4990,15 @@ index ae9078b332..4bbb8a724e 100644
  #if PLATFORM(MAC)
  #define DEFAULT_SUBPIXEL_ANTIALIASED_LAYER_TEXT_ENABLED YES
  #else
+@@ -686,7 +694,7 @@ public:
+ #if ENABLE(INTERSECTION_OBSERVER)
+         @NO, WebKitIntersectionObserverEnabledPreferenceKey,
+ #endif
+-        @NO, WebKitUserTimingEnabledPreferenceKey,
++        @YES, WebKitUserTimingEnabledPreferenceKey,
+         @NO, WebKitResourceTimingEnabledPreferenceKey,
+         @NO, WebKitMediaUserGestureInheritsFromDocument,
+         @NO, WebKitIsSecureContextAttributeEnabledPreferenceKey,
 diff --git a/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm b/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm
 index 0650dbf153..44b21287b0 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm
@@ -4523,6 +5223,25 @@ index 0ee289b81f..6e3b8256d1 100644
  @property (nonatomic, assign) CGFloat contentImageScaleFactor;
  @property (nonatomic, retain) UIImage *contentImageWithHighlight;
  @property (nonatomic, retain) UIImage *contentImage;
+diff --git a/Source/bmalloc/bmalloc/BPlatform.h b/Source/bmalloc/bmalloc/BPlatform.h
+index c6bce2eb0d..4677adb051 100644
+--- a/Source/bmalloc/bmalloc/BPlatform.h
++++ b/Source/bmalloc/bmalloc/BPlatform.h
+@@ -305,9 +305,13 @@
+ /* This is used for debugging when hacking on how bmalloc calculates its physical footprint. */
+ #define ENABLE_PHYSICAL_PAGE_MAP 0
+ 
+-#if BPLATFORM(MAC)
++#if BPLATFORM(MAC) && !(defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1090)
+ #define BUSE_PARTIAL_SCAVENGE 1
+ #else
++// [leopard] On 10.6 PARTIAL_SCAVENGE (scavengeToHighWatermark + the IsoDirectory
++// partial machinery) NULL-crashes the bmalloc scavenger thread under memory
++// pressure (SIGSEGV in partialScavenge, youtube.com). Fall back to the simpler
++// full-scavenge run-loop path, which is stable on 10.6.
+ #define BUSE_PARTIAL_SCAVENGE 0
+ #endif
+ 
 diff --git a/Source/bmalloc/bmalloc/DebugHeap.cpp b/Source/bmalloc/bmalloc/DebugHeap.cpp
 index e89a42753b..b7fe2f54f4 100644
 --- a/Source/bmalloc/bmalloc/DebugHeap.cpp
@@ -4540,7 +5259,7 @@ index e89a42753b..b7fe2f54f4 100644
  
  void DebugHeap::dump()
 diff --git a/Source/bmalloc/bmalloc/Scavenger.cpp b/Source/bmalloc/bmalloc/Scavenger.cpp
-index 610678a615..ff4c065efd 100644
+index 610678a615..a3331284b2 100644
 --- a/Source/bmalloc/bmalloc/Scavenger.cpp
 +++ b/Source/bmalloc/bmalloc/Scavenger.cpp
 @@ -76,7 +76,7 @@ Scavenger::Scavenger(const LockHolder&)
@@ -4578,6 +5297,19 @@ index 610678a615..ff4c065efd 100644
  
      dump("bmalloc-freeable", Scavenger::get()->freeableMemory());
      dump("bmalloc-footprint", Scavenger::get()->footprint());
+@@ -536,7 +536,11 @@ void Scavenger::setThreadName(const char* name)
+ 
+ void Scavenger::setSelfQOSClass()
+ {
+-#if BOS(DARWIN)
++#if BOS(DARWIN) && !(defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1090)
++    // [leopard] pthread_set_qos_class_self_np is 10.10+; unbound on 10.6 (NULL
++    // call -> SIGSEGV at threadRunLoop+535 under memory pressure, youtube.com).
++    // bmalloc does not see __MAC_OS_X_VERSION_MIN_REQUIRED; use the compiler
++    // builtin __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ (=1060 on 10.6).
+     pthread_set_qos_class_self_np(requestedScavengerThreadQOSClass(), 0);
+ #endif
+ }
 diff --git a/Source/cmake/OptionsMac.cmake b/Source/cmake/OptionsMac.cmake
 index 8ab1674270..025983504b 100644
 --- a/Source/cmake/OptionsMac.cmake

@@ -1,0 +1,30 @@
+From f2bf12f728cb3fcdd366ddf6a56d48fab9aa5684 Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Wed, 24 Jun 2026 10:46:40 -0500
+Subject: [PATCH 17/36] [sl-port-610] Fix click crash: ScrollView scrollToPoint
+ path called scrollView().contentInsets (10.10+ NSScrollView API) unguarded ->
+ doesNotRecognizeSelector on 10.6 when clicking a link triggers scroll. Guard
+ matches the other contentInsets sites (SKIPS_INSETS on 10.6)
+
+---
+ Source/WebCore/platform/mac/ScrollViewMac.mm | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Source/WebCore/platform/mac/ScrollViewMac.mm b/Source/WebCore/platform/mac/ScrollViewMac.mm
+index 38747b11ae..3cb47675f2 100644
+--- a/Source/WebCore/platform/mac/ScrollViewMac.mm
++++ b/Source/WebCore/platform/mac/ScrollViewMac.mm
+@@ -222,8 +222,10 @@ void ScrollView::platformSetScrollPosition(const IntPoint& scrollPoint)
+ 
+     // AppKit has the inset factored into all of its scroll positions. In WebCore, we use positions that ignore
+     // the insets so that they are equivalent whether or not there is an inset.
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+     tempPoint.x = tempPoint.x - scrollView().contentInsets.left;
+     tempPoint.y = tempPoint.y - scrollView().contentInsets.top;
++#endif
+ 
+     [documentView() scrollPoint:tempPoint];
+     END_BLOCK_OBJC_EXCEPTIONS;
+-- 
+2.54.0
+

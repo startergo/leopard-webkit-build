@@ -1,0 +1,41 @@
+From 61d45dedbdab585b26ad45c445d3ac7376612e24 Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Wed, 24 Jun 2026 21:03:46 -0500
+Subject: [PATCH 32/36] [sl-port-610] THE GitHub fix (matches proven 605
+ behavior): checkRedirectionCrossOriginAccessControl validated
+ URL(redirectResponse.url(), Location-header) instead of the resolved
+ newRequest.url(). On 10.6 the redirect is often synthetic with no Location
+ header, so the rebuilt URL has an empty scheme ->
+ validateCrossOriginRedirectionURL returns 'non CORS scheme' -> every
+ cross-origin CDN asset (github.githubassets.com CSS/JS) denied -> unstyled
+ page. 605 validates newRequest.url() (already a proper https URL); do the
+ same. This is why 604/605 render GitHub but 610 did not
+
+---
+ Source/WebCore/loader/SubresourceLoader.cpp | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/Source/WebCore/loader/SubresourceLoader.cpp b/Source/WebCore/loader/SubresourceLoader.cpp
+index 7b50f4a91b..5c054c241a 100644
+--- a/Source/WebCore/loader/SubresourceLoader.cpp
++++ b/Source/WebCore/loader/SubresourceLoader.cpp
+@@ -633,8 +633,14 @@ Expected<void, String> SubresourceLoader::checkRedirectionCrossOriginAccessContr
+     // Implementing https://fetch.spec.whatwg.org/#concept-http-redirect-fetch step 7 & 8.
+     if (options().mode == FetchOptions::Mode::Cors) {
+         if (m_resource->isCrossOrigin()) {
+-            auto locationString = redirectResponse.httpHeaderField(HTTPHeaderName::Location);
+-            String errorMessage = validateCrossOriginRedirectionURL(URL(redirectResponse.url(), locationString));
++            // [leopard] 605 validates the already-resolved newRequest.url() here; 610
++            // rebuilt the redirect URL from redirectResponse.url() + the Location header.
++            // On 10.6 the redirect can be synthetic with no Location, so the rebuilt URL
++            // has an empty scheme and validateCrossOriginRedirectionURL returns the
++            // "non CORS scheme" error, blocking every cross-origin CDN asset
++            // (github.githubassets.com CSS/JS) -> pages render unstyled. Validate the
++            // resolved newRequest.url() (a proper https URL) like 605 does instead.
++            String errorMessage = validateCrossOriginRedirectionURL(newRequest.url());
+             if (!errorMessage.isNull())
+                 return makeUnexpected(WTFMove(errorMessage));
+         }
+-- 
+2.54.0
+

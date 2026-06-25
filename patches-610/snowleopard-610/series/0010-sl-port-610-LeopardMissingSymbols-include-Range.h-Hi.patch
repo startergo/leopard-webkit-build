@@ -1,0 +1,29 @@
+From 7fb2830910d24cac2524b4b4d261840941bf731b Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Wed, 24 Jun 2026 06:32:11 -0500
+Subject: [PATCH 10/36] [sl-port-610] LeopardMissingSymbols: include Range.h +
+ HitTestResult.h for complete types (RefPtr<Range> needs full Range in
+ DictionaryLookup stub)
+
+---
+ Source/WebCore/platform/leopard/LeopardMissingSymbols.mm | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm b/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm
+index e0435ad734..72c5443d82 100644
+--- a/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm
++++ b/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm
+@@ -9,8 +9,10 @@
+ 
+ #include "CertificateInfo.h"
+ #include "DictionaryLookup.h"
++#include "HitTestResult.h"
+ #include "MediaSessionManagerCocoa.h"
+ #include "NotImplemented.h"
++#include "Range.h"
+ #include "ResourceUsageThread.h"
+ 
+ namespace WebCore {
+-- 
+2.54.0
+

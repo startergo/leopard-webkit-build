@@ -1,0 +1,25 @@
+From decebcb68672e6f66f685e3ca605e8638e9e4f64 Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Thu, 25 Jun 2026 03:26:16 -0500
+Subject: [PATCH 33/36] [sl-port-610] TEMP diagnostic: log synthetic-redirect
+ fabrication
+
+---
+ Source/WebCore/platform/network/mac/WebCoreURLResponse.mm | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm b/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm
+index 45dfdcc5ce..1a71de951e 100644
+--- a/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm
++++ b/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm
+@@ -345,6 +345,7 @@ NSURLResponse *synthesizeRedirectResponseIfNecessary(NSURLRequest *currentReques
+     if ([[[newRequest URL] scheme] isEqualToString:[[currentRequest URL] scheme]] && !schemeUpgradedByHSTS)
+         return nil;
+ 
++    WTFLogAlways("[leopard-synth] FABRICATING redirect cur=%s new=%s hsts=%d", [[[currentRequest URL] absoluteString] UTF8String], [[[newRequest URL] absoluteString] UTF8String], (int)schemeUpgradedByHSTS);
+     return [[ResourceResponse::syntheticRedirectResponse(URL([currentRequest URL]), URL([newRequest URL])).nsURLResponse() retain] autorelease];
+ }
+ 
+-- 
+2.54.0
+

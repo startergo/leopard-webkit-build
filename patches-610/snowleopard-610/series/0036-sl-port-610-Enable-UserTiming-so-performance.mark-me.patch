@@ -1,0 +1,46 @@
+From caa5df97d5e44a0c9870648c75b784c2b4926f89 Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Thu, 25 Jun 2026 04:06:20 -0500
+Subject: [PATCH 36/36] [sl-port-610] Enable UserTiming so
+ performance.mark/measure exist. GitHub calls performance.mark at js-parse-end
+ in every module init; with UserTiming gated off, performance.mark was
+ undefined and ~40 script modules threw TypeError. The IDL gates
+ mark/measure/clearMarks/clearMeasures behind the UserTiming runtime flag,
+ which defaulted off (preference NO, in-class false). Default the preference
+ to YES and the flag to true. (ResourceTiming left off: no observed GitHub
+ failures point to it; will enable if evidence shows it is needed.)
+
+---
+ Source/WebCore/page/RuntimeEnabledFeatures.h      | 2 +-
+ Source/WebKitLegacy/mac/WebView/WebPreferences.mm | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Source/WebCore/page/RuntimeEnabledFeatures.h b/Source/WebCore/page/RuntimeEnabledFeatures.h
+index 9847388043..49bcb57c08 100644
+--- a/Source/WebCore/page/RuntimeEnabledFeatures.h
++++ b/Source/WebCore/page/RuntimeEnabledFeatures.h
+@@ -435,7 +435,7 @@ private:
+     bool m_isMediaPreloadingEnabled { false };
+     bool m_isPaintTimingEnabled { false };
+     bool m_isResourceTimingEnabled { false };
+-    bool m_isUserTimingEnabled { false };
++    bool m_isUserTimingEnabled { true };
+     bool m_isInteractiveFormValidationEnabled { false };
+     bool m_isWebAuthenticationEnabled { false };
+     bool m_isWebAuthenticationLocalAuthenticatorEnabled { false };
+diff --git a/Source/WebKitLegacy/mac/WebView/WebPreferences.mm b/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
+index 4bbb8a724e..8b3abc60a2 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
++++ b/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
+@@ -694,7 +694,7 @@ public:
+ #if ENABLE(INTERSECTION_OBSERVER)
+         @NO, WebKitIntersectionObserverEnabledPreferenceKey,
+ #endif
+-        @NO, WebKitUserTimingEnabledPreferenceKey,
++        @YES, WebKitUserTimingEnabledPreferenceKey,
+         @NO, WebKitResourceTimingEnabledPreferenceKey,
+         @NO, WebKitMediaUserGestureInheritsFromDocument,
+         @NO, WebKitIsSecureContextAttributeEnabledPreferenceKey,
+-- 
+2.54.0
+

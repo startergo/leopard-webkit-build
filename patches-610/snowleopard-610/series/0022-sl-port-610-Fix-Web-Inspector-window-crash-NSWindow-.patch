@@ -1,0 +1,32 @@
+From bae796f643b0c57a56c00cdba76f8fa58f29c5ab Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Wed, 24 Jun 2026 15:16:48 -0500
+Subject: [PATCH 22/36] [sl-port-610] Fix Web Inspector window crash:
+ -[NSWindow setMinFullScreenContentSize:] (10.11+) called unguarded in the
+ Inspector window getter -> unrecognized selector abort on 10.6 when the
+ frontend configures its window. Guard with respondsToSelector: (sat outside
+ the existing >=101000 block)
+
+---
+ Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
+index 53a1ff0851..059bd25a2d 100644
+--- a/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
++++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
+@@ -596,7 +596,10 @@ static NSBundle *webInspectorUIBundle()
+ 
+     CGFloat approximatelyHalfScreenSize = (window.screen.frame.size.width / 2) - 4;
+     CGFloat minimumFullScreenWidth = std::max<CGFloat>(636, approximatelyHalfScreenSize);
+-    [window setMinFullScreenContentSize:NSMakeSize(minimumFullScreenWidth, minimumWindowHeight)];
++    // [leopard] -[NSWindow setMinFullScreenContentSize:] is 10.11+; unrecognized
++    // selector on 10.6 (crashes when the Inspector frontend configures its window).
++    if ([window respondsToSelector:@selector(setMinFullScreenContentSize:)])
++        [window setMinFullScreenContentSize:NSMakeSize(minimumFullScreenWidth, minimumWindowHeight)];
+ #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+     // [leopard-webkit-build] NSWindowCollectionBehaviorFullScreenAllowsTiling +
+     // titlebarAppearsTransparent are 10.10+; on < 10.10 skip (inspector window just
+-- 
+2.54.0
+

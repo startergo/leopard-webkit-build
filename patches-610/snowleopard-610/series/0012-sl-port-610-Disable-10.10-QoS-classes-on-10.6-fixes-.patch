@@ -1,0 +1,53 @@
+From 8bbbd8e88d4ad05cd939463c92dcffb96915795f Mon Sep 17 00:00:00 2001
+From: startergo <7897244+startergo@users.noreply.github.com>
+Date: Wed, 24 Jun 2026 08:36:35 -0500
+Subject: [PATCH 12/36] [sl-port-610] Disable 10.10+ QoS classes on 10.6 (fixes
+ bmalloc scavenger SIGSEGV on youtube.com): guard
+ pthread_set_qos_class_self_np in Scavenger.cpp + gate HAVE_QOS_CLASSES on
+ deployment target in WTF PlatformHave.h
+
+---
+ Source/WTF/wtf/PlatformHave.h        | 8 +++++++-
+ Source/bmalloc/bmalloc/Scavenger.cpp | 7 ++++++-
+ 2 files changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/Source/WTF/wtf/PlatformHave.h b/Source/WTF/wtf/PlatformHave.h
+index 99fb26a6ef..d9a566818b 100644
+--- a/Source/WTF/wtf/PlatformHave.h
++++ b/Source/WTF/wtf/PlatformHave.h
+@@ -281,7 +281,13 @@
+ #define HAVE_NSCURSOR 1
+ #endif
+ 
+-#if !defined(HAVE_QOS_CLASSES) && PLATFORM(COCOA)
++#if !defined(HAVE_QOS_CLASSES) && PLATFORM(COCOA) && (!defined(__MAC_OS_X_VERSION_MIN_REQUIRED) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090)
++// [leopard] QoS classes (pthread_set_qos_class_self_np / pthread_attr_set_qos_
++// class_np / QOS_CLASS_*) are 10.10+. On 10.6 these symbols are unbound, so any
++// HAVE(QOS_CLASSES)-guarded call jumps to NULL (SIGSEGV) - observed on the
++// bmalloc scavenger thread under memory pressure (youtube.com). WTF/bmalloc
++// compiles do NOT force-include the LEOPARD_WEBKIT overlay, so gate on the
++// SDK-provided deployment target (always defined) rather than LEOPARD_WEBKIT.
+ #define HAVE_QOS_CLASSES 1
+ #endif
+ 
+diff --git a/Source/bmalloc/bmalloc/Scavenger.cpp b/Source/bmalloc/bmalloc/Scavenger.cpp
+index ff4c065efd..b142eda7db 100644
+--- a/Source/bmalloc/bmalloc/Scavenger.cpp
++++ b/Source/bmalloc/bmalloc/Scavenger.cpp
+@@ -536,7 +536,12 @@ void Scavenger::setThreadName(const char* name)
+ 
+ void Scavenger::setSelfQOSClass()
+ {
+-#if BOS(DARWIN)
++#if BOS(DARWIN) && (!defined(__MAC_OS_X_VERSION_MIN_REQUIRED) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090)
++    // [leopard] pthread_set_qos_class_self_np is 10.10+; on 10.6 the symbol is
++    // unbound and the indirect call jumps to NULL (SIGSEGV at threadRunLoop+535
++    // on the bmalloc scavenger thread, triggered under memory pressure from
++    // heavy pages like youtube.com). QoS is only a thread-priority hint, so
++    // skipping it on 10.6 is harmless.
+     pthread_set_qos_class_self_np(requestedScavengerThreadQOSClass(), 0);
+ #endif
+ }
+-- 
+2.54.0
+
