@@ -14,7 +14,3 @@ __attribute__((objc_root_class))
 @implementation NSAppearance
 @end
 
-@interface WebActionDisablingCALayerDelegate : _LeopardStubBase
-@end
-@implementation WebActionDisablingCALayerDelegate
-@end

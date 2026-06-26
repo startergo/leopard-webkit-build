@@ -1098,9 +1098,9 @@ LAUNCHER_EOF
 
     info "  Copying frameworks..."
     local SRC_JSC="$BUILD_DIR/lib/JavaScriptCore.framework"
-    [ -d "$SRC_JSC" ] && { cp -R "$SRC_JSC" "$FW_DIR/"; info "    JavaScriptCore.framework → Frameworks/10.6"; }
+    [ -d "$SRC_JSC" ] && { rm -rf "$FW_DIR/JavaScriptCore.framework"; cp -R "$SRC_JSC" "$FW_DIR/"; info "    JavaScriptCore.framework → Frameworks/10.6"; }
     for FW in WebCore WebKitLegacy; do
-        [ -d "$BUILD_DIR/lib/$FW.framework" ] && { cp -R "$BUILD_DIR/lib/$FW.framework" "$FW_DIR/"; info "    $FW.framework copied"; }
+        [ -d "$BUILD_DIR/lib/$FW.framework" ] && { rm -rf "$FW_DIR/$FW.framework"; cp -R "$BUILD_DIR/lib/$FW.framework" "$FW_DIR/"; info "    $FW.framework copied"; }
     done
 
     # CMake emits WebCore's framework version dir as a literal "SOVERSION" token
