@@ -434,6 +434,8 @@ phase4_cmake() {
         -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
         -DCMAKE_SYSTEM_PROCESSOR="$ARCH" \
         -DCMAKE_OSX_SYSROOT="$SDK_DIR" \
+        -DSQLite3_INCLUDE_DIR="$SDK_DIR/usr/include" \
+        -DSQLite3_LIBRARY="$SDK_DIR/usr/lib/libsqlite3.dylib" \
         -DCMAKE_C_FLAGS="$COMMON_FLAGS" \
         -DCMAKE_CXX_FLAGS="$CXX_FLAGS" \
         -DCMAKE_SHARED_LINKER_FLAGS="$LINKER_FLAGS" \
