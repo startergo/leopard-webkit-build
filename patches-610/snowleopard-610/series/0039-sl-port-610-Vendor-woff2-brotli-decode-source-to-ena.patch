@@ -1,7 +1,7 @@
 From 82d672507192d2fc858a9c31a40b086ec4a08ed2 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Thu, 25 Jun 2026 20:25:31 -0400
-Subject: [PATCH 39/39] [sl-port-610] Vendor woff2 + brotli decode source to
+Subject: [PATCH 39/41] [sl-port-610] Vendor woff2 + brotli decode source to
  enable WOFF2 web fonts on 10.6.
 
 WebKit's CachedFont path skips WOFF/WOFF2 to SFNT decode on Cocoa (guarded by if not PLATFORM COCOA), assuming the platform CoreText decodes WOFF natively. 10.6 CoreText does not, and the leopard_compat CTFontManagerCreateFontDescriptorsFromData shim received raw wOF2 bytes that CGFontCreateWithDataProvider rejects (returns NULL) so all WOFF2 web fonts failed to load. USE(WOFF2) was off and no woff2/brotli ThirdParty source was present in the 610 tree (only a vestigial include path).

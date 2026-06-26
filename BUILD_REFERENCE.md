@@ -315,3 +315,18 @@ The Leopard PPC patch's build system *lists* these in MODULES and xcconfig files
 | Build errors | 0 |
 | Stamp-based caching | `patches-applied`, `post-cmake-fixed` |
 | Date built | June 2026 |
+
+
+## Runtime Fixes
+
+These are patches that fix runtime crashes (not compile-time errors):
+
+- **WebInspectorClient::sendMessageToFrontend** — Header declares it as `override` but .mm never defines it. Added stub dispatching to `m_frontendPage->inspectorController().dispatchMessageFromFrontend()`.
+
+- **WebDynamicScrollBarsView._webcore_effectiveFirstResponder** — WebCore calls this on the scroll view's platformWidget but the method only existed on WebView and WebFrameView. Added category method returning `[self documentView]`.
+
+- **WK* function stubs** — 44 WebKitSystemInterface functions (WKCGContextGetShouldSmoothFonts, etc.) are referenced via function pointers in WebSystemInterface.mm. On 10.6 they don't exist, causing dyld load failures. Provided as stubs in `wk_stubs.c`.
+
+- **NSNotificationCenter postNotificationOnMainThread** — 10.7+ API called frequently by WebKit 604. Added category stub forwarding to `postNotificationName:object:userInfo:` (10.6 API).
+
+- **DISPATCH_DATA_DESTRUCTOR_DEFAULT** — Must be a global export (`D` not `d` in nm). Use `__attribute__((used, visibility("default")))` and `extern` declaration.

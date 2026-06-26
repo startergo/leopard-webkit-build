@@ -1,7 +1,7 @@
 From d0aa222a4196098ccd67ab00b1ab11af5a6b2fa4 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 19:02:17 -0500
-Subject: [PATCH 27/39] [sl-port-610] Fix cross-origin assets failing on 10.6
+Subject: [PATCH 27/41] [sl-port-610] Fix cross-origin assets failing on 10.6
  (GitHub renders unstyled): (1) ResourceResponseCocoa.mm used the 10.7+
  initWithURL:statusCode:HTTPVersion:headerFields: unconditionally -> returns
  nil on 10.6, so the synthetic redirect response is not a valid

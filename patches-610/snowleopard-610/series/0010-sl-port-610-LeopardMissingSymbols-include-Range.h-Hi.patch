@@ -1,7 +1,7 @@
 From 7fb2830910d24cac2524b4b4d261840941bf731b Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 06:32:11 -0500
-Subject: [PATCH 10/39] [sl-port-610] LeopardMissingSymbols: include Range.h +
+Subject: [PATCH 10/41] [sl-port-610] LeopardMissingSymbols: include Range.h +
  HitTestResult.h for complete types (RefPtr<Range> needs full Range in
  DictionaryLookup stub)
 

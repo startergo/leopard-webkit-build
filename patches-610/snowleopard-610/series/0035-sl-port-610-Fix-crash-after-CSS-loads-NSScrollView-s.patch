@@ -1,7 +1,7 @@
 From 3a28e7d48594c1eac4f4a3e829819fea832de9b2 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Thu, 25 Jun 2026 03:48:43 -0500
-Subject: [PATCH 35/39] [sl-port-610] Fix crash after CSS loads: -[NSScrollView
+Subject: [PATCH 35/41] [sl-port-610] Fix crash after CSS loads: -[NSScrollView
  setScrollerKnobStyle:] (ScrollViewMac.mm) is a 10.7+ overlay-scrollbar SPI
  absent on 10.6. recalculateScrollbarOverlayStyle now actually runs once
  GitHub's stylesheets load and set a background color, sending this selector

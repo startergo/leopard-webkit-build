@@ -112,7 +112,8 @@ Generates compatibility headers into `build/overlay-includes/` that are force-in
 | `os/object.h` | os_object_t, os_retain/os_release stubs |
 | `dispatch/queue_shim.h` | DISPATCH_QUEUE_SERIAL/CONCURRENT constants |
 | `sdk_stubs.c` | C-linkage XPC function stubs, sandbox_check |
-| `sdk_stubs.mm` | ObjC++ linkage stubs: XPC globals, weak ref runtime, block introspection, JSC poison, sandbox |
+| `sdk_stubs.mm` | ObjC++ linkage stubs: XPC globals, weak ref runtime, block introspection, JSC poison, sandbox, NSNotificationCenter postNotificationOnMainThread category |
+| `wk_stubs.c` | WebKitSystemInterface function stubs (44 WK* functions that don't exist on 10.6) |
 | `WebCoreStubs.cpp` | ScrollAnimator::create, ScrollbarThemeMac::painterForScrollbar, CABackdropLayer class |
 
 ### Phase 4: CMake Configure
@@ -227,6 +228,43 @@ WebKit2 (the modern multi-process WebKit API) compiles **97.6% of files** but ha
 These are **kernel and runtime level APIs** that cannot be shimmed or stubbed — XPC is a fundamentally different IPC mechanism than Mach ports, and the multi-process architecture relies on it throughout.
 
 The Leopard PowerPC build (patches-604) also **skipped WebKit2 entirely** (0 patches for `Source/WebKit/`).
+
+## Runtime Fixes (Phase 2 Source Patches)
+
+These patches fix crashes that occur at runtime on 10.6, not at compile time:
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `WebInspectorClient.mm` | `sendMessageToFrontend()` declared in header but never defined — dyld lazy binding crash | Added stub that dispatches to frontend page inspector controller |
+| `WebDynamicScrollBarsView.mm` | `_webcore_effectiveFirstResponder` called on WebDynamicScrollBarsView but only existed on WebView/WebFrameView — crash on page focus | Added method returning `documentView` |
+| `WebSystemInterface.mm` | `INIT(CGContextGetShouldSmoothFonts)` and 43 other WK function pointer initializations reference functions that don't exist on 10.6 | Guarded with `__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070` |
+
+### Stub Strategy
+
+The build uses multiple stub files linked into different frameworks:
+
+| Stub File | Linked Into | Contents |
+|-----------|------------|----------|
+| `sdk_stubs.o` | All frameworks | C functions (XPC, sandbox, dispatch_data), NSNotificationCenter category |
+| `protocol_stubs.o` | All frameworks | Formal protocol declarations (NSURLConnectionDelegate) |
+| `ehtype_stubs.o` | All frameworks | ObjC exception typeinfo (id, NSException) |
+| `wk_stubs.o` | WebKitLegacy only | 44 WebKitSystemInterface function stubs |
+| `WebNotificationProviderGrowl.o` | WebKitLegacy only | WebNotification protocol stub |
+
+### Known Issue: WTF::lockAtomicallyInitializedStaticMutex
+
+When relinking JavaScriptCore, the linker may drop `WTF::lockAtomicallyInitializedStaticMutex` from libWTF.a because no code in JSC directly references it. Safari references it at runtime via lazy binding. The fix for a future full rebuild: add `-Wl,-force_load,libWTF.a` to JSC's linker flags in CMakeLists.txt.
+
+## TLS / HTTPS Limitation
+
+Mac OS X 10.6's Security.framework only supports TLS 1.0. Sites requiring TLS 1.2+ (GitHub, most modern sites) will fail to load. This is an OS-level limitation that cannot be fixed within WebKit — the system's Secure Transport API handles TLS, not WebKit.
+
+The established workaround is a **local Squid proxy with SSL bumping**:
+1. Run Squid (built with OpenSSL) on another machine or locally
+2. Configure Safari's proxy settings to use it
+3. Squid negotiates TLS 1.2+ with modern servers and re-serves content
+
+A future goal is to cross-compile Squid for x86_64 10.6 and bundle it in WebKit.app.
 
 ## Credits
 

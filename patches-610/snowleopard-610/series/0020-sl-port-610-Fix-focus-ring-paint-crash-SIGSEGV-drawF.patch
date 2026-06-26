@@ -1,7 +1,7 @@
 From 83082077cffd5106a5805ddc627e2f15f5b89a78 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 14:44:12 -0500
-Subject: [PATCH 20/39] [sl-port-610] Fix focus-ring paint crash (SIGSEGV):
+Subject: [PATCH 20/41] [sl-port-610] Fix focus-ring paint crash (SIGSEGV):
  drawFocusRingAtTime called NSInitializeCGFocusRingStyleForTime (10.7+, absent
  from 10.6 AppKit -> null-symbol jump) when painting any focus ring. Add 10.6
  Mac branch that inits CGFocusRingStyle manually;

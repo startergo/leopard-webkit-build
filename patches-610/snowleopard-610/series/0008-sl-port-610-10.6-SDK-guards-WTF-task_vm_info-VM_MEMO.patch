@@ -1,7 +1,7 @@
 From 4596df364f75149c4c65d0df083e19fc076b0ca6 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Tue, 23 Jun 2026 18:35:45 -0500
-Subject: [PATCH 08/39] [sl-port-610] 10.6 SDK guards: WTF
+Subject: [PATCH 08/41] [sl-port-610] 10.6 SDK guards: WTF
  task_vm_info/VM_MEMORY + ThemeMac form-control selectors
 
 Build + runtime guards surfaced by the clean-build reproduction:

@@ -1,7 +1,7 @@
 From 72d84132cb6dc83277e313e1b22f97d52fcee878 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Tue, 23 Jun 2026 09:09:25 -0500
-Subject: [PATCH 05/39] =?UTF-8?q?[sl-port-610]=20Safari=205.0.5=20loads=20?=
+Subject: [PATCH 05/41] =?UTF-8?q?[sl-port-610]=20Safari=205.0.5=20loads=20?=
  =?UTF-8?q?google.com=20over=20HTTPS=20=E2=80=94=20runtime=20crash=20casca?=
  =?UTF-8?q?de=20fixed?=
 MIME-Version: 1.0

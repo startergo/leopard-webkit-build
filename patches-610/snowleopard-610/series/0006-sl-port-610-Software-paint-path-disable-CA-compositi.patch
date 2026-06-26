@@ -1,7 +1,7 @@
 From 77a47b092c4d405d486d213f8da53e458d8e012a Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Tue, 23 Jun 2026 10:54:29 -0500
-Subject: [PATCH 06/39] [sl-port-610] Software paint path: disable CA
+Subject: [PATCH 06/41] [sl-port-610] Software paint path: disable CA
  compositing, guard 10.6-absent CG/AX SPIs
 
 After google.com loaded, the software repaint path surfaced three more

@@ -1,7 +1,7 @@
 From 5bbd3e89000b19bb6295685c267f81266fba4c35 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 20:16:13 -0500
-Subject: [PATCH 30/39] [sl-port-610] Two Inspector-robustness fixes: (1)
+Subject: [PATCH 30/41] [sl-port-610] Two Inspector-robustness fixes: (1)
  RenderThemeMac search() called -[NSSearchFieldCell setCenteredLook:] (10.7+
  SPI) unguarded -> crash rendering search fields (Inspector console filter).
  Guard with respondsToSelector:. (2) Layers3DContentView layout() drove the
