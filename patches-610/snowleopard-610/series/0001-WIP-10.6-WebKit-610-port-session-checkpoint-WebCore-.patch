@@ -1,7 +1,7 @@
 From e8dce24817b129dd780d1eb8092510860ed6aa38 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Mon, 22 Jun 2026 06:48:42 -0500
-Subject: [PATCH 01/38] WIP: 10.6 WebKit 610 port - session checkpoint (WebCore
+Subject: [PATCH 01/39] WIP: 10.6 WebKit 610 port - session checkpoint (WebCore
  links, ~24 residual load symbols)
 
 ---

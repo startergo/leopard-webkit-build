@@ -1,7 +1,7 @@
 From bae796f643b0c57a56c00cdba76f8fa58f29c5ab Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 15:16:48 -0500
-Subject: [PATCH 22/38] [sl-port-610] Fix Web Inspector window crash:
+Subject: [PATCH 22/39] [sl-port-610] Fix Web Inspector window crash:
  -[NSWindow setMinFullScreenContentSize:] (10.11+) called unguarded in the
  Inspector window getter -> unrecognized selector abort on 10.6 when the
  frontend configures its window. Guard with respondsToSelector: (sat outside

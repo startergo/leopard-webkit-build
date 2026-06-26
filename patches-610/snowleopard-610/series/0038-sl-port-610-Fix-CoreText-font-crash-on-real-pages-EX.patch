@@ -1,7 +1,7 @@
 From 3fcbe46df607eb6e2a5190a711b83d1d2c3f7948 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Thu, 25 Jun 2026 18:22:19 -0400
-Subject: [PATCH 38/38] [sl-port-610] Fix CoreText font crash on real pages:
+Subject: [PATCH 38/39] [sl-port-610] Fix CoreText font crash on real pages:
  EXC_BAD_ACCESS in CFNumberGetValue <-
  TFontFeatures::CopyNonDefaultFeatureSettings <-
  CTFontCreateCopyWithAttributes <- preparePlatformFont. For fonts with

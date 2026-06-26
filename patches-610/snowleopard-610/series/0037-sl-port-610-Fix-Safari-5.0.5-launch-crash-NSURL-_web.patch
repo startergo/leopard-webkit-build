@@ -1,7 +1,7 @@
 From e4b105fa68fb686c194367b466a8770b69fbb8fc Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Thu, 25 Jun 2026 18:21:44 -0400
-Subject: [PATCH 37/38] [sl-port-610] Fix Safari 5.0.5 launch crash: -[NSURL
+Subject: [PATCH 37/39] [sl-port-610] Fix Safari 5.0.5 launch crash: -[NSURL
  _web_URLWithLowercasedScheme] unrecognized selector. Safari 5.0.5 (the WK1
  host on 10.6) calls this WebKit SPI during URL canonicalization, but it was
  deleted upstream in 2015 and is absent from 610 (and 604/605) ->

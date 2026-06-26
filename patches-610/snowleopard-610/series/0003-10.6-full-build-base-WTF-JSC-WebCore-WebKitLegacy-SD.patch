@@ -1,7 +1,7 @@
 From 1d5482c4699361a93bf55f89e3cc921070fe4ee2 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Mon, 22 Jun 2026 16:44:33 -0500
-Subject: [PATCH 03/38] 10.6 full-build base: WTF/JSC/WebCore/WebKitLegacy
+Subject: [PATCH 03/39] 10.6 full-build base: WTF/JSC/WebCore/WebKitLegacy
  SDK-compat guards (all frameworks link clean)
 
 ---

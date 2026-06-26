@@ -1,7 +1,7 @@
 From 1a186fd6742f4e4dbed56a367500d6cb6c366ea9 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 10:12:02 -0500
-Subject: [PATCH 16/38] [sl-port-610] Fix scroll-crash via respondsToSelector:
+Subject: [PATCH 16/39] [sl-port-610] Fix scroll-crash via respondsToSelector:
  -[NSEvent isDirectionInvertedFromDevice] is 10.7+ (doesNotRecognizeSelector
  abort on every 10.6 scroll, crash log confirmed). Runtime check is robust vs
  SDK/deployment-target macro variance

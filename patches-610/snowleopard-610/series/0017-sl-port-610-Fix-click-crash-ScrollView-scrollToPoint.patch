@@ -1,7 +1,7 @@
 From f2bf12f728cb3fcdd366ddf6a56d48fab9aa5684 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 10:46:40 -0500
-Subject: [PATCH 17/38] [sl-port-610] Fix click crash: ScrollView scrollToPoint
+Subject: [PATCH 17/39] [sl-port-610] Fix click crash: ScrollView scrollToPoint
  path called scrollView().contentInsets (10.10+ NSScrollView API) unguarded ->
  doesNotRecognizeSelector on 10.6 when clicking a link triggers scroll. Guard
  matches the other contentInsets sites (SKIPS_INSETS on 10.6)

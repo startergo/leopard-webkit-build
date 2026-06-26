@@ -1,7 +1,7 @@
 From 2fbbf5096da0648dc5757920f409ce0544613b02 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 06:49:37 -0500
-Subject: [PATCH 11/38] [sl-port-610] AudioSession: stub handleMutedStateChange
+Subject: [PATCH 11/39] [sl-port-610] AudioSession: stub handleMutedStateChange
  + isMuted (last 2 undefined symbols from removed AudioSessionMac.mm)
 
 ---

@@ -1,7 +1,7 @@
 From 9e0f9186e18950d90ab5584246ce6b4c9d917de3 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Thu, 25 Jun 2026 03:37:01 -0500
-Subject: [PATCH 34/38] [sl-port-610] THE actual GitHub fix:
+Subject: [PATCH 34/39] [sl-port-610] THE actual GitHub fix:
  synthesizeRedirectResponseIfNecessary fabricated a synthetic redirect for
  EVERY initial subresource load. On 10.6 currentRequest is nil on first load;
  [nil URL] scheme] is nil, isEqualToString:nil is NO, so the same-scheme guard

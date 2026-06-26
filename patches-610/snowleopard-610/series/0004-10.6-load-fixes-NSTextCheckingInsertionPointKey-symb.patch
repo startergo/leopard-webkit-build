@@ -1,7 +1,7 @@
 From 805c7b9dbd71f7a511033061f18cb9f028be647d Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Mon, 22 Jun 2026 17:52:48 -0500
-Subject: [PATCH 04/38] 10.6 load fixes: NSTextCheckingInsertionPointKey
+Subject: [PATCH 04/39] 10.6 load fixes: NSTextCheckingInsertionPointKey
  symbol, guard WebViewVisualIdentificationOverlay callers - full stack dlopens
  on 10.6.8
 

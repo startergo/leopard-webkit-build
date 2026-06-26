@@ -1,7 +1,7 @@
 From f45aec54e8d8689ebace59d88cafa2e9434fe076 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 06:10:49 -0500
-Subject: [PATCH 09/38] [sl-port-610] Define 13 undefined WebCore symbols from
+Subject: [PATCH 09/39] [sl-port-610] Define 13 undefined WebCore symbols from
  removed 10.6 sources: AudioSession ctor/muted-state stub guard, plus
  LeopardMissingSymbols.mm for CertificateInfo type/summaryInfo/Coder,
  DictionaryLookup::rangeAtHitTestResult, MediaSessionManagerCocoa now-playing,

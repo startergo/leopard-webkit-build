@@ -1,7 +1,7 @@
 From e2873a5be001d1edba91621f16c01964f1400813 Mon Sep 17 00:00:00 2001
 From: startergo <7897244+startergo@users.noreply.github.com>
 Date: Wed, 24 Jun 2026 11:26:17 -0500
-Subject: [PATCH 19/38] [sl-port-610] Fix Web Inspector / context-menu crash:
+Subject: [PATCH 19/39] [sl-port-610] Fix Web Inspector / context-menu crash:
  +[NSMenuItem standardShareMenuItemForItems:] (10.8+) called unguarded when
  building context menu (Inspect Element) -> unrecognized selector abort on
  10.6. Guard with respondsToSelector:, omit Share item on 10.6
