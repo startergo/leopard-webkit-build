@@ -339,6 +339,24 @@ EHTYPE_EOF
         -I"$OVERLAY_DIR" -c "$CM/objc_class_stubs.m" -o "$CM/objc_class_stubs.o" \
         -fallow-unsupported 2>&1 | tail -3
 
+    WOFF2_SRC="$SOURCE_DIR/Source/ThirdParty/woff2/src"
+    BROTLI_SRC="$SOURCE_DIR/Source/ThirdParty/brotli/dec"
+    for bf in decode state huffman bit_reader dictionary; do
+        clang -target $ARCH-apple-macos10.6 -arch $ARCH -isysroot "$SDK_DIR" \
+            -I"$BROTLI_SRC" -c "$BROTLI_SRC/$bf.c" -o "$CM/brotli_$bf.o" \
+            -fallow-unsupported -O2 2>&1 | tail -3
+    done
+    for wf in woff2_dec woff2_common table_tags variable_length transform glyph font normalize woff2_out; do
+        clang++ -target $ARCH-apple-macos10.6 -arch $ARCH -isysroot "$SDK_DIR" \
+            -stdlib=libc++ -nostdinc++ -isystem "$LIBCXX_DIST/include" \
+            -I"$WOFF2_SRC" -I"$BROTLI_SRC" -c "$WOFF2_SRC/$wf.cc" -o "$CM/woff2_$wf.o" \
+            -fallow-unsupported -std=gnu++14 -O2 2>&1 | tail -3
+    done
+    clang++ -target $ARCH-apple-macos10.6 -arch $ARCH -isysroot "$SDK_DIR" \
+        -stdlib=libc++ -nostdinc++ -isystem "$LIBCXX_DIST/include" \
+        -I"$WOFF2_SRC" -I"$BROTLI_SRC" -c "$SOURCE_DIR/Source/ThirdParty/woff2/wk_woff2_wrap.cc" -o "$CM/wk_woff2_wrap.o" \
+        -fallow-unsupported -std=gnu++14 -O2 2>&1 | tail -3
+
     touch "$stamp"
     ok "605 runtime stubs generated"
 }
@@ -391,6 +409,9 @@ phase4_cmake() {
     local LINKER_FLAGS="-target $ARCH-apple-macos10.6"
     # NO wk_stubs (WSI eliminated in 605); NO WebKitLibraries link path.
     LINKER_FLAGS="$LINKER_FLAGS $BUILD_DIR/cmake/sdk_stubs_605.o $BUILD_DIR/cmake/leopard_compat.o $BUILD_DIR/cmake/objc_class_stubs.o $BUILD_DIR/cmake/protocol_stubs.o $BUILD_DIR/cmake/ehtype_stubs.o"
+    for wo in wk_woff2_wrap woff2_woff2_dec woff2_woff2_common woff2_table_tags woff2_variable_length woff2_transform woff2_glyph woff2_font woff2_normalize woff2_woff2_out brotli_decode brotli_state brotli_huffman brotli_bit_reader brotli_dictionary; do
+        LINKER_FLAGS="$LINKER_FLAGS $BUILD_DIR/cmake/$wo.o"
+    done
     LINKER_FLAGS="$LINKER_FLAGS -L$LIBCXX_DIST/lib"
     LINKER_FLAGS="$LINKER_FLAGS -L$CRT_DIST"
     LINKER_FLAGS="$LINKER_FLAGS -L$ICU_DIST/lib"

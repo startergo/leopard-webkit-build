@@ -64,7 +64,59 @@ CTFontDescriptorRef CTFontDescriptorCreateForCSSFamily(CFStringRef, CFStringRef)
 CTFontDescriptorRef CTFontDescriptorCreateLastResort(void) { return NULL; }
 bool CTFontGetUnsummedAdvancesForGlyphsAndStyle(CTFontRef, const void*, const void*, void*, CFIndex) { return false; }
 bool CTFontIsAppleColorEmoji(CTFontRef) { return false; }
-CFArrayRef CTFontManagerCreateFontDescriptorsFromData(CFDataRef) { return NULL; }
+extern "C" {
+size_t WK_woff2_ComputeFinalSize(const uint8_t* data, size_t length);
+bool WK_woff2_ConvertToTTF(uint8_t* result, size_t result_length, const uint8_t* data, size_t length);
+}
+
+CFArrayRef CTFontManagerCreateFontDescriptorsFromData(CFDataRef data)
+{
+    if (!data)
+        return NULL;
+    CFDataRef sfntData = data;
+    CFDataRef decoded = NULL;
+    const UInt8* bytes = CFDataGetBytePtr(data);
+    CFIndex len = CFDataGetLength(data);
+    if (len >= 4 && bytes[0] == 0x77 && bytes[1] == 0x4F && bytes[2] == 0x46 && bytes[3] == 0x32) {
+        size_t sfntSize = WK_woff2_ComputeFinalSize(bytes, len);
+        if (!sfntSize)
+            return NULL;
+        UInt8* out = (UInt8*)malloc(sfntSize);
+        if (!out)
+            return NULL;
+        if (!WK_woff2_ConvertToTTF(out, sfntSize, bytes, len)) {
+            free(out);
+            return NULL;
+        }
+        decoded = CFDataCreate(kCFAllocatorDefault, out, sfntSize);
+        free(out);
+        if (!decoded)
+            return NULL;
+        sfntData = decoded;
+    }
+    CGDataProviderRef provider = CGDataProviderCreateWithCFData(sfntData);
+    if (!provider) {
+        if (decoded) CFRelease(decoded);
+        return NULL;
+    }
+    CGFontRef cgFont = CGFontCreateWithDataProvider(provider);
+    CGDataProviderRelease(provider);
+    if (decoded) CFRelease(decoded);
+    if (!cgFont)
+        return NULL;
+    CTFontRef ctFont = CTFontCreateWithGraphicsFont(cgFont, 12.0, NULL, NULL);
+    CGFontRelease(cgFont);
+    if (!ctFont)
+        return NULL;
+    CTFontDescriptorRef descriptor = CTFontCopyFontDescriptor(ctFont);
+    CFRelease(ctFont);
+    if (!descriptor)
+        return NULL;
+    const void* values[1] = { descriptor };
+    CFArrayRef array = CFArrayCreate(kCFAllocatorDefault, values, 1, &kCFTypeArrayCallBacks);
+    CFRelease(descriptor);
+    return array;
+}
 void CTParagraphStyleSetCompositionLanguage(void*, CFStringRef) {}
 
 // ---- DataDetectors / IOKit-PM stubs ----
