@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 0478d0c990..5148349daa 100644
+index 0478d0c9902..5148349daa9 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -86,6 +86,15 @@ endif ()
@@ -19,7 +19,7 @@ index 0478d0c990..5148349daa 100644
      string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} LOWERCASE_CMAKE_SYSTEM_PROCESSOR)
  endif ()
 diff --git a/Source/JavaScriptCore/API/JSContext.h b/Source/JavaScriptCore/API/JSContext.h
-index d4e71ca4e9..f531a454f5 100644
+index d4e71ca4e91..f531a454f53 100644
 --- a/Source/JavaScriptCore/API/JSContext.h
 +++ b/Source/JavaScriptCore/API/JSContext.h
 @@ -26,6 +26,9 @@
@@ -39,7 +39,7 @@ index d4e71ca4e9..f531a454f5 100644
 +
 +#endif // JSContext_h_LEOPARD_GUARD
 diff --git a/Source/JavaScriptCore/API/JSManagedValue.h b/Source/JavaScriptCore/API/JSManagedValue.h
-index 3ebc7a4bd9..ed14dc5d1c 100644
+index 3ebc7a4bd91..ed14dc5d1c5 100644
 --- a/Source/JavaScriptCore/API/JSManagedValue.h
 +++ b/Source/JavaScriptCore/API/JSManagedValue.h
 @@ -48,6 +48,7 @@ The primary use for a JSManagedValue is to store a JSValue in an Objective-C
@@ -51,7 +51,7 @@ index 3ebc7a4bd9..ed14dc5d1c 100644
  @interface JSManagedValue : NSObject
  
 diff --git a/Source/JavaScriptCore/API/JSValue.h b/Source/JavaScriptCore/API/JSValue.h
-index 1b5845e9bd..e3aab03d28 100644
+index 1b5845e9bde..e3aab03d289 100644
 --- a/Source/JavaScriptCore/API/JSValue.h
 +++ b/Source/JavaScriptCore/API/JSValue.h
 @@ -44,6 +44,7 @@
@@ -63,7 +63,7 @@ index 1b5845e9bd..e3aab03d28 100644
  @interface JSValue : NSObject
  
 diff --git a/Source/JavaScriptCore/API/WebKitAvailability.h b/Source/JavaScriptCore/API/WebKitAvailability.h
-index 2a1ce7ce16..a264c01f4d 100644
+index 2a1ce7ce16f..a264c01f4de 100644
 --- a/Source/JavaScriptCore/API/WebKitAvailability.h
 +++ b/Source/JavaScriptCore/API/WebKitAvailability.h
 @@ -31,6 +31,31 @@
@@ -99,7 +99,7 @@ index 2a1ce7ce16..a264c01f4d 100644
  #undef JSC_API_AVAILABLE
  #define JSC_API_AVAILABLE(...)
 diff --git a/Source/JavaScriptCore/jit/ExecutableAllocator.cpp b/Source/JavaScriptCore/jit/ExecutableAllocator.cpp
-index e9771b96de..4aa5b6e03e 100644
+index e9771b96de9..4aa5b6e03e4 100644
 --- a/Source/JavaScriptCore/jit/ExecutableAllocator.cpp
 +++ b/Source/JavaScriptCore/jit/ExecutableAllocator.cpp
 @@ -284,7 +284,11 @@ static ALWAYS_INLINE void initializeSeparatedWXHeaps(void* stubBase, size_t stub
@@ -115,18 +115,19 @@ index e9771b96de..4aa5b6e03e 100644
  #if ENABLE(SEPARATED_WX_HEAP)
      g_jscConfig.jitWriteSeparateHeaps = reinterpret_cast<JITWriteSeparateHeapsFunction>(writeThunk.code().executableAddress());
 diff --git a/Source/ThirdParty/ANGLE/CMakeLists.txt b/Source/ThirdParty/ANGLE/CMakeLists.txt
-index 97d9f03b26..f6d19e949f 100644
+index 97d9f03b261..95183625747 100644
 --- a/Source/ThirdParty/ANGLE/CMakeLists.txt
 +++ b/Source/ThirdParty/ANGLE/CMakeLists.txt
-@@ -59,6 +59,7 @@ set(ANGLE_PRIVATE_INCLUDE_DIRECTORIES
+@@ -59,6 +59,8 @@ set(ANGLE_PRIVATE_INCLUDE_DIRECTORIES
  
  set(ANGLE_DEFINITIONS
      ANGLE_ENABLE_ESSL
++    ANGLE_ENABLE_GLSL
 +    ANGLE_ENABLE_OPENGL
  )
  
  set(ANGLE_SOURCES
-@@ -127,13 +128,50 @@ if (USE_ANGLE_EGL)
+@@ -127,13 +129,52 @@ if (USE_ANGLE_EGL)
      target_link_libraries(ANGLEFramework INTERFACE EGL GLESv2)
      target_compile_definitions(ANGLEFramework INTERFACE ${gl_prototypes})
  else ()
@@ -143,6 +144,8 @@ index 97d9f03b26..f6d19e949f 100644
 +        ${libangle_gl_sources}
 +        ${libangle_gl_cgl_sources}
 +        ${libangle_mac_sources}
++        ${libangle_gpu_info_util_sources}
++        ${libangle_gpu_info_util_mac_sources}
 +    )
 +    target_link_libraries(ANGLE PRIVATE
 +        "-framework OpenGL"
@@ -179,7 +182,7 @@ index 97d9f03b26..f6d19e949f 100644
  
  if (USE_ANGLE_WEBGL)
 diff --git a/Source/ThirdParty/ANGLE/GLESv2.cmake b/Source/ThirdParty/ANGLE/GLESv2.cmake
-index 470bf64f4f..c21df81e44 100644
+index 470bf64f4fb..c21df81e449 100644
 --- a/Source/ThirdParty/ANGLE/GLESv2.cmake
 +++ b/Source/ThirdParty/ANGLE/GLESv2.cmake
 @@ -259,12 +259,8 @@ set(libangle_headers
@@ -207,7 +210,7 @@ index 470bf64f4f..c21df81e44 100644
      "src/libANGLE/BlobCache.cpp"
      "src/libANGLE/Buffer.cpp"
 diff --git a/Source/ThirdParty/ANGLE/src/libANGLE/renderer/driver_utils_mac.mm b/Source/ThirdParty/ANGLE/src/libANGLE/renderer/driver_utils_mac.mm
-index 3af46fc887..c6b51dbf2c 100644
+index 3af46fc8878..c6b51dbf2cc 100644
 --- a/Source/ThirdParty/ANGLE/src/libANGLE/renderer/driver_utils_mac.mm
 +++ b/Source/ThirdParty/ANGLE/src/libANGLE/renderer/driver_utils_mac.mm
 @@ -13,14 +13,20 @@
@@ -235,8 +238,31 @@ index 3af46fc887..c6b51dbf2c 100644
  
      return result;
  }
+diff --git a/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/DispatchTableGL_autogen.cpp b/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/DispatchTableGL_autogen.cpp
+index ef4405468c8..a14af90f15a 100644
+--- a/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/DispatchTableGL_autogen.cpp
++++ b/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/DispatchTableGL_autogen.cpp
+@@ -2610,6 +2610,18 @@ void DispatchTableGL::initProcsGLES(const gl::Version &version,
+         ASSIGN("glIsVertexArrayOES", isVertexArray);
+     }
+ 
++    if (extensions.count("GL_APPLE_vertex_array_object") != 0)
++    {
++        if (bindVertexArray == nullptr)
++            ASSIGN("glBindVertexArrayAPPLE", bindVertexArray);
++        if (deleteVertexArrays == nullptr)
++            ASSIGN("glDeleteVertexArraysAPPLE", deleteVertexArrays);
++        if (genVertexArrays == nullptr)
++            ASSIGN("glGenVertexArraysAPPLE", genVertexArrays);
++        if (isVertexArray == nullptr)
++            ASSIGN("glIsVertexArrayAPPLE", isVertexArray);
++    }
++
+     if (extensions.count("GL_OES_viewport_array") != 0)
+     {
+         ASSIGN("glDisableiOES", disablei);
 diff --git a/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/cgl/DisplayCGL.mm b/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/cgl/DisplayCGL.mm
-index ae90776da5..7d09fc616a 100644
+index ae90776da58..7d09fc616a4 100644
 --- a/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/cgl/DisplayCGL.mm
 +++ b/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/cgl/DisplayCGL.mm
 @@ -80,8 +80,13 @@ egl::Error DisplayCGL::initialize(egl::Display *display)
@@ -254,7 +280,7 @@ index ae90776da5..7d09fc616a 100644
          attribs.push_back(static_cast<CGLPixelFormatAttribute>(0));
          GLint nVirtualScreens = 0;
 diff --git a/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/cgl/WindowSurfaceCGL.mm b/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/cgl/WindowSurfaceCGL.mm
-index 0fa57be43b..7a5eda618d 100644
+index 0fa57be43b7..7a5eda618d7 100644
 --- a/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/cgl/WindowSurfaceCGL.mm
 +++ b/Source/ThirdParty/ANGLE/src/libANGLE/renderer/gl/cgl/WindowSurfaceCGL.mm
 @@ -61,8 +61,10 @@
@@ -287,7 +313,7 @@ index 0fa57be43b..7a5eda618d 100644
  EGLint WindowSurfaceCGL::isPostSubBufferSupported() const
 diff --git a/Source/ThirdParty/brotli/CMakeLists.txt b/Source/ThirdParty/brotli/CMakeLists.txt
 new file mode 100644
-index 0000000000..16620e1577
+index 00000000000..16620e15775
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/CMakeLists.txt
 @@ -0,0 +1,22 @@
@@ -315,7 +341,7 @@ index 0000000000..16620e1577
 +endif ()
 diff --git a/Source/ThirdParty/brotli/LICENSE b/Source/ThirdParty/brotli/LICENSE
 new file mode 100644
-index 0000000000..6298a5dc97
+index 00000000000..6298a5dc97b
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/LICENSE
 @@ -0,0 +1,19 @@
@@ -340,7 +366,7 @@ index 0000000000..6298a5dc97
 +THE SOFTWARE.
 diff --git a/Source/ThirdParty/brotli/README.webkit b/Source/ThirdParty/brotli/README.webkit
 new file mode 100644
-index 0000000000..474afa2e40
+index 00000000000..474afa2e401
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/README.webkit
 @@ -0,0 +1,17 @@
@@ -363,7 +389,7 @@ index 0000000000..474afa2e40
 +Current version: [commit 29d31d5921b0a2b323ac24e7f7d0cdc9a3c0dd08].
 diff --git a/Source/ThirdParty/brotli/dec/Makefile b/Source/ThirdParty/brotli/dec/Makefile
 new file mode 100644
-index 0000000000..4d11ed195d
+index 00000000000..4d11ed195d1
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/Makefile
 @@ -0,0 +1,12 @@
@@ -381,7 +407,7 @@ index 0000000000..4d11ed195d
 +	rm -f $(OBJS)
 diff --git a/Source/ThirdParty/brotli/dec/bit_reader.c b/Source/ThirdParty/brotli/dec/bit_reader.c
 new file mode 100644
-index 0000000000..cde90af56e
+index 00000000000..cde90af56e4
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/bit_reader.c
 @@ -0,0 +1,48 @@
@@ -435,7 +461,7 @@ index 0000000000..cde90af56e
 +#endif
 diff --git a/Source/ThirdParty/brotli/dec/bit_reader.h b/Source/ThirdParty/brotli/dec/bit_reader.h
 new file mode 100644
-index 0000000000..7096afaa3f
+index 00000000000..7096afaa3f7
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/bit_reader.h
 @@ -0,0 +1,383 @@
@@ -824,7 +850,7 @@ index 0000000000..7096afaa3f
 +#endif  /* BROTLI_DEC_BIT_READER_H_ */
 diff --git a/Source/ThirdParty/brotli/dec/context.h b/Source/ThirdParty/brotli/dec/context.h
 new file mode 100644
-index 0000000000..37ebe6aebc
+index 00000000000..37ebe6aebc3
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/context.h
 @@ -0,0 +1,251 @@
@@ -1081,7 +1107,7 @@ index 0000000000..37ebe6aebc
 +#endif  /* BROTLI_DEC_CONTEXT_H_ */
 diff --git a/Source/ThirdParty/brotli/dec/decode.c b/Source/ThirdParty/brotli/dec/decode.c
 new file mode 100644
-index 0000000000..d184f24cba
+index 00000000000..d184f24cba5
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/decode.c
 @@ -0,0 +1,2262 @@
@@ -3349,7 +3375,7 @@ index 0000000000..d184f24cba
 +#endif
 diff --git a/Source/ThirdParty/brotli/dec/decode.h b/Source/ThirdParty/brotli/dec/decode.h
 new file mode 100644
-index 0000000000..056a8b5483
+index 00000000000..056a8b5483a
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/decode.h
 @@ -0,0 +1,162 @@
@@ -3517,7 +3543,7 @@ index 0000000000..056a8b5483
 +#endif  /* BROTLI_DEC_DECODE_H_ */
 diff --git a/Source/ThirdParty/brotli/dec/dictionary.c b/Source/ThirdParty/brotli/dec/dictionary.c
 new file mode 100644
-index 0000000000..f8f58575c0
+index 00000000000..f8f58575c0e
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/dictionary.c
 @@ -0,0 +1,9466 @@
@@ -12989,7 +13015,7 @@ index 0000000000..f8f58575c0
 +#endif
 diff --git a/Source/ThirdParty/brotli/dec/dictionary.h b/Source/ThirdParty/brotli/dec/dictionary.h
 new file mode 100644
-index 0000000000..ae250c2d7f
+index 00000000000..ae250c2d7f2
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/dictionary.h
 @@ -0,0 +1,38 @@
@@ -13033,7 +13059,7 @@ index 0000000000..ae250c2d7f
 +#endif  /* BROTLI_DEC_DICTIONARY_H_ */
 diff --git a/Source/ThirdParty/brotli/dec/huffman.c b/Source/ThirdParty/brotli/dec/huffman.c
 new file mode 100644
-index 0000000000..3775ffe7e9
+index 00000000000..3775ffe7e92
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/huffman.c
 @@ -0,0 +1,356 @@
@@ -13395,7 +13421,7 @@ index 0000000000..3775ffe7e9
 +#endif
 diff --git a/Source/ThirdParty/brotli/dec/huffman.h b/Source/ThirdParty/brotli/dec/huffman.h
 new file mode 100644
-index 0000000000..fc880810c6
+index 00000000000..fc880810c66
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/huffman.h
 @@ -0,0 +1,68 @@
@@ -13469,7 +13495,7 @@ index 0000000000..fc880810c6
 +#endif  /* BROTLI_DEC_HUFFMAN_H_ */
 diff --git a/Source/ThirdParty/brotli/dec/port.h b/Source/ThirdParty/brotli/dec/port.h
 new file mode 100644
-index 0000000000..19b457c75b
+index 00000000000..19b457c75b7
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/port.h
 @@ -0,0 +1,252 @@
@@ -13727,7 +13753,7 @@ index 0000000000..19b457c75b
 +#endif  /* BROTLI_DEC_PORT_H_ */
 diff --git a/Source/ThirdParty/brotli/dec/prefix.h b/Source/ThirdParty/brotli/dec/prefix.h
 new file mode 100644
-index 0000000000..eaae37f02a
+index 00000000000..eaae37f02a5
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/prefix.h
 @@ -0,0 +1,749 @@
@@ -14482,7 +14508,7 @@ index 0000000000..eaae37f02a
 +#endif  /* BROTLI_DEC_PREFIX_H_ */
 diff --git a/Source/ThirdParty/brotli/dec/state.c b/Source/ThirdParty/brotli/dec/state.c
 new file mode 100644
-index 0000000000..358e08d3d6
+index 00000000000..358e08d3d61
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/state.c
 @@ -0,0 +1,180 @@
@@ -14668,7 +14694,7 @@ index 0000000000..358e08d3d6
 +#endif
 diff --git a/Source/ThirdParty/brotli/dec/state.h b/Source/ThirdParty/brotli/dec/state.h
 new file mode 100644
-index 0000000000..63647ef2bc
+index 00000000000..63647ef2bcb
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/state.h
 @@ -0,0 +1,242 @@
@@ -14916,7 +14942,7 @@ index 0000000000..63647ef2bc
 +#endif  /* BROTLI_DEC_STATE_H_ */
 diff --git a/Source/ThirdParty/brotli/dec/transform.h b/Source/ThirdParty/brotli/dec/transform.h
 new file mode 100644
-index 0000000000..8c08f3fc0b
+index 00000000000..8c08f3fc0b9
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/transform.h
 @@ -0,0 +1,300 @@
@@ -15222,7 +15248,7 @@ index 0000000000..8c08f3fc0b
 +#endif  /* BROTLI_DEC_TRANSFORM_H_ */
 diff --git a/Source/ThirdParty/brotli/dec/types.h b/Source/ThirdParty/brotli/dec/types.h
 new file mode 100644
-index 0000000000..0f7a0216a0
+index 00000000000..0f7a0216a04
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/dec/types.h
 @@ -0,0 +1,38 @@
@@ -15266,7 +15292,7 @@ index 0000000000..0f7a0216a0
 +#endif  /* BROTLI_DEC_TYPES_H_ */
 diff --git a/Source/ThirdParty/brotli/update.sh b/Source/ThirdParty/brotli/update.sh
 new file mode 100755
-index 0000000000..752a478847
+index 00000000000..752a478847a
 --- /dev/null
 +++ b/Source/ThirdParty/brotli/update.sh
 @@ -0,0 +1,20 @@
@@ -15292,7 +15318,7 @@ index 0000000000..752a478847
 +echo "###"
 diff --git a/Source/ThirdParty/woff2/src/buffer.h b/Source/ThirdParty/woff2/src/buffer.h
 new file mode 100644
-index 0000000000..588ac0d339
+index 00000000000..588ac0d3399
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/buffer.h
 @@ -0,0 +1,172 @@
@@ -15470,7 +15496,7 @@ index 0000000000..588ac0d339
 +#endif  // WOFF2_BUFFER_H_
 diff --git a/Source/ThirdParty/woff2/src/file.h b/Source/ThirdParty/woff2/src/file.h
 new file mode 100644
-index 0000000000..7afcb315fe
+index 00000000000..7afcb315fe8
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/file.h
 @@ -0,0 +1,42 @@
@@ -15518,7 +15544,7 @@ index 0000000000..7afcb315fe
 +#endif  // WOFF2_FILE_H_
 diff --git a/Source/ThirdParty/woff2/src/font.cc b/Source/ThirdParty/woff2/src/font.cc
 new file mode 100644
-index 0000000000..0606730052
+index 00000000000..06067300524
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/font.cc
 @@ -0,0 +1,396 @@
@@ -15920,7 +15946,7 @@ index 0000000000..0606730052
 +} // namespace woff2
 diff --git a/Source/ThirdParty/woff2/src/font.h b/Source/ThirdParty/woff2/src/font.h
 new file mode 100644
-index 0000000000..93806e6b5e
+index 00000000000..93806e6b5ee
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/font.h
 @@ -0,0 +1,113 @@
@@ -16039,7 +16065,7 @@ index 0000000000..93806e6b5e
 +#endif  // WOFF2_FONT_H_
 diff --git a/Source/ThirdParty/woff2/src/glyph.cc b/Source/ThirdParty/woff2/src/glyph.cc
 new file mode 100644
-index 0000000000..1dadafcb70
+index 00000000000..1dadafcb700
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/glyph.cc
 @@ -0,0 +1,380 @@
@@ -16425,7 +16451,7 @@ index 0000000000..1dadafcb70
 +} // namespace woff2
 diff --git a/Source/ThirdParty/woff2/src/glyph.h b/Source/ThirdParty/woff2/src/glyph.h
 new file mode 100644
-index 0000000000..0ee755c2f5
+index 00000000000..0ee755c2f5a
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/glyph.h
 @@ -0,0 +1,71 @@
@@ -16502,7 +16528,7 @@ index 0000000000..0ee755c2f5
 +#endif  // WOFF2_GLYPH_H_
 diff --git a/Source/ThirdParty/woff2/src/normalize.cc b/Source/ThirdParty/woff2/src/normalize.cc
 new file mode 100644
-index 0000000000..b538b91a89
+index 00000000000..b538b91a89f
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/normalize.cc
 @@ -0,0 +1,322 @@
@@ -16830,7 +16856,7 @@ index 0000000000..b538b91a89
 +} // namespace woff2
 diff --git a/Source/ThirdParty/woff2/src/normalize.h b/Source/ThirdParty/woff2/src/normalize.h
 new file mode 100644
-index 0000000000..e0153488ed
+index 00000000000..e0153488ed3
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/normalize.h
 @@ -0,0 +1,47 @@
@@ -16883,7 +16909,7 @@ index 0000000000..e0153488ed
 +#endif  // WOFF2_NORMALIZE_H_
 diff --git a/Source/ThirdParty/woff2/src/port.h b/Source/ThirdParty/woff2/src/port.h
 new file mode 100644
-index 0000000000..bac47a93a6
+index 00000000000..bac47a93a61
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/port.h
 @@ -0,0 +1,63 @@
@@ -16952,7 +16978,7 @@ index 0000000000..bac47a93a6
 +#endif  // WOFF2_PORT_H_
 diff --git a/Source/ThirdParty/woff2/src/round.h b/Source/ThirdParty/woff2/src/round.h
 new file mode 100644
-index 0000000000..abb81f8235
+index 00000000000..abb81f8235d
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/round.h
 @@ -0,0 +1,35 @@
@@ -16993,7 +17019,7 @@ index 0000000000..abb81f8235
 +#endif  // WOFF2_ROUND_H_
 diff --git a/Source/ThirdParty/woff2/src/store_bytes.h b/Source/ThirdParty/woff2/src/store_bytes.h
 new file mode 100644
-index 0000000000..74b279c427
+index 00000000000..74b279c4277
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/store_bytes.h
 @@ -0,0 +1,77 @@
@@ -17076,7 +17102,7 @@ index 0000000000..74b279c427
 +#endif  // WOFF2_STORE_BYTES_H_
 diff --git a/Source/ThirdParty/woff2/src/table_tags.cc b/Source/ThirdParty/woff2/src/table_tags.cc
 new file mode 100644
-index 0000000000..0071e00b00
+index 00000000000..0071e00b00c
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/table_tags.cc
 @@ -0,0 +1,90 @@
@@ -17172,7 +17198,7 @@ index 0000000000..0071e00b00
 +} // namespace woff2
 diff --git a/Source/ThirdParty/woff2/src/table_tags.h b/Source/ThirdParty/woff2/src/table_tags.h
 new file mode 100644
-index 0000000000..daa5d9215d
+index 00000000000..daa5d9215de
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/table_tags.h
 @@ -0,0 +1,38 @@
@@ -17216,7 +17242,7 @@ index 0000000000..daa5d9215d
 +#endif  // WOFF2_TABLE_TAGS_H_
 diff --git a/Source/ThirdParty/woff2/src/transform.cc b/Source/ThirdParty/woff2/src/transform.cc
 new file mode 100644
-index 0000000000..2ad8b163c3
+index 00000000000..2ad8b163c3c
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/transform.cc
 @@ -0,0 +1,420 @@
@@ -17642,7 +17668,7 @@ index 0000000000..2ad8b163c3
 +} // namespace woff2
 diff --git a/Source/ThirdParty/woff2/src/transform.h b/Source/ThirdParty/woff2/src/transform.h
 new file mode 100644
-index 0000000000..e9d1b0d3dc
+index 00000000000..e9d1b0d3dc4
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/transform.h
 @@ -0,0 +1,34 @@
@@ -17682,7 +17708,7 @@ index 0000000000..e9d1b0d3dc
 +#endif  // WOFF2_TRANSFORM_H_
 diff --git a/Source/ThirdParty/woff2/src/variable_length.cc b/Source/ThirdParty/woff2/src/variable_length.cc
 new file mode 100644
-index 0000000000..944a17f2e2
+index 00000000000..944a17f2e28
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/variable_length.cc
 @@ -0,0 +1,137 @@
@@ -17825,7 +17851,7 @@ index 0000000000..944a17f2e2
 +
 diff --git a/Source/ThirdParty/woff2/src/variable_length.h b/Source/ThirdParty/woff2/src/variable_length.h
 new file mode 100644
-index 0000000000..2816ae23a2
+index 00000000000..2816ae23a20
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/variable_length.h
 @@ -0,0 +1,38 @@
@@ -17869,7 +17895,7 @@ index 0000000000..2816ae23a2
 +
 diff --git a/Source/ThirdParty/woff2/src/woff2_common.cc b/Source/ThirdParty/woff2/src/woff2_common.cc
 new file mode 100644
-index 0000000000..eba6a46e21
+index 00000000000..eba6a46e213
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_common.cc
 @@ -0,0 +1,64 @@
@@ -17939,7 +17965,7 @@ index 0000000000..eba6a46e21
 +} // namespace woff2
 diff --git a/Source/ThirdParty/woff2/src/woff2_common.h b/Source/ThirdParty/woff2/src/woff2_common.h
 new file mode 100644
-index 0000000000..a8c45af80e
+index 00000000000..a8c45af80e1
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_common.h
 @@ -0,0 +1,72 @@
@@ -18017,7 +18043,7 @@ index 0000000000..a8c45af80e
 +#endif  // WOFF2_WOFF2_COMMON_H_
 diff --git a/Source/ThirdParty/woff2/src/woff2_compress.cc b/Source/ThirdParty/woff2/src/woff2_compress.cc
 new file mode 100644
-index 0000000000..e5cf710f79
+index 00000000000..e5cf710f793
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_compress.cc
 @@ -0,0 +1,53 @@
@@ -18076,7 +18102,7 @@ index 0000000000..e5cf710f79
 +}
 diff --git a/Source/ThirdParty/woff2/src/woff2_dec.cc b/Source/ThirdParty/woff2/src/woff2_dec.cc
 new file mode 100644
-index 0000000000..ec75775a04
+index 00000000000..ec75775a04a
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_dec.cc
 @@ -0,0 +1,1318 @@
@@ -19400,7 +19426,7 @@ index 0000000000..ec75775a04
 +} // namespace woff2
 diff --git a/Source/ThirdParty/woff2/src/woff2_dec.h b/Source/ThirdParty/woff2/src/woff2_dec.h
 new file mode 100644
-index 0000000000..b889812fbc
+index 00000000000..b889812fbc2
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_dec.h
 @@ -0,0 +1,44 @@
@@ -19450,7 +19476,7 @@ index 0000000000..b889812fbc
 +#endif  // WOFF2_WOFF2_DEC_H_
 diff --git a/Source/ThirdParty/woff2/src/woff2_decompress.cc b/Source/ThirdParty/woff2/src/woff2_decompress.cc
 new file mode 100644
-index 0000000000..f29c797cbb
+index 00000000000..f29c797cbb5
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_decompress.cc
 @@ -0,0 +1,48 @@
@@ -19504,7 +19530,7 @@ index 0000000000..f29c797cbb
 +}
 diff --git a/Source/ThirdParty/woff2/src/woff2_enc.cc b/Source/ThirdParty/woff2/src/woff2_enc.cc
 new file mode 100644
-index 0000000000..d100ad51b7
+index 00000000000..d100ad51b73
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_enc.cc
 @@ -0,0 +1,471 @@
@@ -19981,7 +20007,7 @@ index 0000000000..d100ad51b7
 +} // namespace woff2
 diff --git a/Source/ThirdParty/woff2/src/woff2_enc.h b/Source/ThirdParty/woff2/src/woff2_enc.h
 new file mode 100644
-index 0000000000..3ac8c3ab1b
+index 00000000000..3ac8c3ab1bd
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_enc.h
 @@ -0,0 +1,54 @@
@@ -20041,7 +20067,7 @@ index 0000000000..3ac8c3ab1b
 +#endif  // WOFF2_WOFF2_ENC_H_
 diff --git a/Source/ThirdParty/woff2/src/woff2_out.cc b/Source/ThirdParty/woff2/src/woff2_out.cc
 new file mode 100644
-index 0000000000..8882306445
+index 00000000000..8882306445b
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_out.cc
 @@ -0,0 +1,73 @@
@@ -20120,7 +20146,7 @@ index 0000000000..8882306445
 +} // namespace woff2
 diff --git a/Source/ThirdParty/woff2/src/woff2_out.h b/Source/ThirdParty/woff2/src/woff2_out.h
 new file mode 100644
-index 0000000000..c956afa0e2
+index 00000000000..c956afa0e2a
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/src/woff2_out.h
 @@ -0,0 +1,114 @@
@@ -20240,7 +20266,7 @@ index 0000000000..c956afa0e2
 +#endif  // WOFF2_WOFF2_OUT_H_
 diff --git a/Source/ThirdParty/woff2/wk_woff2_wrap.cc b/Source/ThirdParty/woff2/wk_woff2_wrap.cc
 new file mode 100644
-index 0000000000..bd03096318
+index 00000000000..bd030963183
 --- /dev/null
 +++ b/Source/ThirdParty/woff2/wk_woff2_wrap.cc
 @@ -0,0 +1,13 @@
@@ -20257,8 +20283,33 @@ index 0000000000..bd03096318
 +{
 +    return woff2::ConvertWOFF2ToTTF(result, result_length, data, length);
 +}
+diff --git a/Source/WTF/wtf/Platform.h b/Source/WTF/wtf/Platform.h
+index f7a4cb5e1d8..538cefde7cc 100644
+--- a/Source/WTF/wtf/Platform.h
++++ b/Source/WTF/wtf/Platform.h
+@@ -160,9 +160,9 @@
+ /* USE_ANGLE=1 uses ANGLE for the WebGL backend.
+    It replaces USE_OPENGL, USE_OPENGL_ES and USE_EGL. */
+ #if PLATFORM(MAC) || (PLATFORM(MACCATALYST) && __has_include(<OpenGL/OpenGL.h>))
+-#define USE_OPENGL 0
++#define USE_OPENGL 1
+ #define USE_OPENGL_ES 0
+-#define USE_ANGLE 1
++#define USE_ANGLE 0
+ #else
+ #define USE_OPENGL 0
+ #define USE_OPENGL_ES 0
+@@ -172,7 +172,7 @@
+ #define GL_SILENCE_DEPRECATION 1
+ #endif
+ 
+-#if USE(OPENGL) && !defined(HAVE_OPENGL_4)
++#if USE(OPENGL) && !defined(HAVE_OPENGL_4) && !(PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
+ #define HAVE_OPENGL_4 1
+ #endif
+ 
 diff --git a/Source/WTF/wtf/PlatformHave.h b/Source/WTF/wtf/PlatformHave.h
-index b47c83be16..8ae3867c69 100644
+index b47c83be16c..8ae3867c692 100644
 --- a/Source/WTF/wtf/PlatformHave.h
 +++ b/Source/WTF/wtf/PlatformHave.h
 @@ -281,11 +281,20 @@
@@ -20325,7 +20376,7 @@ index b47c83be16..8ae3867c69 100644
 +#define HAVE_AVOBSERVATIONCONTROLLER 0
 +#endif
 diff --git a/Source/WTF/wtf/PlatformUse.h b/Source/WTF/wtf/PlatformUse.h
-index b94e1463b7..18e22788b3 100644
+index b94e1463b7f..18e22788b32 100644
 --- a/Source/WTF/wtf/PlatformUse.h
 +++ b/Source/WTF/wtf/PlatformUse.h
 @@ -218,8 +218,12 @@
@@ -20342,7 +20393,7 @@ index b94e1463b7..18e22788b3 100644
  #if PLATFORM(COCOA)
  #define USE_OS_LOG 1
 diff --git a/Source/WTF/wtf/ThreadingPrimitives.h b/Source/WTF/wtf/ThreadingPrimitives.h
-index 6d699f816a..6c965fcaa7 100644
+index 6d699f816a8..6c965fcaa76 100644
 --- a/Source/WTF/wtf/ThreadingPrimitives.h
 +++ b/Source/WTF/wtf/ThreadingPrimitives.h
 @@ -71,7 +71,11 @@ class Mutex final {
@@ -20378,7 +20429,7 @@ index 6d699f816a..6c965fcaa7 100644
      WTF_EXPORT_PRIVATE void broadcast();
      
 diff --git a/Source/WTF/wtf/URLHelpers.cpp b/Source/WTF/wtf/URLHelpers.cpp
-index 51c5de061b..ede05bbe7e 100644
+index 51c5de061b6..ede05bbe7ef 100644
 --- a/Source/WTF/wtf/URLHelpers.cpp
 +++ b/Source/WTF/wtf/URLHelpers.cpp
 @@ -52,7 +52,10 @@ constexpr unsigned urlBytesBufferLength = 2048;
@@ -20394,7 +20445,7 @@ index 51c5de061b..ede05bbe7e 100644
  static uint32_t IDNScriptWhiteList[(scriptCodeLimit + 31) / 32];
  
 diff --git a/Source/WTF/wtf/cocoa/Entitlements.mm b/Source/WTF/wtf/cocoa/Entitlements.mm
-index 165dd5b6e2..57fb1ae13b 100644
+index 165dd5b6e22..57fb1ae13b5 100644
 --- a/Source/WTF/wtf/cocoa/Entitlements.mm
 +++ b/Source/WTF/wtf/cocoa/Entitlements.mm
 @@ -34,27 +34,52 @@ namespace WTF {
@@ -20451,7 +20502,7 @@ index 165dd5b6e2..57fb1ae13b 100644
  
  } // namespace WTF
 diff --git a/Source/WTF/wtf/cocoa/FileSystemCocoa.mm b/Source/WTF/wtf/cocoa/FileSystemCocoa.mm
-index acedf5fdd1..29110f77db 100644
+index acedf5fdd1b..29110f77dbd 100644
 --- a/Source/WTF/wtf/cocoa/FileSystemCocoa.mm
 +++ b/Source/WTF/wtf/cocoa/FileSystemCocoa.mm
 @@ -27,6 +27,7 @@
@@ -20484,7 +20535,7 @@ index acedf5fdd1..29110f77db 100644
  }
  
 diff --git a/Source/WTF/wtf/cocoa/LanguageCocoa.mm b/Source/WTF/wtf/cocoa/LanguageCocoa.mm
-index 5bab7c7b26..b3ca780f65 100644
+index 5bab7c7b267..b3ca780f650 100644
 --- a/Source/WTF/wtf/cocoa/LanguageCocoa.mm
 +++ b/Source/WTF/wtf/cocoa/LanguageCocoa.mm
 @@ -54,7 +54,7 @@ RetainPtr<CFArrayRef> minimizedLanguagesFromLanguages(CFArrayRef languages)
@@ -20497,7 +20548,7 @@ index 5bab7c7b26..b3ca780f65 100644
  }
  
 diff --git a/Source/WTF/wtf/cocoa/MemoryFootprintCocoa.cpp b/Source/WTF/wtf/cocoa/MemoryFootprintCocoa.cpp
-index 885da76cc5..3a03163b9b 100644
+index 885da76cc51..3a03163b9be 100644
 --- a/Source/WTF/wtf/cocoa/MemoryFootprintCocoa.cpp
 +++ b/Source/WTF/wtf/cocoa/MemoryFootprintCocoa.cpp
 @@ -33,12 +33,18 @@ namespace WTF {
@@ -20520,7 +20571,7 @@ index 885da76cc5..3a03163b9b 100644
  
  }
 diff --git a/Source/WTF/wtf/cocoa/MemoryPressureHandlerCocoa.mm b/Source/WTF/wtf/cocoa/MemoryPressureHandlerCocoa.mm
-index 088b19cc10..4f767f7898 100644
+index 088b19cc10a..4f767f7898a 100644
 --- a/Source/WTF/wtf/cocoa/MemoryPressureHandlerCocoa.mm
 +++ b/Source/WTF/wtf/cocoa/MemoryPressureHandlerCocoa.mm
 @@ -35,6 +35,18 @@
@@ -20606,7 +20657,7 @@ index 088b19cc10..4f767f7898 100644
  
  } // namespace WTF
 diff --git a/Source/WTF/wtf/cocoa/ResourceUsageCocoa.cpp b/Source/WTF/wtf/cocoa/ResourceUsageCocoa.cpp
-index dfca072b4c..8b66f559c5 100644
+index dfca072b4c4..8b66f559c50 100644
 --- a/Source/WTF/wtf/cocoa/ResourceUsageCocoa.cpp
 +++ b/Source/WTF/wtf/cocoa/ResourceUsageCocoa.cpp
 @@ -24,6 +24,7 @@
@@ -20669,7 +20720,7 @@ index dfca072b4c..8b66f559c5 100644
              tags[info.user_tag].dirty += info.pages_dirtied;
      }
 diff --git a/Source/WTF/wtf/cocoa/SystemTracingCocoa.cpp b/Source/WTF/wtf/cocoa/SystemTracingCocoa.cpp
-index 009d1a3f12..975db875ce 100644
+index 009d1a3f124..975db875cec 100644
 --- a/Source/WTF/wtf/cocoa/SystemTracingCocoa.cpp
 +++ b/Source/WTF/wtf/cocoa/SystemTracingCocoa.cpp
 @@ -39,7 +39,11 @@ bool WTFSignpostsEnabled()
@@ -20685,7 +20736,7 @@ index 009d1a3f12..975db875ce 100644
      });
  
 diff --git a/Source/WTF/wtf/cocoa/WorkQueueCocoa.cpp b/Source/WTF/wtf/cocoa/WorkQueueCocoa.cpp
-index 30dca8a6f1..2eac86cc02 100644
+index 30dca8a6f14..2eac86cc024 100644
 --- a/Source/WTF/wtf/cocoa/WorkQueueCocoa.cpp
 +++ b/Source/WTF/wtf/cocoa/WorkQueueCocoa.cpp
 @@ -45,6 +45,12 @@ void WorkQueue::dispatchAfter(Seconds duration, Function<void()>&& function)
@@ -20719,7 +20770,7 @@ index 30dca8a6f1..2eac86cc02 100644
      dispatch_set_context(m_dispatchQueue, this);
  }
 diff --git a/Source/WTF/wtf/mac/FileSystemMac.mm b/Source/WTF/wtf/mac/FileSystemMac.mm
-index 92692a16fb..63a2ca2b80 100644
+index 92692a16fba..63a2ca2b809 100644
 --- a/Source/WTF/wtf/mac/FileSystemMac.mm
 +++ b/Source/WTF/wtf/mac/FileSystemMac.mm
 @@ -40,8 +40,9 @@ bool FileSystem::deleteEmptyDirectory(const String& path)
@@ -20745,7 +20796,7 @@ index 92692a16fb..63a2ca2b80 100644
  }
  
 diff --git a/Source/WTF/wtf/posix/OSAllocatorPOSIX.cpp b/Source/WTF/wtf/posix/OSAllocatorPOSIX.cpp
-index 4454059c51..36336d8969 100644
+index 4454059c515..36336d89692 100644
 --- a/Source/WTF/wtf/posix/OSAllocatorPOSIX.cpp
 +++ b/Source/WTF/wtf/posix/OSAllocatorPOSIX.cpp
 @@ -69,7 +69,7 @@ void* OSAllocator::reserveAndCommit(size_t bytes, Usage usage, bool writable, bo
@@ -20758,7 +20809,7 @@ index 4454059c51..36336d8969 100644
          flags |= MAP_JIT;
  #endif
 diff --git a/Source/WTF/wtf/posix/ThreadingPOSIX.cpp b/Source/WTF/wtf/posix/ThreadingPOSIX.cpp
-index 752831649b..9f86d8cbaa 100644
+index 752831649be..9f86d8cbaa1 100644
 --- a/Source/WTF/wtf/posix/ThreadingPOSIX.cpp
 +++ b/Source/WTF/wtf/posix/ThreadingPOSIX.cpp
 @@ -477,6 +477,15 @@ void Thread::destructTLS(void* data)
@@ -20808,7 +20859,7 @@ index 752831649b..9f86d8cbaa 100644
  {
      int result = pthread_cond_signal(&m_condition);
 diff --git a/Source/WTF/wtf/spi/cocoa/NSLocaleSPI.h b/Source/WTF/wtf/spi/cocoa/NSLocaleSPI.h
-index 5cef164031..6ec92680d8 100644
+index 5cef1640316..6ec92680d83 100644
 --- a/Source/WTF/wtf/spi/cocoa/NSLocaleSPI.h
 +++ b/Source/WTF/wtf/spi/cocoa/NSLocaleSPI.h
 @@ -32,6 +32,6 @@
@@ -20820,7 +20871,7 @@ index 5cef164031..6ec92680d8 100644
  @end
  
 diff --git a/Source/WTF/wtf/spi/cocoa/SecuritySPI.h b/Source/WTF/wtf/spi/cocoa/SecuritySPI.h
-index 77dc830a3e..c64a5c7c4e 100644
+index 77dc830a3ee..c64a5c7c4eb 100644
 --- a/Source/WTF/wtf/spi/cocoa/SecuritySPI.h
 +++ b/Source/WTF/wtf/spi/cocoa/SecuritySPI.h
 @@ -70,7 +70,13 @@ WTF_EXTERN_C_END
@@ -20838,7 +20889,7 @@ index 77dc830a3e..c64a5c7c4e 100644
  WTF_EXTERN_C_BEGIN
  
 diff --git a/Source/WTF/wtf/spi/darwin/ProcessMemoryFootprint.h b/Source/WTF/wtf/spi/darwin/ProcessMemoryFootprint.h
-index 5f17488c24..41eaff7879 100644
+index 5f17488c24e..41eaff7879f 100644
 --- a/Source/WTF/wtf/spi/darwin/ProcessMemoryFootprint.h
 +++ b/Source/WTF/wtf/spi/darwin/ProcessMemoryFootprint.h
 @@ -48,6 +48,14 @@ public:
@@ -20857,7 +20908,7 @@ index 5f17488c24..41eaff7879 100644
      {
  #ifdef HAS_MAX_FOOTPRINT
 diff --git a/Source/WTF/wtf/spi/darwin/SandboxSPI.h b/Source/WTF/wtf/spi/darwin/SandboxSPI.h
-index be3cd27129..49f5fe510e 100644
+index be3cd271290..49f5fe510ee 100644
 --- a/Source/WTF/wtf/spi/darwin/SandboxSPI.h
 +++ b/Source/WTF/wtf/spi/darwin/SandboxSPI.h
 @@ -32,12 +32,24 @@
@@ -20907,7 +20958,7 @@ index be3cd27129..49f5fe510e 100644
  int sandbox_container_path_for_pid(pid_t, char *buffer, size_t bufsize);
  int sandbox_extension_release(int64_t extension_handle);
 diff --git a/Source/WTF/wtf/spi/darwin/XPCSPI.h b/Source/WTF/wtf/spi/darwin/XPCSPI.h
-index 71edd87559..83fa7a7964 100644
+index 71edd875598..83fa7a7964d 100644
 --- a/Source/WTF/wtf/spi/darwin/XPCSPI.h
 +++ b/Source/WTF/wtf/spi/darwin/XPCSPI.h
 @@ -87,7 +87,10 @@ extern const char * const _xpc_error_key_description;
@@ -20936,7 +20987,7 @@ index 71edd87559..83fa7a7964 100644
  void xpc_array_append_value(xpc_object_t xarray, xpc_object_t value);
  xpc_object_t xpc_array_get_value(xpc_object_t xarray, size_t index);
 diff --git a/Source/WTF/wtf/spi/darwin/dyldSPI.h b/Source/WTF/wtf/spi/darwin/dyldSPI.h
-index 31e18178d5..7c34461248 100644
+index 31e18178d5f..7c34461248e 100644
 --- a/Source/WTF/wtf/spi/darwin/dyldSPI.h
 +++ b/Source/WTF/wtf/spi/darwin/dyldSPI.h
 @@ -112,6 +112,11 @@
@@ -20952,7 +21003,7 @@ index 31e18178d5..7c34461248 100644
  
  WTF_EXTERN_C_END
 diff --git a/Source/WTF/wtf/threads/Signals.cpp b/Source/WTF/wtf/threads/Signals.cpp
-index d658517295..013d22fe67 100644
+index d6585172953..013d22fe67d 100644
 --- a/Source/WTF/wtf/threads/Signals.cpp
 +++ b/Source/WTF/wtf/threads/Signals.cpp
 @@ -104,8 +104,12 @@ void startMachExceptionHandlerThread()
@@ -20970,7 +21021,7 @@ index d658517295..013d22fe67 100644
  
          dispatch_source_set_event_handler(source, ^{
 diff --git a/Source/WebCore/PAL/pal/PlatformMac.cmake b/Source/WebCore/PAL/pal/PlatformMac.cmake
-index b01c74fad5..3fbc978979 100644
+index b01c74fad5e..3fbc9789797 100644
 --- a/Source/WebCore/PAL/pal/PlatformMac.cmake
 +++ b/Source/WebCore/PAL/pal/PlatformMac.cmake
 @@ -1,11 +1,11 @@
@@ -21021,7 +21072,7 @@ index b01c74fad5..3fbc978979 100644
      system/mac/PopupMenu.mm
      system/mac/SoundMac.mm
 diff --git a/Source/WebCore/PAL/pal/cocoa/Gunzip.cpp b/Source/WebCore/PAL/pal/cocoa/Gunzip.cpp
-index 18cbb9949b..677e2d54c2 100644
+index 18cbb9949bd..677e2d54c24 100644
 --- a/Source/WebCore/PAL/pal/cocoa/Gunzip.cpp
 +++ b/Source/WebCore/PAL/pal/cocoa/Gunzip.cpp
 @@ -26,12 +26,18 @@
@@ -21053,7 +21104,7 @@ index 18cbb9949b..677e2d54c2 100644
 -
  } // namespace WTF
 diff --git a/Source/WebCore/PAL/pal/spi/cf/CFNetworkSPI.h b/Source/WebCore/PAL/pal/spi/cf/CFNetworkSPI.h
-index eded0cfa8e..6df78251fd 100644
+index eded0cfa8e5..6df78251fd2 100644
 --- a/Source/WebCore/PAL/pal/spi/cf/CFNetworkSPI.h
 +++ b/Source/WebCore/PAL/pal/spi/cf/CFNetworkSPI.h
 @@ -121,6 +121,20 @@ typedef void (^CFCachedURLResponseCallBackBlock)(CFCachedURLResponseRef);
@@ -21078,7 +21129,7 @@ index eded0cfa8e..6df78251fd 100644
  @interface NSURLSessionTask ()
  @property (readonly, retain) NSURLSessionTaskMetrics* _incompleteTaskMetrics;
 diff --git a/Source/WebCore/PAL/pal/spi/cocoa/AVFoundationSPI.h b/Source/WebCore/PAL/pal/spi/cocoa/AVFoundationSPI.h
-index 27c3c807f1..e5b058be8c 100644
+index 27c3c807f19..e5b058be8c5 100644
 --- a/Source/WebCore/PAL/pal/spi/cocoa/AVFoundationSPI.h
 +++ b/Source/WebCore/PAL/pal/spi/cocoa/AVFoundationSPI.h
 @@ -54,8 +54,11 @@
@@ -21094,7 +21145,7 @@ index 27c3c807f1..e5b058be8c 100644
  NS_ASSUME_NONNULL_BEGIN
  @interface AVPlayerItem ()
 diff --git a/Source/WebCore/PAL/pal/spi/cocoa/AVKitSPI.h b/Source/WebCore/PAL/pal/spi/cocoa/AVKitSPI.h
-index f77f60254a..189aa3f207 100644
+index f77f60254a1..189aa3f207a 100644
 --- a/Source/WebCore/PAL/pal/spi/cocoa/AVKitSPI.h
 +++ b/Source/WebCore/PAL/pal/spi/cocoa/AVKitSPI.h
 @@ -207,7 +207,8 @@ NS_ASSUME_NONNULL_END
@@ -21118,7 +21169,7 @@ index f77f60254a..189aa3f207 100644
  OBJC_CLASS AVFunctionBarPlaybackControlsProvider;
  OBJC_CLASS AVFunctionBarScrubber;
 diff --git a/Source/WebCore/PAL/pal/spi/cocoa/CoreTextSPI.h b/Source/WebCore/PAL/pal/spi/cocoa/CoreTextSPI.h
-index d0f81c2ded..79eed976aa 100644
+index d0f81c2ded1..79eed976aa8 100644
 --- a/Source/WebCore/PAL/pal/spi/cocoa/CoreTextSPI.h
 +++ b/Source/WebCore/PAL/pal/spi/cocoa/CoreTextSPI.h
 @@ -171,4 +171,13 @@ __attribute__((availability(macosx, obsoleted = 10.13))) __attribute__((availabi
@@ -21136,7 +21187,7 @@ index d0f81c2ded..79eed976aa 100644
 +
  WTF_EXTERN_C_END
 diff --git a/Source/WebCore/PAL/pal/spi/cocoa/IOSurfaceSPI.h b/Source/WebCore/PAL/pal/spi/cocoa/IOSurfaceSPI.h
-index 7cbf759872..37c4dffd3e 100644
+index 7cbf7598726..37c4dffd3e5 100644
 --- a/Source/WebCore/PAL/pal/spi/cocoa/IOSurfaceSPI.h
 +++ b/Source/WebCore/PAL/pal/spi/cocoa/IOSurfaceSPI.h
 @@ -86,7 +86,12 @@ WTF_EXTERN_C_END
@@ -21153,7 +21204,7 @@ index 7cbf759872..37c4dffd3e 100644
  #endif
  
 diff --git a/Source/WebCore/PAL/pal/spi/cocoa/QuartzCoreSPI.h b/Source/WebCore/PAL/pal/spi/cocoa/QuartzCoreSPI.h
-index 8fc54a5b7a..0938cf04a7 100644
+index 8fc54a5b7a3..0938cf04a73 100644
 --- a/Source/WebCore/PAL/pal/spi/cocoa/QuartzCoreSPI.h
 +++ b/Source/WebCore/PAL/pal/spi/cocoa/QuartzCoreSPI.h
 @@ -150,9 +150,12 @@ typedef enum {
@@ -21170,7 +21221,7 @@ index 8fc54a5b7a..0938cf04a7 100644
  @interface CAMediaTimingFunction ()
  - (float)_solveForInput:(float)t;
 diff --git a/Source/WebCore/PAL/pal/spi/mac/NSAppearanceSPI.h b/Source/WebCore/PAL/pal/spi/mac/NSAppearanceSPI.h
-index 7db6970007..2d1d29e1b4 100644
+index 7db69700071..2d1d29e1b4d 100644
 --- a/Source/WebCore/PAL/pal/spi/mac/NSAppearanceSPI.h
 +++ b/Source/WebCore/PAL/pal/spi/mac/NSAppearanceSPI.h
 @@ -31,10 +31,13 @@
@@ -21188,7 +21239,7 @@ index 7db6970007..2d1d29e1b4 100644
  
  #endif // USE(APPKIT)
 diff --git a/Source/WebCore/PAL/pal/system/mac/PopupMenu.mm b/Source/WebCore/PAL/pal/system/mac/PopupMenu.mm
-index 9bbd4619a3..fbfa9628b0 100644
+index 9bbd4619a3e..fbfa9628b0f 100644
 --- a/Source/WebCore/PAL/pal/system/mac/PopupMenu.mm
 +++ b/Source/WebCore/PAL/pal/system/mac/PopupMenu.mm
 @@ -43,7 +43,11 @@ namespace PAL {
@@ -21218,7 +21269,7 @@ index 9bbd4619a3..fbfa9628b0 100644
      auto options = adoptNS([@{
          NSPopUpMenuPopupButtonBounds : [NSValue valueWithRect:adjustedPopupBounds],
 diff --git a/Source/WebCore/PlatformMac.cmake b/Source/WebCore/PlatformMac.cmake
-index ff51893581..6ee7ea9286 100644
+index ff51893581f..e076fed5725 100644
 --- a/Source/WebCore/PlatformMac.cmake
 +++ b/Source/WebCore/PlatformMac.cmake
 @@ -6,7 +6,6 @@ find_library(AUDIOUNIT_LIBRARY AudioUnit)
@@ -21404,12 +21455,9 @@ index ff51893581..6ee7ea9286 100644
  
      platform/graphics/ca/GraphicsLayerCA.cpp
      platform/graphics/ca/LayerPool.cpp
-@@ -318,16 +335,15 @@ list(APPEND WebCore_SOURCES
-     platform/graphics/cocoa/IOSurface.mm
-     platform/graphics/cocoa/IOSurfacePoolCocoa.mm
+@@ -320,14 +337,13 @@ list(APPEND WebCore_SOURCES
      platform/graphics/cocoa/IntRectCocoa.mm
--    platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm
-+# [leopard] removed (modern feature unused on 10.6): platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm
+     platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm
      platform/graphics/cocoa/WebCoreCALayerExtras.mm
 -    platform/graphics/cocoa/WebCoreDecompressionSession.mm
 +    # [leopard] removed: platform/graphics/cocoa/WebCoreDecompressionSession.mm
@@ -21482,15 +21530,6 @@ index ff51893581..6ee7ea9286 100644
      platform/cocoa/PlaybackSessionModel.h
      platform/cocoa/PlaybackSessionModelMediaElement.h
      platform/cocoa/ScrollController.h
-@@ -567,7 +581,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
-     platform/graphics/cocoa/FontCacheCoreText.h
-     platform/graphics/cocoa/FontFamilySpecificationCoreText.h
-     platform/graphics/cocoa/IOSurface.h
--    platform/graphics/cocoa/WebActionDisablingCALayerDelegate.h
-+# [leopard] removed (modern/non-essential on 10.6): platform/graphics/cocoa/WebActionDisablingCALayerDelegate.h
-     platform/graphics/cocoa/WebCoreCALayerExtras.h
- 
-     platform/graphics/mac/ColorMac.h
 @@ -658,7 +672,7 @@ list(APPEND WebCore_IDL_FILES
      Modules/applepay/paymentrequest/ApplePayModifier.idl
      Modules/applepay/paymentrequest/ApplePayRequest.idl
@@ -21510,7 +21549,7 @@ index ff51893581..6ee7ea9286 100644
  list(APPEND WebCoreTestSupport_IDL_FILES
      testing/MockPaymentAddress.idl
 diff --git a/Source/WebCore/SourcesCocoa.txt b/Source/WebCore/SourcesCocoa.txt
-index b85ad66e7e..448e1c3744 100644
+index b85ad66e7e6..9a083ebe53e 100644
 --- a/Source/WebCore/SourcesCocoa.txt
 +++ b/Source/WebCore/SourcesCocoa.txt
 @@ -23,7 +23,7 @@
@@ -21618,10 +21657,14 @@ index b85ad66e7e..448e1c3744 100644
  
  platform/gamepad/mac/HIDGamepad.cpp
  platform/gamepad/mac/HIDGamepadProvider.cpp
-@@ -236,41 +236,41 @@ platform/graphics/angle/ExtensionsGLANGLE.cpp @no-unify
- platform/graphics/angle/GraphicsContextGLANGLE.cpp @no-unify
- platform/graphics/angle/TemporaryANGLESetting.cpp @no-unify
+@@ -232,45 +232,46 @@ platform/graphics/MediaPlaybackTargetPicker.cpp
  
+ // These sources can't be unified with others in case they are merged
+ // with files that use the system OpenGL.
+-platform/graphics/angle/ExtensionsGLANGLE.cpp @no-unify
+-platform/graphics/angle/GraphicsContextGLANGLE.cpp @no-unify
+-platform/graphics/angle/TemporaryANGLESetting.cpp @no-unify
+-
 -platform/graphics/avfoundation/SampleBufferDisplayLayer.cpp
 -platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.mm @no-unify
 -platform/graphics/avfoundation/AudioSourceProviderAVFObjC.mm @no-unify
@@ -21657,6 +21700,11 @@ index b85ad66e7e..448e1c3744 100644
 -platform/graphics/avfoundation/objc/VideoTrackPrivateMediaSourceAVFObjC.mm @no-unify
 -platform/graphics/avfoundation/objc/WebCoreAVFResourceLoader.mm @no-unify
 -platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm @no-unify
++// [leopard] ANGLE WebGL backend disabled; using direct CGL/OpenGL path (USE_OPENGL) to match Safari 5.0.5
++// platform/graphics/angle/ExtensionsGLANGLE.cpp @no-unify
++// platform/graphics/angle/GraphicsContextGLANGLE.cpp @no-unify
++// platform/graphics/angle/TemporaryANGLESetting.cpp @no-unify
++
 +// [leopard] removed: platform/graphics/avfoundation/SampleBufferDisplayLayer.cpp
 +// [leopard] removed: platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.mm @no-unify
 +// [leopard] removed: platform/graphics/avfoundation/AudioSourceProviderAVFObjC.mm @no-unify
@@ -21695,7 +21743,7 @@ index b85ad66e7e..448e1c3744 100644
  
  platform/graphics/ca/GraphicsLayerCA.cpp
  platform/graphics/ca/LayerPool.cpp
-@@ -322,42 +322,23 @@ platform/graphics/cocoa/FontCocoa.mm
+@@ -322,42 +323,23 @@ platform/graphics/cocoa/FontCocoa.mm
  platform/graphics/cocoa/FontDescriptionCocoa.cpp
  platform/graphics/cocoa/FontFamilySpecificationCoreText.cpp
  platform/graphics/cocoa/FontPlatformDataCocoa.mm
@@ -21707,8 +21755,7 @@ index b85ad66e7e..448e1c3744 100644
 -platform/graphics/cocoa/MediaEngineConfigurationFactoryCocoa.cpp
 +// [leopard] removed (media config, VIDEO subsystem unused): platform/graphics/cocoa/MediaEngineConfigurationFactoryCocoa.cpp
  platform/graphics/cocoa/SystemFontDatabaseCoreText.cpp
--platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm
-+// [leopard] removed (modern feature unused on 10.6): platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm
+ platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm
  platform/graphics/cocoa/WebCoreCALayerExtras.mm
 -platform/graphics/cocoa/WebCoreDecompressionSession.mm
 +// [leopard] removed (soft-links disabled framework): platform/graphics/cocoa/WebCoreDecompressionSession.mm
@@ -21747,7 +21794,7 @@ index b85ad66e7e..448e1c3744 100644
  platform/graphics/gpu/Texture.cpp
  platform/graphics/gpu/TilingData.cpp
  
-@@ -392,63 +373,63 @@ platform/graphics/opengl/TemporaryOpenGLSetting.cpp
+@@ -392,63 +374,63 @@ platform/graphics/opengl/TemporaryOpenGLSetting.cpp
  
  platform/graphics/opentype/OpenTypeCG.cpp
  
@@ -21864,7 +21911,7 @@ index b85ad66e7e..448e1c3744 100644
  platform/mac/LocalCurrentGraphicsContextMac.mm
  platform/mac/LocalDefaultSystemAppearance.mm
  platform/mac/LoggingMac.mm
-@@ -464,7 +445,7 @@ platform/mac/PluginBlacklist.mm
+@@ -464,7 +446,7 @@ platform/mac/PluginBlacklist.mm
  platform/mac/PublicSuffixMac.mm
  platform/mac/PowerObserverMac.cpp
  platform/mac/RemoteCommandListenerMac.mm
@@ -21873,7 +21920,7 @@ index b85ad66e7e..448e1c3744 100644
  platform/mac/ScrollAnimatorMac.mm @no-unify
  platform/mac/ScrollViewMac.mm
  platform/mac/ScrollbarThemeMac.mm @no-unify
-@@ -476,8 +457,8 @@ platform/mac/ThreadCheck.mm @no-unify
+@@ -476,8 +458,8 @@ platform/mac/ThreadCheck.mm @no-unify
  platform/mac/UserActivityMac.mm
  platform/mac/UserAgentMac.mm
  platform/mac/ValidationBubbleMac.mm
@@ -21884,7 +21931,7 @@ index b85ad66e7e..448e1c3744 100644
  platform/mac/WebCoreFullScreenWarningView.mm
  platform/mac/WebCoreFullScreenWindow.mm
  platform/mac/WebCoreNSFontManagerExtras.mm
-@@ -493,20 +474,20 @@ platform/mediarecorder/cocoa/MediaRecorderPrivateWriterCocoa.mm
+@@ -493,20 +475,20 @@ platform/mediarecorder/cocoa/MediaRecorderPrivateWriterCocoa.mm
  
  platform/mediasession/mac/MediaSessionInterruptionProviderMac.mm
  
@@ -21913,7 +21960,7 @@ index b85ad66e7e..448e1c3744 100644
  platform/network/cf/DNSResolveQueueCFNet.cpp
  platform/network/cf/FormDataStreamCFNet.cpp
  platform/network/cf/NetworkStorageSessionCFNet.cpp
-@@ -514,7 +495,7 @@ platform/network/cf/ProxyServerCFNet.cpp
+@@ -514,7 +496,7 @@ platform/network/cf/ProxyServerCFNet.cpp
  platform/network/cf/ResourceRequestCFNet.cpp
  platform/network/cf/SocketStreamHandleImplCFNet.cpp
  
@@ -21922,7 +21969,7 @@ index b85ad66e7e..448e1c3744 100644
  platform/network/cocoa/CookieCocoa.mm
  platform/network/cocoa/CookieStorageObserver.mm
  platform/network/cocoa/CredentialCocoa.mm
-@@ -523,7 +504,7 @@ platform/network/cocoa/NetworkStorageSessionCocoa.mm
+@@ -523,7 +505,7 @@ platform/network/cocoa/NetworkStorageSessionCocoa.mm
  platform/network/cocoa/ProtectionSpaceCocoa.mm
  platform/network/cocoa/ResourceRequestCocoa.mm
  platform/network/cocoa/ResourceResponseCocoa.mm @no-unify // Unsafe to unify until rdar://problem/48853137 is resolved
@@ -21931,7 +21978,7 @@ index b85ad66e7e..448e1c3744 100644
  
  platform/network/ios/NetworkStateNotifierIOS.mm
  platform/network/ios/WebCoreURLResponseIOS.mm
-@@ -556,30 +537,30 @@ rendering/RenderThemeIOS.mm
+@@ -556,30 +538,30 @@ rendering/RenderThemeIOS.mm
  rendering/RenderThemeMac.mm
  rendering/TextAutoSizing.cpp
  
@@ -21982,7 +22029,7 @@ index b85ad66e7e..448e1c3744 100644
  // Derived Sources
  
 diff --git a/Source/WebCore/accessibility/mac/AXObjectCacheMac.mm b/Source/WebCore/accessibility/mac/AXObjectCacheMac.mm
-index 8eed01028c..c08d8f49e3 100644
+index 8eed01028c4..c08d8f49e30 100644
 --- a/Source/WebCore/accessibility/mac/AXObjectCacheMac.mm
 +++ b/Source/WebCore/accessibility/mac/AXObjectCacheMac.mm
 @@ -282,7 +282,12 @@ static void AXPostNotificationWithUserInfo(AccessibilityObjectWrapper *object, N
@@ -21999,7 +22046,7 @@ index 8eed01028c..c08d8f49e3 100644
  
  void AXObjectCache::postPlatformNotification(AXCoreObject* obj, AXNotification notification)
 diff --git a/Source/WebCore/accessibility/mac/WebAccessibilityObjectWrapperBase.mm b/Source/WebCore/accessibility/mac/WebAccessibilityObjectWrapperBase.mm
-index 22c9096779..14a3a47bd5 100644
+index 22c90967798..14a3a47bd55 100644
 --- a/Source/WebCore/accessibility/mac/WebAccessibilityObjectWrapperBase.mm
 +++ b/Source/WebCore/accessibility/mac/WebAccessibilityObjectWrapperBase.mm
 @@ -491,7 +491,16 @@ static void convertPathToScreenSpaceFunction(PathConversionInfo& conversion, con
@@ -22020,7 +22067,7 @@ index 22c9096779..14a3a47bd5 100644
          return NSRectToCGRect(nsRect);
      }
 diff --git a/Source/WebCore/editing/cocoa/HTMLConverter.mm b/Source/WebCore/editing/cocoa/HTMLConverter.mm
-index b4a1ac58e2..b30b9420e3 100644
+index b4a1ac58e29..b30b9420e32 100644
 --- a/Source/WebCore/editing/cocoa/HTMLConverter.mm
 +++ b/Source/WebCore/editing/cocoa/HTMLConverter.mm
 @@ -1350,7 +1350,12 @@ BOOL HTMLConverter::_addAttachmentForElement(Element& element, NSURL *url, BOOL
@@ -22037,7 +22084,7 @@ index b4a1ac58e2..b30b9420e3 100644
          [_attrStr replaceCharactersInRange:rangeToReplace withString:string.get()];
          rangeToReplace.length = [string length];
 diff --git a/Source/WebCore/html/HTMLPlugInElement.cpp b/Source/WebCore/html/HTMLPlugInElement.cpp
-index 587c5e444d..86ffd5d3e9 100644
+index 587c5e444dc..86ffd5d3e90 100644
 --- a/Source/WebCore/html/HTMLPlugInElement.cpp
 +++ b/Source/WebCore/html/HTMLPlugInElement.cpp
 @@ -336,7 +336,8 @@ static Vector<ReplacementPlugin*>& registeredPluginReplacements()
@@ -22051,7 +22098,7 @@ index 587c5e444d..86ffd5d3e9 100644
  #endif
      
 diff --git a/Source/WebCore/html/canvas/WebGLRenderingContextBase.cpp b/Source/WebCore/html/canvas/WebGLRenderingContextBase.cpp
-index ca274deb1e..cfa455fcf7 100644
+index ca274deb1e6..cfa455fcf70 100644
 --- a/Source/WebCore/html/canvas/WebGLRenderingContextBase.cpp
 +++ b/Source/WebCore/html/canvas/WebGLRenderingContextBase.cpp
 @@ -4593,8 +4593,8 @@ ExceptionOr<void> WebGLRenderingContextBase::texImageSourceHelper(TexImageFuncti
@@ -22075,7 +22122,7 @@ index ca274deb1e..cfa455fcf7 100644
          || sourceType == SourceImageBitmap) {
          if (!validateTexImageSourceFormatAndType(functionName, functionType, internalformat, format, type))
 diff --git a/Source/WebCore/loader/SubresourceLoader.cpp b/Source/WebCore/loader/SubresourceLoader.cpp
-index 7b50f4a91b..5c054c241a 100644
+index 7b50f4a91bd..5c054c241ad 100644
 --- a/Source/WebCore/loader/SubresourceLoader.cpp
 +++ b/Source/WebCore/loader/SubresourceLoader.cpp
 @@ -633,8 +633,14 @@ Expected<void, String> SubresourceLoader::checkRedirectionCrossOriginAccessContr
@@ -22096,7 +22143,7 @@ index 7b50f4a91b..5c054c241a 100644
                  return makeUnexpected(WTFMove(errorMessage));
          }
 diff --git a/Source/WebCore/loader/archive/cf/LegacyWebArchive.cpp b/Source/WebCore/loader/archive/cf/LegacyWebArchive.cpp
-index 92cf6bc558..876315d86d 100644
+index 92cf6bc5584..876315d86de 100644
 --- a/Source/WebCore/loader/archive/cf/LegacyWebArchive.cpp
 +++ b/Source/WebCore/loader/archive/cf/LegacyWebArchive.cpp
 @@ -394,7 +394,7 @@ RetainPtr<CFDataRef> LegacyWebArchive::rawDataRepresentation()
@@ -22109,7 +22156,7 @@ index 92cf6bc558..876315d86d 100644
  ResourceResponse LegacyWebArchive::createResourceResponseFromMacArchivedData(CFDataRef responseData)
  {
 diff --git a/Source/WebCore/page/CaptionUserPreferencesMediaAF.cpp b/Source/WebCore/page/CaptionUserPreferencesMediaAF.cpp
-index 2b52427d78..29be267103 100644
+index 2b52427d780..29be267103a 100644
 --- a/Source/WebCore/page/CaptionUserPreferencesMediaAF.cpp
 +++ b/Source/WebCore/page/CaptionUserPreferencesMediaAF.cpp
 @@ -25,7 +25,8 @@
@@ -22220,7 +22267,7 @@ index 2b52427d78..29be267103 100644
      
      String captionsColor = captionsTextColorCSS();
 diff --git a/Source/WebCore/page/DOMWindow.cpp b/Source/WebCore/page/DOMWindow.cpp
-index 18b38091fa..7287302e9b 100644
+index 18b38091faa..7287302e9b6 100644
 --- a/Source/WebCore/page/DOMWindow.cpp
 +++ b/Source/WebCore/page/DOMWindow.cpp
 @@ -132,6 +132,14 @@
@@ -22239,7 +22286,7 @@ index 18b38091fa..7287302e9b 100644
  #include "GamepadManager.h"
  #endif
 diff --git a/Source/WebCore/page/DeprecatedGlobalSettings.cpp b/Source/WebCore/page/DeprecatedGlobalSettings.cpp
-index cf4ccc80e9..8f5914f20c 100644
+index cf4ccc80e93..8f5914f20cd 100644
 --- a/Source/WebCore/page/DeprecatedGlobalSettings.cpp
 +++ b/Source/WebCore/page/DeprecatedGlobalSettings.cpp
 @@ -77,7 +77,11 @@ void DeprecatedGlobalSettings::setAVFoundationEnabled(bool enabled)
@@ -22268,7 +22315,7 @@ index cf4ccc80e9..8f5914f20c 100644
  #endif
  
 diff --git a/Source/WebCore/page/Page.cpp b/Source/WebCore/page/Page.cpp
-index fa6c40b3b7..8af5bf5715 100644
+index fa6c40b3b7c..8af5bf57158 100644
 --- a/Source/WebCore/page/Page.cpp
 +++ b/Source/WebCore/page/Page.cpp
 @@ -1073,9 +1073,11 @@ void Page::setPageScaleFactor(float scale, const IntPoint& origin, bool inStable
@@ -22296,7 +22343,7 @@ index fa6c40b3b7..8af5bf5715 100644
  
  #if ENABLE(VIDEO)
 diff --git a/Source/WebCore/page/RuntimeEnabledFeatures.h b/Source/WebCore/page/RuntimeEnabledFeatures.h
-index 9847388043..49bcb57c08 100644
+index 9847388043c..49bcb57c085 100644
 --- a/Source/WebCore/page/RuntimeEnabledFeatures.h
 +++ b/Source/WebCore/page/RuntimeEnabledFeatures.h
 @@ -435,7 +435,7 @@ private:
@@ -22309,7 +22356,7 @@ index 9847388043..49bcb57c08 100644
      bool m_isWebAuthenticationEnabled { false };
      bool m_isWebAuthenticationLocalAuthenticatorEnabled { false };
 diff --git a/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm b/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm
-index 21115732f5..a443354ec6 100644
+index 21115732f54..a443354ec6e 100644
 --- a/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm
 +++ b/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm
 @@ -33,16 +33,22 @@ namespace WebCore {
@@ -22346,7 +22393,7 @@ index 21115732f5..a443354ec6 100644
  
  }
 diff --git a/Source/WebCore/page/cocoa/SettingsBaseCocoa.mm b/Source/WebCore/page/cocoa/SettingsBaseCocoa.mm
-index 100135fccd..2418a08d71 100644
+index 100135fccd2..2418a08d719 100644
 --- a/Source/WebCore/page/cocoa/SettingsBaseCocoa.mm
 +++ b/Source/WebCore/page/cocoa/SettingsBaseCocoa.mm
 @@ -54,10 +54,12 @@ void SettingsBase::initializeDefaultFontFamilies()
@@ -22363,7 +22410,7 @@ index 100135fccd..2418a08d71 100644
  #else
  
 diff --git a/Source/WebCore/page/scrolling/cocoa/ScrollingTreeOverflowScrollProxyNode.mm b/Source/WebCore/page/scrolling/cocoa/ScrollingTreeOverflowScrollProxyNode.mm
-index 2dd169a48f..5dc65b0571 100644
+index 2dd169a48f7..5dc65b05715 100644
 --- a/Source/WebCore/page/scrolling/cocoa/ScrollingTreeOverflowScrollProxyNode.mm
 +++ b/Source/WebCore/page/scrolling/cocoa/ScrollingTreeOverflowScrollProxyNode.mm
 @@ -31,6 +31,8 @@
@@ -22376,7 +22423,7 @@ index 2dd169a48f..5dc65b0571 100644
  
  namespace WebCore {
 diff --git a/Source/WebCore/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm b/Source/WebCore/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm
-index a0bc97a723..9d299f1d22 100644
+index a0bc97a7236..9d299f1d22f 100644
 --- a/Source/WebCore/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm
 +++ b/Source/WebCore/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm
 @@ -33,6 +33,7 @@
@@ -22388,7 +22435,7 @@ index a0bc97a723..9d299f1d22 100644
  #import <pal/spi/mac/NSScrollerImpSPI.h>
  
 diff --git a/Source/WebCore/platform/ScreenProperties.h b/Source/WebCore/platform/ScreenProperties.h
-index 16deaf0041..9ed1cfddc8 100644
+index 16deaf00414..9ed1cfddc88 100644
 --- a/Source/WebCore/platform/ScreenProperties.h
 +++ b/Source/WebCore/platform/ScreenProperties.h
 @@ -106,6 +106,7 @@ void ScreenData::encode(Encoder& encoder) const
@@ -22424,7 +22471,7 @@ index 16deaf0041..9ed1cfddc8 100644
      }
      }
 diff --git a/Source/WebCore/platform/audio/AudioSession.cpp b/Source/WebCore/platform/audio/AudioSession.cpp
-index 51a8d3a282..fe6f0b53af 100644
+index 51a8d3a2826..fe6f0b53aff 100644
 --- a/Source/WebCore/platform/audio/AudioSession.cpp
 +++ b/Source/WebCore/platform/audio/AudioSession.cpp
 @@ -81,7 +81,7 @@ void AudioSession::endInterruption(MayResume)
@@ -22467,7 +22514,7 @@ index 51a8d3a282..fe6f0b53af 100644
  String convertEnumerationToString(RouteSharingPolicy enumerationValue)
  {
 diff --git a/Source/WebCore/platform/audio/PlatformMediaSession.cpp b/Source/WebCore/platform/audio/PlatformMediaSession.cpp
-index ac051e0ae6..18e20de9c2 100644
+index ac051e0ae63..18e20de9c2d 100644
 --- a/Source/WebCore/platform/audio/PlatformMediaSession.cpp
 +++ b/Source/WebCore/platform/audio/PlatformMediaSession.cpp
 @@ -26,7 +26,7 @@
@@ -22480,7 +22527,7 @@ index ac051e0ae6..18e20de9c2 100644
  #include "Logging.h"
  #include "MediaPlayer.h"
 diff --git a/Source/WebCore/platform/audio/PlatformMediaSessionManager.cpp b/Source/WebCore/platform/audio/PlatformMediaSessionManager.cpp
-index d8a75f28dd..e8db3dc1dc 100644
+index d8a75f28dd3..e8db3dc1dc4 100644
 --- a/Source/WebCore/platform/audio/PlatformMediaSessionManager.cpp
 +++ b/Source/WebCore/platform/audio/PlatformMediaSessionManager.cpp
 @@ -56,7 +56,7 @@ PlatformMediaSessionManager* PlatformMediaSessionManager::sharedManagerIfExists(
@@ -22493,7 +22540,7 @@ index d8a75f28dd..e8db3dc1dc 100644
  {
      return std::unique_ptr<PlatformMediaSessionManager>(new PlatformMediaSessionManager);
 diff --git a/Source/WebCore/platform/cocoa/DragImageCocoa.mm b/Source/WebCore/platform/cocoa/DragImageCocoa.mm
-index af509170f2..c60fa6c8ba 100644
+index af509170f2c..c60fa6c8ba3 100644
 --- a/Source/WebCore/platform/cocoa/DragImageCocoa.mm
 +++ b/Source/WebCore/platform/cocoa/DragImageCocoa.mm
 @@ -43,6 +43,17 @@
@@ -22533,7 +22580,7 @@ index af509170f2..c60fa6c8ba 100644
              CGFloat lineWidthIgnoringTrailingWhitespace = lineBounds.size.width - trailingWhitespaceWidth;
              maximumUsedTextWidth = std::max(maximumUsedTextWidth, lineWidthIgnoringTrailingWhitespace);
 diff --git a/Source/WebCore/platform/cocoa/VideoToolboxSoftLink.cpp b/Source/WebCore/platform/cocoa/VideoToolboxSoftLink.cpp
-index a48392eb43..0c3f609f63 100644
+index a48392eb43b..0c3f609f636 100644
 --- a/Source/WebCore/platform/cocoa/VideoToolboxSoftLink.cpp
 +++ b/Source/WebCore/platform/cocoa/VideoToolboxSoftLink.cpp
 @@ -25,6 +25,11 @@
@@ -22549,7 +22596,7 @@ index a48392eb43..0c3f609f63 100644
  #include <wtf/SoftLinking.h>
  
 diff --git a/Source/WebCore/platform/cocoa/WebKitAvailability.h b/Source/WebCore/platform/cocoa/WebKitAvailability.h
-index 9cb178d788..d99f2cc468 100644
+index 9cb178d788b..d99f2cc4686 100644
 --- a/Source/WebCore/platform/cocoa/WebKitAvailability.h
 +++ b/Source/WebCore/platform/cocoa/WebKitAvailability.h
 @@ -31,6 +31,22 @@
@@ -22584,7 +22631,7 @@ index 9cb178d788..d99f2cc468 100644
  #else
  
 diff --git a/Source/WebCore/platform/graphics/MediaPlayer.cpp b/Source/WebCore/platform/graphics/MediaPlayer.cpp
-index 3c08d543c9..ca422f1f2d 100644
+index 3c08d543c9e..ca422f1f2d3 100644
 --- a/Source/WebCore/platform/graphics/MediaPlayer.cpp
 +++ b/Source/WebCore/platform/graphics/MediaPlayer.cpp
 @@ -242,9 +242,11 @@ static void buildMediaEnginesVector()
@@ -22600,7 +22647,7 @@ index 3c08d543c9..ca422f1f2d 100644
  #if ENABLE(MEDIA_SOURCE)
          MediaPlayerPrivateMediaSourceAVFObjC::registerMediaEngine(addMediaEngine);
 diff --git a/Source/WebCore/platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm b/Source/WebCore/platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm
-index b53ccf682b..536e1a530f 100644
+index b53ccf682bd..536e1a530fd 100644
 --- a/Source/WebCore/platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm
 +++ b/Source/WebCore/platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm
 @@ -26,7 +26,8 @@
@@ -22614,7 +22661,7 @@ index b53ccf682b..536e1a530f 100644
  #import <AVFoundation/AVAsset.h>
  #import <AVFoundation/AVMediaSelectionGroup.h>
 diff --git a/Source/WebCore/platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm b/Source/WebCore/platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm
-index 1201fe1dc1..99d8051caf 100644
+index 1201fe1dc11..99d8051cafa 100644
 --- a/Source/WebCore/platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm
 +++ b/Source/WebCore/platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm
 @@ -391,3 +391,5 @@ Vector<Ref<MediaSampleAVFObjC>> MediaSampleAVFObjC::divideIntoHomogeneousSamples
@@ -22625,7 +22672,7 @@ index 1201fe1dc1..99d8051caf 100644
 +#endif // ENABLE(VIDEO) && USE(AVFOUNDATION)
 \ No newline at end of file
 diff --git a/Source/WebCore/platform/graphics/ca/cocoa/PlatformCAAnimationCocoa.mm b/Source/WebCore/platform/graphics/ca/cocoa/PlatformCAAnimationCocoa.mm
-index 8fb2c123fb..ddb1a8543a 100644
+index 8fb2c123fb9..ddb1a8543a6 100644
 --- a/Source/WebCore/platform/graphics/ca/cocoa/PlatformCAAnimationCocoa.mm
 +++ b/Source/WebCore/platform/graphics/ca/cocoa/PlatformCAAnimationCocoa.mm
 @@ -171,7 +171,12 @@ PlatformCAAnimationCocoa::PlatformCAAnimationCocoa(AnimationType type, const Str
@@ -22672,9 +22719,18 @@ index 8fb2c123fb..ddb1a8543a 100644
      }
  }
 diff --git a/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm b/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm
-index 957d72ad71..d55424c08d 100644
+index 957d72ad718..b3fbcb3c2a0 100644
 --- a/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm
 +++ b/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm
+@@ -286,7 +286,7 @@ PlatformCALayerCocoa::PlatformCALayerCocoa(LayerType layerType, PlatformCALayerC
+         m_layer = adoptNS([(CALayer *)[layerClass alloc] init]);
+ 
+ #if ENABLE(FILTERS_LEVEL_2) && PLATFORM(MAC)
+-    if (layerType == LayerTypeBackdropLayer)
++    if (layerType == LayerTypeBackdropLayer && [m_layer.get() respondsToSelector:@selector(setWindowServerAware:)])
+         [(CABackdropLayer*)m_layer.get() setWindowServerAware:NO];
+ #endif
+ 
 @@ -709,14 +709,26 @@ void PlatformCALayerCocoa::setMasksToBounds(bool value)
  
  bool PlatformCALayerCocoa::acceleratesDrawing() const
@@ -22724,7 +22780,7 @@ index 957d72ad71..d55424c08d 100644
  #endif
      }
 diff --git a/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp b/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp
-index d9088808ab..814ae3d769 100644
+index d9088808ab8..814ae3d7695 100644
 --- a/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp
 +++ b/Source/WebCore/platform/graphics/cg/GraphicsContextCG.cpp
 @@ -98,8 +98,9 @@ CGColorSpaceRef linearRGBColorSpaceRef()
@@ -22776,7 +22832,7 @@ index d9088808ab..814ae3d769 100644
      // Work around <rdar://problem/5539388> by ensuring that the offsets will get truncated
      // to the desired integer. Also see: <rdar://problem/10056277>
 diff --git a/Source/WebCore/platform/graphics/cg/PathCG.cpp b/Source/WebCore/platform/graphics/cg/PathCG.cpp
-index ddb2b9828b..2dcb1dd474 100644
+index ddb2b9828b5..2dcb1dd4747 100644
 --- a/Source/WebCore/platform/graphics/cg/PathCG.cpp
 +++ b/Source/WebCore/platform/graphics/cg/PathCG.cpp
 @@ -35,6 +35,17 @@
@@ -22798,7 +22854,7 @@ index ddb2b9828b..2dcb1dd474 100644
  #include <wtf/RetainPtr.h>
  #include <wtf/text/WTFString.h>
 diff --git a/Source/WebCore/platform/graphics/cocoa/FontCacheCoreText.cpp b/Source/WebCore/platform/graphics/cocoa/FontCacheCoreText.cpp
-index f8cdb4ad11..0c6a535211 100644
+index f8cdb4ad114..0c6a5352118 100644
 --- a/Source/WebCore/platform/graphics/cocoa/FontCacheCoreText.cpp
 +++ b/Source/WebCore/platform/graphics/cocoa/FontCacheCoreText.cpp
 @@ -141,6 +141,8 @@ static inline void appendTrueTypeFeature(CFMutableArrayRef features, const FontF
@@ -22833,7 +22889,7 @@ index f8cdb4ad11..0c6a535211 100644
  
  RefPtr<Font> FontCache::similarFont(const FontDescription& description, const AtomString& family)
 diff --git a/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm b/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm
-index e3b1f33dc4..d2a69b55e1 100644
+index e3b1f33dc4a..d2a69b55e10 100644
 --- a/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm
 +++ b/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm
 @@ -179,8 +179,27 @@ static void showGlyphsWithAdvances(const FloatPoint& point, const Font& font, CG
@@ -22865,7 +22921,7 @@ index e3b1f33dc4..d2a69b55e1 100644
  }
  
 diff --git a/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm b/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm
-index 14a5a362b8..458298641f 100644
+index 14a5a362b8b..458298641f9 100644
 --- a/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm
 +++ b/Source/WebCore/platform/graphics/cocoa/FontCocoa.mm
 @@ -308,6 +308,12 @@ static RetainPtr<CFDictionaryRef> smallCapsTrueTypeDictionary(int rawKey, int ra
@@ -22910,7 +22966,7 @@ index 14a5a362b8..458298641f 100644
  }
  
 diff --git a/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm b/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm
-index 55bb4e9088..780862b52a 100644
+index 55bb4e90885..780862b52ab 100644
 --- a/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm
 +++ b/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm
 @@ -64,9 +64,27 @@ namespace WebCore {
@@ -22943,18 +22999,19 @@ index 55bb4e9088..780862b52a 100644
      BOOL needsRepaint = NO;
      UNUSED_PARAM(timeOffset);
 diff --git a/Source/WebCore/platform/graphics/cocoa/GraphicsContextGLOpenGLCocoa.mm b/Source/WebCore/platform/graphics/cocoa/GraphicsContextGLOpenGLCocoa.mm
-index 641406d84e..e8bc4b64ef 100644
+index 641406d84e2..7a0a719273b 100644
 --- a/Source/WebCore/platform/graphics/cocoa/GraphicsContextGLOpenGLCocoa.mm
 +++ b/Source/WebCore/platform/graphics/cocoa/GraphicsContextGLOpenGLCocoa.mm
-@@ -58,6 +58,7 @@
+@@ -58,6 +58,8 @@
  #elif USE(OPENGL)
  #import <IOKit/IOKitLib.h>
  #import <OpenGL/gl.h>
 +#import <OpenGL/OpenGL.h>
++#import <OpenGL/CGLIOSurface.h>
  #elif USE(ANGLE)
  #define EGL_EGL_PROTOTYPES 0
  // Skip the inclusion of ANGLE's explicit context entry points for now.
-@@ -90,6 +91,14 @@ typedef void* GLeglContext;
+@@ -90,6 +92,14 @@ typedef void* GLeglContext;
  
  namespace WebCore {
  
@@ -22969,8 +23026,102 @@ index 641406d84e..e8bc4b64ef 100644
  static const unsigned statusCheckThreshold = 5;
  
  // FIXME: This class is currently empty on Mac, but will get populated as
+@@ -203,6 +213,8 @@ GraphicsContextGLOpenGL::GraphicsContextGLOpenGL(GraphicsContextGLAttributes att
+ #else
+     if (m_isForWebGL2)
+         m_compiler = ANGLEWebKitBridge(SH_GLSL_410_CORE_OUTPUT, SH_WEBGL2_SPEC);
++    else
++        m_compiler = ANGLEWebKitBridge(SH_GLSL_COMPATIBILITY_OUTPUT, SH_WEBGL_SPEC);
+ #endif // USE(OPENGL_ES)
+ #endif // !USE(ANGLE)
+ 
+@@ -250,12 +262,14 @@ GraphicsContextGLOpenGL::GraphicsContextGLOpenGL(GraphicsContextGLAttributes att
+         attribs.append(static_cast<CGLPixelFormatAttribute>(4));
+     }
+ 
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     if (m_isForWebGL2) {
+         // FIXME: Instead of backing a WebGL2 GraphicsContextGLOpenGL with a OpenGL 4 context, we should instead back it with ANGLE.
+         // Use an OpenGL 4 context for now until the ANGLE backend is ready.
+         attribs.append(kCGLPFAOpenGLProfile);
+         attribs.append(static_cast<CGLPixelFormatAttribute>(kCGLOGLPVersion_GL4_Core));
+     }
++#endif
+ 
+     attribs.append(static_cast<CGLPixelFormatAttribute>(0));
+ 
+@@ -268,8 +282,10 @@ GraphicsContextGLOpenGL::GraphicsContextGLOpenGL(GraphicsContextGLAttributes att
+     CGLContextObj sharedCGLContext = sharedContext ? static_cast<CGLContextObj>(sharedContext->m_contextObj) : nullptr;
+ 
+     CGLError err = CGLCreateContext(pixelFormatObj, sharedCGLContext, &cglContext);
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     GLint abortOnBlacklist = 0;
+     CGLSetParameter(cglContext, kCGLCPAbortOnGPURestartStatusBlacklisted, &abortOnBlacklist);
++#endif
+ 
+ #if PLATFORM(MAC) // FIXME: This probably should be USE(OPENGL) - see <rdar://53062794>.
+ 
+@@ -439,6 +455,7 @@ GraphicsContextGLOpenGL::GraphicsContextGLOpenGL(GraphicsContextGLAttributes att
+     ::glGenRenderbuffers(1, &m_texture);
+ #elif USE(OPENGL)
+     ::glGenTextures(1, &m_texture);
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     // We bind to GL_TEXTURE_RECTANGLE_EXT rather than TEXTURE_2D because
+     // that's what is required for a texture backed by IOSurface.
+     ::glBindTexture(GL_TEXTURE_RECTANGLE_EXT, m_texture);
+@@ -447,6 +464,16 @@ GraphicsContextGLOpenGL::GraphicsContextGLOpenGL(GraphicsContextGLAttributes att
+     ::glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+     ::glTexParameteri(GL_TEXTURE_RECTANGLE_EXT, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+     ::glBindTexture(GL_TEXTURE_RECTANGLE_EXT, 0);
++#else
++    // [leopard] On 10.6, render into a plain GL_TEXTURE_2D (IOSurface render-
++    // to-surface is unreliable here); the layer reads it back into a CGImage.
++    ::glBindTexture(GL_TEXTURE_2D, m_texture);
++    ::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
++    ::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
++    ::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
++    ::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
++    ::glBindTexture(GL_TEXTURE_2D, 0);
++#endif
+ 
+ #elif USE(ANGLE)
+ 
+@@ -467,6 +494,7 @@ GraphicsContextGLOpenGL::GraphicsContextGLOpenGL(GraphicsContextGLAttributes att
+     // Create the framebuffer object.
+     ::glGenFramebuffersEXT(1, &m_fbo);
+     ::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_fbo);
++    m_state.boundDrawFBO = m_state.boundReadFBO = m_fbo;
+ 
+     if (!attrs.antialias && (attrs.stencil || attrs.depth))
+         ::glGenRenderbuffersEXT(1, &m_depthStencilBuffer);
+@@ -475,6 +503,7 @@ GraphicsContextGLOpenGL::GraphicsContextGLOpenGL(GraphicsContextGLAttributes att
+     if (attrs.antialias) {
+         ::glGenFramebuffersEXT(1, &m_multisampleFBO);
+         ::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_multisampleFBO);
++        m_state.boundDrawFBO = m_state.boundReadFBO = m_multisampleFBO;
+         ::glGenRenderbuffersEXT(1, &m_multisampleColorBuffer);
+         if (attrs.stencil || attrs.depth)
+             ::glGenRenderbuffersEXT(1, &m_multisampleDepthStencilBuffer);
+@@ -672,7 +701,7 @@ void GraphicsContextGLOpenGL::checkGPUStatus()
+     m_statusCheckCount = (m_statusCheckCount + 1) % statusCheckThreshold;
+ 
+     GLint restartStatus = 0;
+-#if USE(OPENGL)
++#if USE(OPENGL) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     CGLContextObj cglContext = static_cast<CGLContextObj>(platformGraphicsContextGL());
+     CGLGetParameter(cglContext, kCGLCPGPURestartStatus, &restartStatus);
+     if (restartStatus == kCGLCPGPURestartStatusBlacklisted) {
+@@ -684,6 +713,8 @@ void GraphicsContextGLOpenGL::checkGPUStatus()
+         forceContextLost();
+         CGLSetCurrentContext(0);
+     }
++#elif USE(OPENGL)
++    UNUSED_VARIABLE(restartStatus);
+ #elif USE(OPENGL_ES)
+     EAGLContext* currentContext = static_cast<EAGLContext*>(PlatformGraphicsContextGL());
+     [currentContext getParameter:kEAGLCPGPURestartStatus to:&restartStatus];
 diff --git a/Source/WebCore/platform/graphics/cocoa/IOSurface.mm b/Source/WebCore/platform/graphics/cocoa/IOSurface.mm
-index 91b141a503..5ef13f5cd4 100644
+index 91b141a503b..5ef13f5cd48 100644
 --- a/Source/WebCore/platform/graphics/cocoa/IOSurface.mm
 +++ b/Source/WebCore/platform/graphics/cocoa/IOSurface.mm
 @@ -326,22 +326,34 @@ GraphicsContext& IOSurface::ensureGraphicsContext()
@@ -23017,7 +23168,7 @@ index 91b141a503..5ef13f5cd4 100644
  
  IOSurface::Format IOSurface::format() const
 diff --git a/Source/WebCore/platform/graphics/cocoa/SystemFontDatabaseCoreText.cpp b/Source/WebCore/platform/graphics/cocoa/SystemFontDatabaseCoreText.cpp
-index 2fb89c4b2c..24c931f8de 100644
+index 2fb89c4b2cd..24c931f8dea 100644
 --- a/Source/WebCore/platform/graphics/cocoa/SystemFontDatabaseCoreText.cpp
 +++ b/Source/WebCore/platform/graphics/cocoa/SystemFontDatabaseCoreText.cpp
 @@ -168,7 +168,11 @@ Vector<RetainPtr<CTFontDescriptorRef>> SystemFontDatabaseCoreText::computeCascad
@@ -23032,13 +23183,59 @@ index 2fb89c4b2c..24c931f8de 100644
      Vector<RetainPtr<CTFontDescriptorRef>> result;
      // WebKit handles the cascade list, and WebKit 2's IPC code doesn't know how to serialize Core Text's cascade list.
      result.append(removeCascadeList(adoptCF(CTFontCopyFontDescriptor(font)).get()));
+diff --git a/Source/WebCore/platform/graphics/cocoa/WebActionDisablingCALayerDelegate.h b/Source/WebCore/platform/graphics/cocoa/WebActionDisablingCALayerDelegate.h
+index 605a7f0a35e..f24e330a2aa 100644
+--- a/Source/WebCore/platform/graphics/cocoa/WebActionDisablingCALayerDelegate.h
++++ b/Source/WebCore/platform/graphics/cocoa/WebActionDisablingCALayerDelegate.h
+@@ -28,7 +28,11 @@
+ 
+ #import <pal/spi/cocoa/QuartzCoreSPI.h>
+ 
++#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
++WEBCORE_EXPORT @interface WebActionDisablingCALayerDelegate : NSObject
++#else
+ WEBCORE_EXPORT @interface WebActionDisablingCALayerDelegate : NSObject <CALayerDelegate>
++#endif
+ 
+ + (instancetype)shared;
+ 
 diff --git a/Source/WebCore/platform/graphics/cocoa/WebGLLayer.mm b/Source/WebCore/platform/graphics/cocoa/WebGLLayer.mm
-index 8f0245fa3a..60678e1b5d 100644
+index 8f0245fa3ae..df952ce792c 100644
 --- a/Source/WebCore/platform/graphics/cocoa/WebGLLayer.mm
 +++ b/Source/WebCore/platform/graphics/cocoa/WebGLLayer.mm
-@@ -91,7 +91,12 @@ namespace {
+@@ -42,6 +42,7 @@
+ #if USE(OPENGL)
+ #import <OpenGL/OpenGL.h>
+ #import <OpenGL/gl.h>
++#import <OpenGL/CGLIOSurface.h>
+ #endif
+ 
+ #if USE(ANGLE)
+@@ -57,6 +58,7 @@
+ #import <ANGLE/gl2ext_angle.h>
+ #endif
+ 
++#if USE(ANGLE)
+ namespace {
+     class ScopedRestoreTextureBinding {
+         WTF_MAKE_NONCOPYABLE(ScopedRestoreTextureBinding);
+@@ -77,6 +79,7 @@ namespace {
+         GLint m_bindingValue { 0 };
+     };
+ }
++#endif // USE(ANGLE)
+ 
+ @implementation WebGLLayer
+ 
+@@ -89,9 +92,18 @@ namespace {
+     auto attributes = context->contextAttributes();
+     _devicePixelRatio = attributes.devicePixelRatio;
  #if USE(OPENGL) || USE(ANGLE)
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
      self.contentsOpaque = !attributes.alpha;
++#else
++    self.opaque = !attributes.alpha;
++#endif
      self.transform = CATransform3DIdentity;
 +#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
      self.contentsScale = _devicePixelRatio;
@@ -23049,8 +23246,62 @@ index 8f0245fa3a..60678e1b5d 100644
  #else
      self.opaque = !attributes.alpha;
  #endif
+@@ -136,21 +148,20 @@ static void freeData(void *, const void *data, size_t /* size */)
+     if (!imageColorSpace)
+         imageColorSpace = WebCore::sRGBColorSpaceRef();
+ 
+-    CGRect layerBounds = CGRectIntegral([self bounds]);
+-
+-    size_t width = layerBounds.size.width * _devicePixelRatio;
+-    size_t height = layerBounds.size.height * _devicePixelRatio;
++    WebCore::IntSize fbSize = _context->getInternalFramebufferSize();
++    size_t width = fbSize.width();
++    size_t height = fbSize.height();
++    if (!width || !height)
++        return nullptr;
+ 
+-    size_t rowBytes = (width * 4 + 15) & ~15;
++    size_t rowBytes = width * 4;
+     size_t dataSize = rowBytes * height;
+-    void* data = fastMalloc(dataSize);
++    unsigned char* data = static_cast<unsigned char*>(fastMalloc(dataSize));
+     if (!data)
+         return nullptr;
+ 
+-    glPixelStorei(GL_PACK_ROW_LENGTH, rowBytes / 4);
+-    glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, data);
++    _context->readViaCopyTexImage(data, (int)width, (int)height);
+ 
+-    WebCore::verifyImageBufferIsBigEnough((uint8_t*)data, dataSize);
+     CGDataProviderRef provider = CGDataProviderCreateWithData(0, data, dataSize, freeData);
+     CGImageRef image = CGImageCreate(width, height, 8, 32, rowBytes, imageColorSpace.get(),
+         kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host, provider, 0, true, kCGRenderingIntentDefault);
+@@ -170,12 +181,23 @@ static void freeData(void *, const void *data, size_t /* size */)
+ 
+ #if USE(OPENGL)
+     _context->prepareTexture();
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     if (_drawingBuffer) {
+         std::swap(_contentsBuffer, _drawingBuffer);
+         self.contents = _contentsBuffer->asLayerContents();
+         [self reloadValueForKeyPath:@"contents"];
+         [self bindFramebufferToNextAvailableSurface];
+     }
++#else
++    // [leopard] No IOSurface on 10.6: render target is a plain GL_TEXTURE_2D
++    // FBO. Read it back into a CGImage, which 10.6 CoreAnimation accepts as
++    // layer contents (raw IOSurface contents is a 10.7+ capability).
++    {
++        RetainPtr<CGImageRef> image = adoptCF([self copyImageSnapshotWithColorSpace:WebCore::sRGBColorSpaceRef()]);
++        self.contents = (__bridge id)image.get();
++        [self reloadValueForKeyPath:@"contents"];
++    }
++#endif
+ #elif USE(OPENGL_ES)
+     _context->presentRenderbuffer();
+ #elif USE(ANGLE)
 diff --git a/Source/WebCore/platform/graphics/cv/VideoTextureCopierCV.cpp b/Source/WebCore/platform/graphics/cv/VideoTextureCopierCV.cpp
-index 487042c5b1..833da97e73 100644
+index 487042c5b14..833da97e732 100644
 --- a/Source/WebCore/platform/graphics/cv/VideoTextureCopierCV.cpp
 +++ b/Source/WebCore/platform/graphics/cv/VideoTextureCopierCV.cpp
 @@ -24,6 +24,15 @@
@@ -23076,7 +23327,7 @@ index 487042c5b1..833da97e73 100644
 +
 +#endif // ENABLE(VIDEO)
 diff --git a/Source/WebCore/platform/graphics/mac/ColorMac.mm b/Source/WebCore/platform/graphics/mac/ColorMac.mm
-index f391cc3dbc..87f875d926 100644
+index f391cc3dbc8..87f875d9260 100644
 --- a/Source/WebCore/platform/graphics/mac/ColorMac.mm
 +++ b/Source/WebCore/platform/graphics/mac/ColorMac.mm
 @@ -63,7 +63,14 @@ static RGBA32 makeRGBAFromNSColor(NSColor *color)
@@ -23095,9 +23346,150 @@ index f391cc3dbc..87f875d926 100644
      if (!rgbColor) {
          // The color space conversion above can fail if the NSColor is in the NSPatternColorSpace.
          // These colors are actually a repeating pattern, not just a solid color. To workaround
+diff --git a/Source/WebCore/platform/graphics/opengl/ExtensionsGLOpenGLCommon.cpp b/Source/WebCore/platform/graphics/opengl/ExtensionsGLOpenGLCommon.cpp
+index 5f8a0150856..bb2f9a9d281 100644
+--- a/Source/WebCore/platform/graphics/opengl/ExtensionsGLOpenGLCommon.cpp
++++ b/Source/WebCore/platform/graphics/opengl/ExtensionsGLOpenGLCommon.cpp
+@@ -216,10 +216,16 @@ void ExtensionsGLOpenGLCommon::initializeAvailableExtensions()
+ {
+ #if (PLATFORM(COCOA) && USE(OPENGL)) || (PLATFORM(GTK) && !USE(OPENGL_ES))
+     if (m_useIndexedGetString) {
++#if PLATFORM(COCOA) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
++        String extensionsString(reinterpret_cast<const char*>(::glGetString(GL_EXTENSIONS)));
++        for (auto& ext : extensionsString.split(' '))
++            m_availableExtensions.add(ext);
++#else
+         GLint numExtensions = 0;
+         ::glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+         for (GLint i = 0; i < numExtensions; ++i)
+             m_availableExtensions.add(glGetStringi(GL_EXTENSIONS, i));
++#endif
+ 
+         if (!m_availableExtensions.contains("GL_ARB_texture_storage"_s)) {
+             GLint majorVersion;
+diff --git a/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGL.h b/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGL.h
+index bb52eb30d91..3c02cd549ff 100644
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGL.h
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGL.h
+@@ -602,6 +602,9 @@ public:
+     ExtensionsGL& getExtensions() final;
+ 
+     IntSize getInternalFramebufferSize() const;
++    GCGLuint getInternalFramebuffer() const { return m_fbo; }
++    void readRenderingResultsForSnapshot(unsigned char* pixels, int pixelsSize) { readRenderingResults(pixels, pixelsSize); }
++    void readViaCopyTexImage(unsigned char* pixels, int width, int height);
+ 
+     // Packs the contents of the given Image which is passed in |pixels| into the passed Vector
+     // according to the given format and type, and obeying the flipY and AlphaOp flags.
+diff --git a/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGLBase.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGLBase.cpp
+index 445c7d78a4a..de007930989 100644
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGLBase.cpp
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGLBase.cpp
+@@ -189,9 +189,15 @@ bool GraphicsContextGLOpenGL::reshapeFBOs(const IntSize& size)
+     ::glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_texture);
+     setRenderbufferStorageFromDrawable(m_currentWidth, m_currentHeight);
+ #else
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     allocateIOSurfaceBackingStore(IntSize(width, height));
+     updateFramebufferTextureBackingStoreFromLayer();
+     ::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_RECTANGLE_ARB, m_texture, 0);
++#else
++    ::glBindTexture(GL_TEXTURE_2D, m_texture);
++    ::glTexImage2D(GL_TEXTURE_2D, 0, m_internalColorFormat, width, height, 0, colorFormat, GL_UNSIGNED_BYTE, 0);
++    ::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, m_texture, 0);
++#endif
+ #endif // !USE(OPENGL_ES))
+ #else
+     ::glBindTexture(GL_TEXTURE_2D, m_texture);
+diff --git a/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGLCommon.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGLCommon.cpp
+index 9bd4c8ff34e..09145184395 100644
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGLCommon.cpp
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContextGLOpenGLCommon.cpp
+@@ -263,6 +263,37 @@ void GraphicsContextGLOpenGL::prepareTexture()
+     ::glFlush();
+ }
+ 
++void GraphicsContextGLOpenGL::readViaCopyTexImage(unsigned char* pixels, int width, int height)
++{
++    makeContextCurrent();
++
++    if (contextAttributes().antialias)
++        resolveMultisamplingIfNecessary();
++
++    ::glBindFramebufferEXT(GraphicsContextGL::FRAMEBUFFER, m_fbo);
++
++    GLuint tempTex = 0;
++    ::glGenTextures(1, &tempTex);
++    ::glBindTexture(GL_TEXTURE_2D, tempTex);
++    ::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
++    ::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
++    ::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
++    ::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
++    ::glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, width, height, 0);
++
++    GLuint tempFBO = 0;
++    ::glGenFramebuffersEXT(1, &tempFBO);
++    ::glBindFramebufferEXT(GraphicsContextGL::FRAMEBUFFER, tempFBO);
++    ::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, tempTex, 0);
++
++    ::glPixelStorei(GL_PACK_ALIGNMENT, 4);
++    ::glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, pixels);
++
++    ::glBindFramebufferEXT(GraphicsContextGL::FRAMEBUFFER, m_state.boundDrawFBO);
++    ::glDeleteFramebuffersEXT(1, &tempFBO);
++    ::glDeleteTextures(1, &tempTex);
++}
++
+ void GraphicsContextGLOpenGL::readRenderingResults(unsigned char *pixels, int pixelsSize)
+ {
+     if (pixelsSize < m_currentWidth * m_currentHeight * 4)
+@@ -1516,7 +1547,9 @@ PlatformGLObject GraphicsContextGLOpenGL::createVertexArray()
+ {
+     makeContextCurrent();
+     GLuint array = 0;
+-#if (!USE(OPENGL_ES) && (PLATFORM(GTK) || PLATFORM(WIN))) || PLATFORM(COCOA)
++#if PLATFORM(COCOA) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
++    glGenVertexArraysAPPLE(1, &array);
++#elif (!USE(OPENGL_ES) && (PLATFORM(GTK) || PLATFORM(WIN))) || PLATFORM(COCOA)
+     ::glGenVertexArrays(1, &array);
+ #endif
+     return array;
+@@ -1528,7 +1561,9 @@ void GraphicsContextGLOpenGL::deleteVertexArray(PlatformGLObject array)
+         return;
+     
+     makeContextCurrent();
+-#if (!USE(OPENGL_ES) && (PLATFORM(GTK) || PLATFORM(WIN))) || PLATFORM(COCOA)
++#if PLATFORM(COCOA) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
++    glDeleteVertexArraysAPPLE(1, &array);
++#elif (!USE(OPENGL_ES) && (PLATFORM(GTK) || PLATFORM(WIN))) || PLATFORM(COCOA)
+     ::glDeleteVertexArrays(1, &array);
+ #endif
+ }
+@@ -1539,7 +1574,9 @@ GCGLboolean GraphicsContextGLOpenGL::isVertexArray(PlatformGLObject array)
+         return GL_FALSE;
+     
+     makeContextCurrent();
+-#if (!USE(OPENGL_ES) && (PLATFORM(GTK) || PLATFORM(WIN))) || PLATFORM(COCOA)
++#if PLATFORM(COCOA) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
++    return glIsVertexArrayAPPLE(array);
++#elif (!USE(OPENGL_ES) && (PLATFORM(GTK) || PLATFORM(WIN))) || PLATFORM(COCOA)
+     return ::glIsVertexArray(array);
+ #endif
+     return GL_FALSE;
+@@ -1548,7 +1585,9 @@ GCGLboolean GraphicsContextGLOpenGL::isVertexArray(PlatformGLObject array)
+ void GraphicsContextGLOpenGL::bindVertexArray(PlatformGLObject array)
+ {
+     makeContextCurrent();
+-#if (!USE(OPENGL_ES) && (PLATFORM(GTK) || PLATFORM(WIN))) || PLATFORM(COCOA)
++#if PLATFORM(COCOA) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
++    glBindVertexArrayAPPLE(array);
++#elif (!USE(OPENGL_ES) && (PLATFORM(GTK) || PLATFORM(WIN))) || PLATFORM(COCOA)
+     ::glBindVertexArray(array);
+ #else
+     UNUSED_PARAM(array);
 diff --git a/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm b/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm
 new file mode 100644
-index 0000000000..72c5443d82
+index 00000000000..72c5443d82b
 --- /dev/null
 +++ b/Source/WebCore/platform/leopard/LeopardMissingSymbols.mm
 @@ -0,0 +1,72 @@
@@ -23174,7 +23566,7 @@ index 0000000000..72c5443d82
 +} // namespace Persistence
 +} // namespace WTF
 diff --git a/Source/WebCore/platform/mac/LocalCurrentGraphicsContextMac.mm b/Source/WebCore/platform/mac/LocalCurrentGraphicsContextMac.mm
-index a41eb4ad88..2db9cc2342 100644
+index a41eb4ad88c..2db9cc23422 100644
 --- a/Source/WebCore/platform/mac/LocalCurrentGraphicsContextMac.mm
 +++ b/Source/WebCore/platform/mac/LocalCurrentGraphicsContextMac.mm
 @@ -37,11 +37,11 @@ LocalCurrentGraphicsContext::LocalCurrentGraphicsContext(GraphicsContext& graphi
@@ -23192,7 +23584,7 @@ index a41eb4ad88..2db9cc2342 100644
      m_didSetGraphicsContext = true;
  }
 diff --git a/Source/WebCore/platform/mac/LocalDefaultSystemAppearance.mm b/Source/WebCore/platform/mac/LocalDefaultSystemAppearance.mm
-index 78eff24e5c..7f78fb85dc 100644
+index 78eff24e5ce..7f78fb85dc1 100644
 --- a/Source/WebCore/platform/mac/LocalDefaultSystemAppearance.mm
 +++ b/Source/WebCore/platform/mac/LocalDefaultSystemAppearance.mm
 @@ -27,7 +27,9 @@
@@ -23206,7 +23598,7 @@ index 78eff24e5c..7f78fb85dc 100644
  namespace WebCore {
  
 diff --git a/Source/WebCore/platform/mac/NSScrollerImpDetails.mm b/Source/WebCore/platform/mac/NSScrollerImpDetails.mm
-index dad045f0d6..519969d669 100644
+index dad045f0d62..519969d669f 100644
 --- a/Source/WebCore/platform/mac/NSScrollerImpDetails.mm
 +++ b/Source/WebCore/platform/mac/NSScrollerImpDetails.mm
 @@ -43,7 +43,12 @@ NSScrollerStyle ScrollerStyle::recommendedScrollerStyle()
@@ -23223,7 +23615,7 @@ index dad045f0d6..519969d669 100644
  
  void ScrollerStyle::setUseOverlayScrollbars(bool useOverlayScrollbars)
 diff --git a/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm b/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
-index 4df3d95ac3..6fd611cc52 100644
+index 4df3d95ac35..6fd611cc523 100644
 --- a/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
 +++ b/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
 @@ -171,6 +171,7 @@ static int clickCountForEvent(NSEvent *event)
@@ -23346,7 +23738,7 @@ index 4df3d95ac3..6fd611cc52 100644
  };
  
 diff --git a/Source/WebCore/platform/mac/PlatformPasteboardMac.mm b/Source/WebCore/platform/mac/PlatformPasteboardMac.mm
-index fbea5361b9..49ea86a18e 100644
+index fbea5361b9c..49ea86a18e3 100644
 --- a/Source/WebCore/platform/mac/PlatformPasteboardMac.mm
 +++ b/Source/WebCore/platform/mac/PlatformPasteboardMac.mm
 @@ -113,7 +113,10 @@ static bool pasteboardMayContainFilePaths(NSPasteboard *pasteboard)
@@ -23373,7 +23765,7 @@ index fbea5361b9..49ea86a18e 100644
          if ([type isEqualToString:@(PasteboardCustomData::cocoaType())])
              continue;
 diff --git a/Source/WebCore/platform/mac/PlatformScreenMac.mm b/Source/WebCore/platform/mac/PlatformScreenMac.mm
-index be3ebcbc69..43d9e60759 100644
+index be3ebcbc69a..43d9e607593 100644
 --- a/Source/WebCore/platform/mac/PlatformScreenMac.mm
 +++ b/Source/WebCore/platform/mac/PlatformScreenMac.mm
 @@ -40,6 +40,12 @@
@@ -23471,7 +23863,7 @@ index be3ebcbc69..43d9e60759 100644
  
  bool screenSupportsHighDynamicRange(Widget* widget)
 diff --git a/Source/WebCore/platform/mac/PowerObserverMac.cpp b/Source/WebCore/platform/mac/PowerObserverMac.cpp
-index 8f37dd71f0..dac9bf87ff 100644
+index 8f37dd71f07..dac9bf87ffa 100644
 --- a/Source/WebCore/platform/mac/PowerObserverMac.cpp
 +++ b/Source/WebCore/platform/mac/PowerObserverMac.cpp
 @@ -28,6 +28,11 @@
@@ -23487,7 +23879,7 @@ index 8f37dd71f0..dac9bf87ff 100644
  
  PowerObserver::PowerObserver(WTF::Function<void()>&& powerOnHander)
 diff --git a/Source/WebCore/platform/mac/ScrollAnimatorMac.mm b/Source/WebCore/platform/mac/ScrollAnimatorMac.mm
-index 6118f76a22..acc9b98940 100644
+index 6118f76a222..acc9b989401 100644
 --- a/Source/WebCore/platform/mac/ScrollAnimatorMac.mm
 +++ b/Source/WebCore/platform/mac/ScrollAnimatorMac.mm
 @@ -738,9 +738,19 @@ ScrollAnimatorMac::ScrollAnimatorMac(ScrollableArea& scrollableArea)
@@ -23557,7 +23949,7 @@ index 6118f76a22..acc9b98940 100644
              [m_scrollerImpPair beginScrollGesture];
          else
 diff --git a/Source/WebCore/platform/mac/ScrollViewMac.mm b/Source/WebCore/platform/mac/ScrollViewMac.mm
-index 3341d4dbe8..f07247c725 100644
+index 3341d4dbe8b..f07247c7255 100644
 --- a/Source/WebCore/platform/mac/ScrollViewMac.mm
 +++ b/Source/WebCore/platform/mac/ScrollViewMac.mm
 @@ -37,7 +37,11 @@
@@ -23642,7 +24034,7 @@ index 3341d4dbe8..f07247c725 100644
  
  void ScrollView::platformSetScrollOrigin(const IntPoint& origin, bool updatePositionAtAll, bool updatePositionSynchronously)
 diff --git a/Source/WebCore/platform/mac/ScrollbarThemeMac.mm b/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
-index 42588a00de..31e6dd55a9 100644
+index 42588a00de3..31e6dd55a94 100644
 --- a/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
 +++ b/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
 @@ -564,7 +564,12 @@ void ScrollbarThemeMac::paintScrollCorner(GraphicsContext& context, const IntRec
@@ -23681,7 +24073,7 @@ index 42588a00de..31e6dd55a9 100644
  }
  
 diff --git a/Source/WebCore/platform/mac/ThemeMac.mm b/Source/WebCore/platform/mac/ThemeMac.mm
-index a8cff60268..187265ed1f 100644
+index a8cff602689..429d01e77aa 100644
 --- a/Source/WebCore/platform/mac/ThemeMac.mm
 +++ b/Source/WebCore/platform/mac/ThemeMac.mm
 @@ -26,6 +26,14 @@
@@ -23740,7 +24132,19 @@ index a8cff60268..187265ed1f 100644
  
      // Window inactive state does not need to be checked explicitly, since we paint parented to 
      // a view in a window whose key state can be detected.
-@@ -467,7 +492,14 @@ static void paintToggleButton(ControlPart buttonType, ControlStates& controlStat
+@@ -407,7 +432,10 @@ static bool drawCellFocusRingWithFrameAtTime(NSCell *cell, NSRect cellFrame, NSV
+     CGContextSetStyle(cgContext, style.get());
+ 
+     CGContextBeginTransparencyLayerWithRect(cgContext, NSRectToCGRect(cellFrame), nullptr);
+-    [cell drawFocusRingMaskWithFrame:cellFrame inView:controlView];
++    if ([cell respondsToSelector:@selector(drawFocusRingMaskWithFrame:inView:)])
++        [cell drawFocusRingMaskWithFrame:cellFrame inView:controlView];
++    else
++        CGContextFillRect(cgContext, NSRectToCGRect(cellFrame));
+     CGContextEndTransparencyLayer(cgContext);
+ 
+     return needsRepaint;
+@@ -467,7 +495,14 @@ static void paintToggleButton(ControlPart buttonType, ControlStates& controlStat
      bool useImageBuffer = pageScaleFactor != 1.0f || zoomFactor != 1.0f;
      bool isCellFocused = controlStates.states() & ControlStates::FocusState;
  
@@ -23756,7 +24160,7 @@ index a8cff60268..187265ed1f 100644
          context.translate(inflatedRect.location());
          context.scale(FloatSize(1, -1));
          context.translate(0, -inflatedRect.height());
-@@ -480,7 +512,7 @@ static void paintToggleButton(ControlPart buttonType, ControlStates& controlStat
+@@ -480,7 +515,7 @@ static void paintToggleButton(ControlPart buttonType, ControlStates& controlStat
  
      [toggleButtonCell setControlView:nil];
  
@@ -23765,7 +24169,7 @@ index a8cff60268..187265ed1f 100644
      controlStates.setNeedsRepaint(needsRepaint);
      if (needsRepaint)
          controlStates.setPlatformControl(toggleButtonCell.get());
-@@ -701,7 +733,12 @@ NSView *ThemeMac::ensuredView(ScrollView* scrollView, const ControlStates& contr
+@@ -701,7 +736,12 @@ NSView *ThemeMac::ensuredView(ScrollView* scrollView, const ControlStates& contr
      // Use a fake view.
      static WebCoreThemeView *themeView = [[WebCoreThemeView alloc] init];
      [themeView setFrameSize:NSSizeFromCGSize(scrollView->totalContentsSize())];
@@ -23779,7 +24183,7 @@ index a8cff60268..187265ed1f 100644
  
      themeWindowHasKeyAppearance = !(controlStates.states() & ControlStates::WindowInactiveState);
  
-@@ -994,7 +1031,16 @@ void ThemeMac::paint(ControlPart part, ControlStates& states, GraphicsContext& c
+@@ -994,7 +1034,16 @@ void ThemeMac::paint(ControlPart part, ControlStates& states, GraphicsContext& c
  
  bool ThemeMac::userPrefersReducedMotion() const
  {
@@ -23796,8 +24200,30 @@ index a8cff60268..187265ed1f 100644
  }
  
  }
+diff --git a/Source/WebCore/platform/mac/UserAgentMac.mm b/Source/WebCore/platform/mac/UserAgentMac.mm
+index 357cdf3e0b4..80528b7a390 100644
+--- a/Source/WebCore/platform/mac/UserAgentMac.mm
++++ b/Source/WebCore/platform/mac/UserAgentMac.mm
+@@ -34,10 +34,13 @@ namespace WebCore {
+ 
+ String standardUserAgentWithApplicationName(const String& applicationName, const String&, UserAgentType)
+ {
+-    String osVersion = systemMarketingVersionForUserAgentString();
+-    String appNameSuffix = applicationName.isEmpty() ? "" : makeString(" ", applicationName);
+-
+-    return makeString("Mozilla/5.0 (Macintosh; Intel Mac OS X ", osVersion, ") AppleWebKit/605.1.15 (KHTML, like Gecko)", appNameSuffix);
++    // Snow Leopard port: emit the genuine Safari 14 / macOS Big Sur user agent for
++    // this WebKit generation. The 10.6 host app (Safari 5.0.5) would otherwise append
++    // its own "Version/5.0.5 Safari/533.21.1", which modern sites reject. The OS token
++    // 10_15_7 and the frozen AppleWebKit/605.1.15 build match exactly what real Safari
++    // 14 reported, so this is the authentic string for the engine, not a fabrication.
++    UNUSED_PARAM(applicationName);
++    return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.1 Safari/605.1.15"_str;
+ }
+ 
+ } // namespace WebCore
 diff --git a/Source/WebCore/platform/mac/ValidationBubbleMac.mm b/Source/WebCore/platform/mac/ValidationBubbleMac.mm
-index 4f630fc85f..733c2b9d7e 100644
+index 4f630fc85ff..733c2b9d7ed 100644
 --- a/Source/WebCore/platform/mac/ValidationBubbleMac.mm
 +++ b/Source/WebCore/platform/mac/ValidationBubbleMac.mm
 @@ -25,7 +25,10 @@
@@ -23813,7 +24239,7 @@ index 4f630fc85f..733c2b9d7e 100644
  
  #import <AppKit/AppKit.h>
 diff --git a/Source/WebCore/platform/mac/WebGLBlacklist.mm b/Source/WebCore/platform/mac/WebGLBlacklist.mm
-index 6fadcd35d4..bdb7201c7e 100644
+index 6fadcd35d49..bdb7201c7ec 100644
 --- a/Source/WebCore/platform/mac/WebGLBlacklist.mm
 +++ b/Source/WebCore/platform/mac/WebGLBlacklist.mm
 @@ -30,6 +30,19 @@
@@ -23858,8 +24284,24 @@ index 6fadcd35d4..bdb7201c7e 100644
  }
  
  bool WebGLBlacklist::shouldBlockWebGL()
+diff --git a/Source/WebCore/platform/mac/WidgetMac.mm b/Source/WebCore/platform/mac/WidgetMac.mm
+index 3824835a4d5..7fa198156f0 100644
+--- a/Source/WebCore/platform/mac/WidgetMac.mm
++++ b/Source/WebCore/platform/mac/WidgetMac.mm
+@@ -253,7 +253,11 @@ void Widget::paint(GraphicsContext& p, const IntRect& r, SecurityOriginPaintPoli
+ 
+     BEGIN_BLOCK_OBJC_EXCEPTIONS;
+     {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+         NSGraphicsContext *nsContext = [NSGraphicsContext graphicsContextWithCGContext:cgContext flipped:NO];
++#else
++        NSGraphicsContext *nsContext = [NSGraphicsContext graphicsContextWithGraphicsPort:cgContext flipped:NO];
++#endif
+         [view displayRectIgnoringOpacity:[view convertRect:r fromView:[view superview]] inContext:nsContext];
+     }
+     END_BLOCK_OBJC_EXCEPTIONS;
 diff --git a/Source/WebCore/platform/mediacapabilities/MediaEngineConfigurationFactory.cpp b/Source/WebCore/platform/mediacapabilities/MediaEngineConfigurationFactory.cpp
-index 40302e2685..9aa03068f5 100644
+index 40302e26853..9aa03068f5f 100644
 --- a/Source/WebCore/platform/mediacapabilities/MediaEngineConfigurationFactory.cpp
 +++ b/Source/WebCore/platform/mediacapabilities/MediaEngineConfigurationFactory.cpp
 @@ -37,7 +37,7 @@
@@ -23881,7 +24323,7 @@ index 40302e2685..9aa03068f5 100644
  #endif
  #if USE(GSTREAMER)
 diff --git a/Source/WebCore/platform/network/ResourceResponseBase.cpp b/Source/WebCore/platform/network/ResourceResponseBase.cpp
-index 01d3ddce84..4864de5e85 100644
+index 01d3ddce845..4864de5e85c 100644
 --- a/Source/WebCore/platform/network/ResourceResponseBase.cpp
 +++ b/Source/WebCore/platform/network/ResourceResponseBase.cpp
 @@ -144,6 +144,11 @@ ResourceResponse ResourceResponseBase::syntheticRedirectResponse(const URL& from
@@ -23897,7 +24339,7 @@ index 01d3ddce84..4864de5e85 100644
      return redirectResponse;
  }
 diff --git a/Source/WebCore/platform/network/cocoa/CookieCocoa.mm b/Source/WebCore/platform/network/cocoa/CookieCocoa.mm
-index aa39027182..6423b645b9 100644
+index aa39027182d..6423b645b9c 100644
 --- a/Source/WebCore/platform/network/cocoa/CookieCocoa.mm
 +++ b/Source/WebCore/platform/network/cocoa/CookieCocoa.mm
 @@ -41,7 +41,7 @@ static NSString * const NSHTTPCookieSameSiteStrict = @"strict";
@@ -23910,7 +24352,7 @@ index aa39027182..6423b645b9 100644
      Vector<uint16_t> ports;
      ports.reserveInitialCapacity(portList.count);
 diff --git a/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm b/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
-index dca4a74c4f..e314f401d6 100644
+index dca4a74c4f8..e314f401d6e 100644
 --- a/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
 +++ b/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
 @@ -117,6 +117,7 @@ void NetworkStorageSession::hasCookies(const RegistrableDomain& domain, Completi
@@ -23979,7 +24421,7 @@ index dca4a74c4f..e314f401d6 100644
  #endif
  
 diff --git a/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm b/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
-index 24513cfefa..c9b24e1772 100644
+index 24513cfefa3..c9b24e17727 100644
 --- a/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
 +++ b/Source/WebCore/platform/network/cocoa/ResourceRequestCocoa.mm
 @@ -24,6 +24,7 @@
@@ -24017,7 +24459,7 @@ index 24513cfefa..c9b24e1772 100644
          auto encoding = CFStringConvertEncodingToNSStringEncoding(CFStringConvertIANACharSetNameToEncoding(name.createCFString().get()));
          if (encoding == kCFStringEncodingInvalidId)
 diff --git a/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm b/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm
-index 51a9fe6555..7a6aa4205a 100644
+index 51a9fe65556..7a6aa4205aa 100644
 --- a/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm
 +++ b/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm
 @@ -64,7 +64,16 @@ void ResourceResponse::initNSURLResponse() const
@@ -24062,7 +24504,7 @@ index 51a9fe6555..7a6aa4205a 100644
  #if HAVE(SEC_TRUST_SERIALIZATION)
      return CertificateInfo(trust);
 diff --git a/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.h b/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.h
-index 758d476ad4..e069527e96 100644
+index 758d476ad4c..e069527e96c 100644
 --- a/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.h
 +++ b/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.h
 @@ -80,8 +80,10 @@ WEBCORE_EXPORT @interface WebCoreNSURLSession : NSObject {
@@ -24079,7 +24521,7 @@ index 758d476ad4..e069527e96 100644
  - (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request;
  - (NSURLSessionDataTask *)dataTaskWithURL:(NSURL *)url;
 diff --git a/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.mm b/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.mm
-index 69effbda39..78400ca083 100644
+index 69effbda39e..78400ca083f 100644
 --- a/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.mm
 +++ b/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.mm
 @@ -24,6 +24,15 @@
@@ -24108,7 +24550,7 @@ index 69effbda39..78400ca083 100644
  }
  
 diff --git a/Source/WebCore/platform/network/mac/CredentialStorageMac.mm b/Source/WebCore/platform/network/mac/CredentialStorageMac.mm
-index 0eacadeb6b..f514e3c74c 100644
+index 0eacadeb6b3..f514e3c74ca 100644
 --- a/Source/WebCore/platform/network/mac/CredentialStorageMac.mm
 +++ b/Source/WebCore/platform/network/mac/CredentialStorageMac.mm
 @@ -46,7 +46,7 @@ HashSet<SecurityOriginData> CredentialStorage::originsWithSessionCredentials()
@@ -24139,7 +24581,7 @@ index 0eacadeb6b..f514e3c74c 100644
                  [sharedStorage removeCredential:credential forProtectionSpace:space];
          }
 diff --git a/Source/WebCore/platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.mm b/Source/WebCore/platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.mm
-index 19e620580b..25a09e5fc2 100644
+index 19e620580b7..25a09e5fc20 100644
 --- a/Source/WebCore/platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.mm
 +++ b/Source/WebCore/platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.mm
 @@ -59,6 +59,17 @@ static bool scheduledWithCustomRunLoopMode(const Optional<SchedulePairHashSet>&
@@ -24161,7 +24603,7 @@ index 19e620580b..25a09e5fc2 100644
      if (m_messageQueue)
          return m_messageQueue->append(makeUnique<Function<void()>>(WTFMove(function)));
 diff --git a/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm b/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm
-index 32e10732a3..40e31a93bd 100644
+index 32e10732a37..40e31a93bd8 100644
 --- a/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm
 +++ b/Source/WebCore/platform/network/mac/WebCoreURLResponse.mm
 @@ -335,7 +335,25 @@ NSURLResponse *synthesizeRedirectResponseIfNecessary(NSURLRequest *currentReques
@@ -24191,8 +24633,38 @@ index 32e10732a3..40e31a93bd 100644
          return nil;
  
      return [[ResourceResponse::syntheticRedirectResponse(URL([currentRequest URL]), URL([newRequest URL])).nsURLResponse() retain] autorelease];
+diff --git a/Source/WebCore/platform/sql/SQLiteDatabase.cpp b/Source/WebCore/platform/sql/SQLiteDatabase.cpp
+index bb9d699e055..a2e72c07c1a 100644
+--- a/Source/WebCore/platform/sql/SQLiteDatabase.cpp
++++ b/Source/WebCore/platform/sql/SQLiteDatabase.cpp
+@@ -168,7 +168,13 @@ static int walAutomaticTruncationHook(void* context, sqlite3* db, const char* db
+ 
+     if (walPageCount >= checkpointThreshold) {
+         int newWalPageCount = 0;
++#if defined(SQLITE_VERSION_NUMBER) && SQLITE_VERSION_NUMBER >= 3007000
+         int result = sqlite3_wal_checkpoint_v2(db, dbName, SQLITE_CHECKPOINT_TRUNCATE, &newWalPageCount, nullptr);
++#else
++        int result = SQLITE_OK;
++        UNUSED_PARAM(db);
++        UNUSED_PARAM(dbName);
++#endif
+ 
+ #if LOG_DISABLED
+         UNUSED_VARIABLE(result);
+@@ -190,7 +196,11 @@ static int walAutomaticTruncationHook(void* context, sqlite3* db, const char* db
+ 
+ void SQLiteDatabase::enableAutomaticWALTruncation()
+ {
++#if defined(SQLITE_VERSION_NUMBER) && SQLITE_VERSION_NUMBER >= 3007000
+     sqlite3_wal_hook(m_db, walAutomaticTruncationHook, nullptr);
++#else
++    UNUSED_PARAM(walAutomaticTruncationHook);
++#endif
+ }
+ 
+ void SQLiteDatabase::useWALJournalMode()
 diff --git a/Source/WebCore/platform/sql/SQLiteStatement.cpp b/Source/WebCore/platform/sql/SQLiteStatement.cpp
-index dea8fff8a5..03f7cca83a 100644
+index dea8fff8a5e..03f7cca83aa 100644
 --- a/Source/WebCore/platform/sql/SQLiteStatement.cpp
 +++ b/Source/WebCore/platform/sql/SQLiteStatement.cpp
 @@ -36,7 +36,11 @@
@@ -24209,7 +24681,7 @@ index dea8fff8a5..03f7cca83a 100644
  
  namespace WebCore {
 diff --git a/Source/WebCore/platform/text/cf/HyphenationCF.cpp b/Source/WebCore/platform/text/cf/HyphenationCF.cpp
-index 3d02f28f68..a0be0f0d8c 100644
+index 3d02f28f685..a0be0f0d8ce 100644
 --- a/Source/WebCore/platform/text/cf/HyphenationCF.cpp
 +++ b/Source/WebCore/platform/text/cf/HyphenationCF.cpp
 @@ -32,6 +32,17 @@
@@ -24231,7 +24703,7 @@ index 3d02f28f68..a0be0f0d8c 100644
  
  template<>
 diff --git a/Source/WebCore/plugins/npapi.h b/Source/WebCore/plugins/npapi.h
-index b33b4e9465..f0316e6d51 100644
+index b33b4e9465f..f0316e6d516 100644
 --- a/Source/WebCore/plugins/npapi.h
 +++ b/Source/WebCore/plugins/npapi.h
 @@ -77,7 +77,12 @@
@@ -24248,7 +24720,7 @@ index b33b4e9465..f0316e6d51 100644
  #include <Carbon/Carbon.h>
  #endif
 diff --git a/Source/WebCore/rendering/RenderThemeCocoa.h b/Source/WebCore/rendering/RenderThemeCocoa.h
-index 19bc392ee3..65730a9312 100644
+index 19bc392ee31..65730a9312e 100644
 --- a/Source/WebCore/rendering/RenderThemeCocoa.h
 +++ b/Source/WebCore/rendering/RenderThemeCocoa.h
 @@ -42,7 +42,9 @@ private:
@@ -24262,7 +24734,7 @@ index 19bc392ee3..65730a9312 100644
  };
  
 diff --git a/Source/WebCore/rendering/RenderThemeCocoa.mm b/Source/WebCore/rendering/RenderThemeCocoa.mm
-index 519f0ec931..a9dc397163 100644
+index 519f0ec9318..a9dc3971630 100644
 --- a/Source/WebCore/rendering/RenderThemeCocoa.mm
 +++ b/Source/WebCore/rendering/RenderThemeCocoa.mm
 @@ -36,10 +36,8 @@
@@ -24311,7 +24783,7 @@ index 519f0ec931..a9dc397163 100644
  
  }
 diff --git a/Source/WebCore/rendering/RenderThemeMac.mm b/Source/WebCore/rendering/RenderThemeMac.mm
-index a808dd3e0f..9f5862ba81 100644
+index a808dd3e0f7..5cdbf391613 100644
 --- a/Source/WebCore/rendering/RenderThemeMac.mm
 +++ b/Source/WebCore/rendering/RenderThemeMac.mm
 @@ -106,6 +106,18 @@
@@ -24333,7 +24805,52 @@ index a808dd3e0f..9f5862ba81 100644
  // FIXME: This should go into an SPI.h file in the spi directory.
  @interface NSTextFieldCell ()
  - (CFDictionaryRef)_coreUIDrawOptionsWithFrame:(NSRect)cellFrame inView:(NSView *)controlView includeFocus:(BOOL)includeFocus;
-@@ -295,13 +307,16 @@ NSView *RenderThemeMac::documentViewFor(const RenderObject& o) const
+@@ -151,6 +163,9 @@ static const double progressAnimationNumFrames = 256;
+ @interface WebCoreTextFieldCell : NSTextFieldCell
+ @end
+ 
++@interface WebCoreSearchFieldCell : NSSearchFieldCell
++@end
++
+ @implementation WebCoreTextFieldCell
+ 
+ - (CFDictionaryRef)_adjustedCoreUIDrawOptionsForDrawingBordersOnly:(CFDictionaryRef)defaultOptions
+@@ -183,6 +198,34 @@ static const double progressAnimationNumFrames = 256;
+ 
+ @end
+ 
++@implementation WebCoreSearchFieldCell
++
++- (void)drawWithFrame:(NSRect)cellFrame inView:(NSView *)controlView
++{
++    [self setControlView:controlView];
++
++    CGContextRef context = (CGContextRef)[[NSGraphicsContext currentContext] graphicsPort];
++    CGContextSaveGState(context);
++
++    NSRect borderRect = NSInsetRect(cellFrame, 0.5, 0.5);
++    CGFloat radius = borderRect.size.height / 2.0;
++    if (radius > borderRect.size.width / 2.0)
++        radius = borderRect.size.width / 2.0;
++
++    NSBezierPath *path = [NSBezierPath bezierPathWithRoundedRect:borderRect xRadius:radius yRadius:radius];
++
++    [[NSColor whiteColor] setFill];
++    [path fill];
++
++    [[NSColor colorWithCalibratedWhite:0.6 alpha:1.0] setStroke];
++    [path setLineWidth:1.0];
++    [path stroke];
++
++    CGContextRestoreGState(context);
++}
++
++@end
++
+ @interface WebCoreRenderThemeBundle : NSObject
+ @end
+ 
+@@ -295,13 +338,16 @@ NSView *RenderThemeMac::documentViewFor(const RenderObject& o) const
      return ThemeMac::ensuredView(&o.view().frameView(), states);
  }
  
@@ -24350,7 +24867,7 @@ index a808dd3e0f..9f5862ba81 100644
  String RenderThemeMac::modernMediaControlsStyleSheet()
  {
      if (RuntimeEnabledFeatures::sharedFeatures().modernMediaControlsEnabled()) {
-@@ -311,6 +326,7 @@ String RenderThemeMac::modernMediaControlsStyleSheet()
+@@ -311,6 +357,7 @@ String RenderThemeMac::modernMediaControlsStyleSheet()
      }
      return emptyString();
  }
@@ -24358,7 +24875,7 @@ index a808dd3e0f..9f5862ba81 100644
  
  void RenderThemeMac::purgeCaches()
  {
-@@ -322,6 +338,7 @@ void RenderThemeMac::purgeCaches()
+@@ -322,6 +369,7 @@ void RenderThemeMac::purgeCaches()
      RenderTheme::purgeCaches();
  }
  
@@ -24366,7 +24883,7 @@ index a808dd3e0f..9f5862ba81 100644
  String RenderThemeMac::mediaControlsScript()
  {
      if (RuntimeEnabledFeatures::sharedFeatures().modernMediaControlsEnabled()) {
-@@ -342,7 +359,9 @@ String RenderThemeMac::mediaControlsScript()
+@@ -342,7 +390,9 @@ String RenderThemeMac::mediaControlsScript()
      }
      return m_legacyMediaControlsScript;
  }
@@ -24376,7 +24893,7 @@ index a808dd3e0f..9f5862ba81 100644
  String RenderThemeMac::mediaControlsBase64StringForIconNameAndType(const String& iconName, const String& iconType)
  {
      if (!RuntimeEnabledFeatures::sharedFeatures().modernMediaControlsEnabled())
-@@ -352,6 +371,7 @@ String RenderThemeMac::mediaControlsBase64StringForIconNameAndType(const String&
+@@ -352,6 +402,7 @@ String RenderThemeMac::mediaControlsBase64StringForIconNameAndType(const String&
      NSBundle *bundle = [NSBundle bundleForClass:[WebCoreRenderThemeBundle class]];
      return [[NSData dataWithContentsOfFile:[bundle pathForResource:iconName ofType:iconType inDirectory:directory]] base64EncodedStringWithOptions:0];
  }
@@ -24384,7 +24901,13 @@ index a808dd3e0f..9f5862ba81 100644
  
  #if ENABLE(SERVICE_CONTROLS)
  
-@@ -2334,7 +2354,11 @@ NSSearchFieldCell* RenderThemeMac::search() const
+@@ -2329,12 +2380,16 @@ NSPopUpButtonCell* RenderThemeMac::popupButton() const
+ NSSearchFieldCell* RenderThemeMac::search() const
+ {
+     if (!m_search) {
+-        m_search = adoptNS([[NSSearchFieldCell alloc] initTextCell:@""]);
++        m_search = adoptNS([[WebCoreSearchFieldCell alloc] initTextCell:@""]);
+         [m_search.get() setBezelStyle:NSTextFieldRoundedBezel];
          [m_search.get() setBezeled:YES];
          [m_search.get() setEditable:YES];
          [m_search.get() setFocusRingType:NSFocusRingTypeExterior];
@@ -24398,7 +24921,7 @@ index a808dd3e0f..9f5862ba81 100644
  
      return m_search.get();
 diff --git a/Source/WebCore/style/StyleAdjuster.cpp b/Source/WebCore/style/StyleAdjuster.cpp
-index 140625f905..e6653a80fe 100644
+index 140625f905a..e6653a80fe4 100644
 --- a/Source/WebCore/style/StyleAdjuster.cpp
 +++ b/Source/WebCore/style/StyleAdjuster.cpp
 @@ -614,9 +614,13 @@ void Adjuster::adjustForSiteSpecificQuirks(RenderStyle& style) const
@@ -24416,7 +24939,7 @@ index 140625f905..e6653a80fe 100644
          }
      }
 diff --git a/Source/WebCore/testing/Internals.cpp b/Source/WebCore/testing/Internals.cpp
-index d58b5cd4d8..1d20289706 100644
+index d58b5cd4d83..1d202897061 100644
 --- a/Source/WebCore/testing/Internals.cpp
 +++ b/Source/WebCore/testing/Internals.cpp
 @@ -547,7 +547,9 @@ void Internals::resetToConsistentState(Page& page)
@@ -24445,7 +24968,7 @@ index d58b5cd4d8..1d20289706 100644
  #if !PLATFORM(COCOA)
  
 diff --git a/Source/WebInspectorUI/UserInterface/Views/Layers3DContentView.js b/Source/WebInspectorUI/UserInterface/Views/Layers3DContentView.js
-index 1b273d6c12..94467e557f 100644
+index 1b273d6c12c..94467e557f9 100644
 --- a/Source/WebInspectorUI/UserInterface/Views/Layers3DContentView.js
 +++ b/Source/WebInspectorUI/UserInterface/Views/Layers3DContentView.js
 @@ -96,6 +96,8 @@ WI.Layers3DContentView = class Layers3DContentView extends WI.ContentView
@@ -24548,7 +25071,7 @@ index 1b273d6c12..94467e557f 100644
              let [plane, outline] = this._selectedLayerGroup.children;
              plane.material.color.set(fill);
 diff --git a/Source/WebKitLegacy/PlatformMac.cmake b/Source/WebKitLegacy/PlatformMac.cmake
-index 81950e3053..3817d82311 100644
+index 81950e3053d..3817d823118 100644
 --- a/Source/WebKitLegacy/PlatformMac.cmake
 +++ b/Source/WebKitLegacy/PlatformMac.cmake
 @@ -73,20 +73,6 @@ list(APPEND WebKitLegacy_SOURCES
@@ -24581,7 +25104,7 @@ index 81950e3053..3817d82311 100644
  set(WebKitLegacy_OUTPUT_NAME WebKitLegacy)
  
 diff --git a/Source/WebKitLegacy/mac/DOM/DOMHTML.mm b/Source/WebKitLegacy/mac/DOM/DOMHTML.mm
-index 97b36bcc78..6d796be116 100644
+index 97b36bcc781..6d796be116b 100644
 --- a/Source/WebKitLegacy/mac/DOM/DOMHTML.mm
 +++ b/Source/WebKitLegacy/mac/DOM/DOMHTML.mm
 @@ -201,7 +201,12 @@
@@ -24613,7 +25136,7 @@ index 97b36bcc78..6d796be116 100644
  {
      switch (type) {
 diff --git a/Source/WebKitLegacy/mac/History/WebHistoryItem.mm b/Source/WebKitLegacy/mac/History/WebHistoryItem.mm
-index 6765682819..0cbdf40b6d 100644
+index 6765682819a..0cbdf40b6d5 100644
 --- a/Source/WebKitLegacy/mac/History/WebHistoryItem.mm
 +++ b/Source/WebKitLegacy/mac/History/WebHistoryItem.mm
 @@ -28,6 +28,7 @@
@@ -24655,7 +25178,7 @@ index 6765682819..0cbdf40b6d 100644
  {
      return core(_private)->lastVisitWasFailure();
 diff --git a/Source/WebKitLegacy/mac/Misc/WebNSURLExtras.h b/Source/WebKitLegacy/mac/Misc/WebNSURLExtras.h
-index ec70ea345c..1e178ea8d4 100644
+index ec70ea345c4..1e178ea8d47 100644
 --- a/Source/WebKitLegacy/mac/Misc/WebNSURLExtras.h
 +++ b/Source/WebKitLegacy/mac/Misc/WebNSURLExtras.h
 @@ -63,6 +63,7 @@
@@ -24667,7 +25190,7 @@ index ec70ea345c..1e178ea8d4 100644
  - (BOOL)_webkit_isJavaScriptURL;
  - (BOOL)_webkit_isFileURL;
 diff --git a/Source/WebKitLegacy/mac/Misc/WebNSURLExtras.mm b/Source/WebKitLegacy/mac/Misc/WebNSURLExtras.mm
-index 7e9892fc3d..2ca97ad283 100644
+index 7e9892fc3d2..2ca97ad2830 100644
 --- a/Source/WebKitLegacy/mac/Misc/WebNSURLExtras.mm
 +++ b/Source/WebKitLegacy/mac/Misc/WebNSURLExtras.mm
 @@ -217,6 +217,43 @@ using namespace WTF;
@@ -24715,7 +25238,7 @@ index 7e9892fc3d..2ca97ad283 100644
  
  @implementation NSString (WebNSURLExtras)
 diff --git a/Source/WebKitLegacy/mac/Panels/WebAuthenticationPanel.m b/Source/WebKitLegacy/mac/Panels/WebAuthenticationPanel.m
-index 8b929cae77..de5472f85a 100644
+index 8b929cae77a..de5472f85aa 100644
 --- a/Source/WebKitLegacy/mac/Panels/WebAuthenticationPanel.m
 +++ b/Source/WebKitLegacy/mac/Panels/WebAuthenticationPanel.m
 @@ -78,7 +78,13 @@ - (IBAction)cancel:(id)sender
@@ -24745,7 +25268,7 @@ index 8b929cae77..de5472f85a 100644
          [panel orderOut:sender];
          [[NSApplication sharedApplication] stopModalWithCode:0];
 diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebDragClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebDragClient.mm
-index 4278b0342f..9c83d4e00d 100644
+index 4278b0342f9..9c83d4e00d6 100644
 --- a/Source/WebKitLegacy/mac/WebCoreSupport/WebDragClient.mm
 +++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebDragClient.mm
 @@ -140,6 +140,10 @@ void WebDragClient::startDrag(DragItem dragItem, DataTransfer& dataTransfer, Fra
@@ -24771,7 +25294,7 @@ index 4278b0342f..9c83d4e00d 100644
  
  void WebDragClient::declareAndWriteDragImage(const String& pasteboardName, Element& element, const URL& url, const String& title, WebCore::Frame* frame)
 diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebEditorClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebEditorClient.mm
-index d066411331..9b3d05d82c 100644
+index d066411331d..9b3d05d82c6 100644
 --- a/Source/WebKitLegacy/mac/WebCoreSupport/WebEditorClient.mm
 +++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebEditorClient.mm
 @@ -1125,6 +1125,7 @@ void WebEditorClient::requestCandidatesForSelection(const VisibleSelection& sele
@@ -24795,7 +25318,7 @@ index d066411331..9b3d05d82c 100644
  
  void WebEditorClient::handleRequestedCandidates(NSInteger sequenceNumber, NSArray<NSTextCheckingResult *> *candidates)
 diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.h b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.h
-index 808f5c75cc..b291936388 100644
+index 808f5c75cca..b2919363889 100644
 --- a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.h
 +++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.h
 @@ -254,7 +254,7 @@ private:
@@ -24808,7 +25331,7 @@ index 808f5c75cc..b291936388 100644
  
  WebDataSource *dataSource(WebCore::DocumentLoader*);
 diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm
-index e95375fba3..634fa25143 100644
+index e95375fba31..634fa251433 100644
 --- a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm
 +++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm
 @@ -28,6 +28,17 @@
@@ -24839,7 +25362,7 @@ index e95375fba3..634fa25143 100644
      return policyListener;
  }
 diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
-index 66f6672773..059bd25a2d 100644
+index 66f6672773f..059bd25a2d2 100644
 --- a/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
 +++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
 @@ -221,9 +221,11 @@ void WebInspectorFrontendClient::startWindowDrag()
@@ -24944,7 +25467,7 @@ index 66f6672773..059bd25a2d 100644
      [self setWindow:window];
      [window release];
 diff --git a/Source/WebKitLegacy/mac/WebKitPrefix.h b/Source/WebKitLegacy/mac/WebKitPrefix.h
-index 21c7454723..d68621b8a3 100644
+index 21c74547230..d68621b8a3c 100644
 --- a/Source/WebKitLegacy/mac/WebKitPrefix.h
 +++ b/Source/WebKitLegacy/mac/WebKitPrefix.h
 @@ -98,3 +98,14 @@ typedef float CGFloat;
@@ -24963,7 +25486,7 @@ index 21c7454723..d68621b8a3 100644
 +#endif
 +#endif
 diff --git a/Source/WebKitLegacy/mac/WebView/PDFViewSPI.h b/Source/WebKitLegacy/mac/WebView/PDFViewSPI.h
-index 201b7460fd..8cfe10143b 100644
+index 201b7460fde..8cfe10143b1 100644
 --- a/Source/WebKitLegacy/mac/WebView/PDFViewSPI.h
 +++ b/Source/WebKitLegacy/mac/WebView/PDFViewSPI.h
 @@ -29,6 +29,12 @@
@@ -24980,7 +25503,7 @@ index 201b7460fd..8cfe10143b 100644
  - (PDFKitPlatformScrollView *)documentScrollView;
  @end
 diff --git a/Source/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm b/Source/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm
-index 56dcca8a72..609416c285 100644
+index 56dcca8a724..609416c2851 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm
 +++ b/Source/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm
 @@ -535,8 +535,14 @@ static const unsigned cMaxUpdateScrollbarsPass = 2;
@@ -24999,7 +25522,7 @@ index 56dcca8a72..609416c285 100644
      if (fabsf(deltaY) > fabsf(deltaX)) {
          if (![self allowsVerticalScrolling]) {
 diff --git a/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm b/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
-index 5e4a8905ec..74e4e2e380 100644
+index 5e4a8905ec8..74e4e2e3803 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
 +++ b/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
 @@ -3612,6 +3612,12 @@ static RetainPtr<NSMenuItem> createShareMenuItem(const WebCore::HitTestResult& h
@@ -25115,7 +25638,7 @@ index 5e4a8905ec..74e4e2e380 100644
      LOG(TextInput, "firstRectForCharacterRange:(%u, %u) -> (%f, %f, %f, %f)", theRange.location, theRange.length, resultRect.origin.x, resultRect.origin.y, resultRect.size.width, resultRect.size.height);
      return resultRect;
 diff --git a/Source/WebKitLegacy/mac/WebView/WebImmediateActionController.mm b/Source/WebKitLegacy/mac/WebView/WebImmediateActionController.mm
-index 96a61e8430..fcee82f6bf 100644
+index 96a61e84305..fcee82f6bf7 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebImmediateActionController.mm
 +++ b/Source/WebKitLegacy/mac/WebView/WebImmediateActionController.mm
 @@ -449,7 +449,15 @@ static WebCore::IntRect elementBoundingBoxInWindowCoordinatesFromNode(WebCore::N
@@ -25151,7 +25674,7 @@ index 96a61e8430..fcee82f6bf 100644
      NSArray *menuItems = [[getDDActionsManagerClass() sharedManager] menuItemsForTargetURL:_hitTestResult.absoluteLinkURL().string() actionContext:_currentActionContext.get()];
      if (menuItems.count != 1)
 diff --git a/Source/WebKitLegacy/mac/WebView/WebPDFView.h b/Source/WebKitLegacy/mac/WebView/WebPDFView.h
-index c5c8a01cf3..8a252cfa94 100644
+index c5c8a01cf33..8a252cfa94f 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebPDFView.h
 +++ b/Source/WebKitLegacy/mac/WebView/WebPDFView.h
 @@ -31,6 +31,13 @@
@@ -25169,7 +25692,7 @@ index c5c8a01cf3..8a252cfa94 100644
  
  @interface WebPDFView : NSView <PDFViewDelegate, WebDocumentView, WebDocumentSearching, WebDocumentIncrementalSearching, WebMultipleTextMatches, WebDocumentSelection, WebDocumentElement, WebDocumentPDF, _WebDocumentViewState, _WebDocumentZooming>
 diff --git a/Source/WebKitLegacy/mac/WebView/WebPDFView.mm b/Source/WebKitLegacy/mac/WebView/WebPDFView.mm
-index 1bc67d3684..96d84b7947 100644
+index 1bc67d36842..96d84b79477 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebPDFView.mm
 +++ b/Source/WebKitLegacy/mac/WebView/WebPDFView.mm
 @@ -1007,7 +1007,7 @@ static BOOL isFrameInRange(WebFrame *frame, DOMRange *range)
@@ -25182,7 +25705,7 @@ index 1bc67d3684..96d84b7947 100644
  
  + (Class)_PDFViewClass
 diff --git a/Source/WebKitLegacy/mac/WebView/WebPreferences.mm b/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
-index ae9078b332..8b3abc60a2 100644
+index ae9078b3324..8b3abc60a21 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
 +++ b/Source/WebKitLegacy/mac/WebView/WebPreferences.mm
 @@ -486,7 +486,15 @@ public:
@@ -25211,7 +25734,7 @@ index ae9078b332..8b3abc60a2 100644
          @NO, WebKitMediaUserGestureInheritsFromDocument,
          @NO, WebKitIsSecureContextAttributeEnabledPreferenceKey,
 diff --git a/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm b/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm
-index 0650dbf153..44b21287b0 100644
+index 0650dbf153a..44b21287b07 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm
 +++ b/Source/WebKitLegacy/mac/WebView/WebVideoFullscreenController.mm
 @@ -25,7 +25,7 @@
@@ -25263,7 +25786,7 @@ index 0650dbf153..44b21287b0 100644
 +
  #endif
 diff --git a/Source/WebKitLegacy/mac/WebView/WebView.mm b/Source/WebKitLegacy/mac/WebView/WebView.mm
-index a1162e17cc..f18ad8f583 100644
+index a1162e17cc4..f18ad8f583d 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebView.mm
 +++ b/Source/WebKitLegacy/mac/WebView/WebView.mm
 @@ -30,6 +30,10 @@
@@ -25420,7 +25943,7 @@ index a1162e17cc..f18ad8f583 100644
  
  @end
 diff --git a/Source/WebKitLegacy/mac/WebView/WebViewPrivate.h b/Source/WebKitLegacy/mac/WebView/WebViewPrivate.h
-index 0ee289b81f..6e3b8256d1 100644
+index 0ee289b81ff..6e3b8256d1d 100644
 --- a/Source/WebKitLegacy/mac/WebView/WebViewPrivate.h
 +++ b/Source/WebKitLegacy/mac/WebView/WebViewPrivate.h
 @@ -190,7 +190,9 @@ typedef enum {
@@ -25435,7 +25958,7 @@ index 0ee289b81f..6e3b8256d1 100644
  @property (nonatomic, retain) UIImage *contentImageWithHighlight;
  @property (nonatomic, retain) UIImage *contentImage;
 diff --git a/Source/bmalloc/bmalloc/BPlatform.h b/Source/bmalloc/bmalloc/BPlatform.h
-index c6bce2eb0d..4677adb051 100644
+index c6bce2eb0d2..4677adb0510 100644
 --- a/Source/bmalloc/bmalloc/BPlatform.h
 +++ b/Source/bmalloc/bmalloc/BPlatform.h
 @@ -305,9 +305,13 @@
@@ -25454,7 +25977,7 @@ index c6bce2eb0d..4677adb051 100644
  #endif
  
 diff --git a/Source/bmalloc/bmalloc/DebugHeap.cpp b/Source/bmalloc/bmalloc/DebugHeap.cpp
-index e89a42753b..b7fe2f54f4 100644
+index e89a42753bc..b7fe2f54f4f 100644
 --- a/Source/bmalloc/bmalloc/DebugHeap.cpp
 +++ b/Source/bmalloc/bmalloc/DebugHeap.cpp
 @@ -77,7 +77,11 @@ void DebugHeap::scavenge()
@@ -25470,7 +25993,7 @@ index e89a42753b..b7fe2f54f4 100644
  
  void DebugHeap::dump()
 diff --git a/Source/bmalloc/bmalloc/Scavenger.cpp b/Source/bmalloc/bmalloc/Scavenger.cpp
-index 610678a615..a3331284b2 100644
+index 610678a6157..a3331284b20 100644
 --- a/Source/bmalloc/bmalloc/Scavenger.cpp
 +++ b/Source/bmalloc/bmalloc/Scavenger.cpp
 @@ -76,7 +76,7 @@ Scavenger::Scavenger(const LockHolder&)
@@ -25522,7 +26045,7 @@ index 610678a615..a3331284b2 100644
  #endif
  }
 diff --git a/Source/cmake/OptionsMac.cmake b/Source/cmake/OptionsMac.cmake
-index 8ab1674270..025983504b 100644
+index 8ab1674270f..025983504b5 100644
 --- a/Source/cmake/OptionsMac.cmake
 +++ b/Source/cmake/OptionsMac.cmake
 @@ -38,7 +38,7 @@ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_CSS_TRAILING_WORD PRIVATE ON)

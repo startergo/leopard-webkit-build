@@ -14,3 +14,7 @@
 	path = downloads/llvm-project
 	url = https://github.com/llvm/llvm-project.git
 	branch = release/5.x
+[submodule "downloads/icu62-src/icu"]
+	path = downloads/icu62-src/icu
+	url = https://github.com/unicode-org/icu.git
+	branch = release-62-2
