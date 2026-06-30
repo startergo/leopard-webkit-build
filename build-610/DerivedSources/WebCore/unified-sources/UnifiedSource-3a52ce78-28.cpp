@@ -1,0 +1,8 @@
+#include "JSErrorEvent.cpp"
+#include "JSEvent.cpp"
+#include "JSEventInit.cpp"
+#include "JSEventModifierInit.cpp"
+#include "JSEventSource.cpp"
+#include "JSEventTarget.cpp"
+#include "JSExtendableEvent.cpp"
+#include "JSExtendableEventInit.cpp"

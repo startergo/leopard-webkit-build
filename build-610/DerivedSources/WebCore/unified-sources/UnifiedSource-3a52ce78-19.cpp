@@ -1,0 +1,8 @@
+#include "JSDOMMatrixInit.cpp"
+#include "JSDOMMatrixReadOnly.cpp"
+#include "JSDOMMimeType.cpp"
+#include "JSDOMMimeTypeArray.cpp"
+#include "JSDOMParser.cpp"
+#include "JSDOMPlugin.cpp"
+#include "JSDOMPluginArray.cpp"
+#include "JSDOMPoint.cpp"

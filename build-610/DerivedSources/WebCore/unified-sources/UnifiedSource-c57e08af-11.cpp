@@ -1,0 +1,8 @@
+#include "loader/cache/CachedSVGDocumentReference.cpp"
+#include "loader/cache/CachedSVGFont.cpp"
+#include "loader/cache/CachedScript.cpp"
+#include "loader/cache/CachedXSLStyleSheet.cpp"
+#include "loader/cache/KeepaliveRequestTracker.cpp"
+#include "loader/cache/MemoryCache.cpp"
+#include "loader/icon/IconLoader.cpp"
+#include "loader/mac/DocumentLoaderMac.cpp"

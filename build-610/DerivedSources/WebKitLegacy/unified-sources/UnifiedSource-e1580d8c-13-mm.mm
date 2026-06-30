@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMInternal.mm"
+#include "mac/DOM/DOMKeyboardEvent.mm"
+#include "mac/DOM/DOMMediaError.mm"
+#include "mac/DOM/DOMMediaList.mm"
+#include "mac/DOM/DOMMouseEvent.mm"
+#include "mac/DOM/DOMMutationEvent.mm"
+#include "mac/DOM/DOMNamedNodeMap.mm"
+#include "mac/DOM/DOMNode.mm"

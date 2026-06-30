@@ -1,0 +1,8 @@
+#include "editing/cocoa/AlternativeTextContextController.mm"
+#include "editing/cocoa/DataDetection.mm"
+#include "editing/cocoa/DictionaryLookup.mm"
+#include "editing/cocoa/EditorCocoa.mm"
+#include "editing/cocoa/FontAttributeChangesCocoa.mm"
+#include "editing/cocoa/FontShadowCocoa.mm"
+#include "editing/cocoa/WebArchiveResourceFromNSAttributedString.mm"
+#include "editing/cocoa/WebArchiveResourceWebResourceHandler.mm"

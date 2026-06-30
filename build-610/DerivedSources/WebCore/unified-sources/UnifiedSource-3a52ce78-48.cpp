@@ -1,0 +1,8 @@
+#include "JSHTMLVideoElement.cpp"
+#include "JSHTMLVideoElementPictureInPicture.cpp"
+#include "JSHashChangeEvent.cpp"
+#include "JSHdrMetadataType.cpp"
+#include "JSHighlightMap.cpp"
+#include "JSHighlightRangeGroup.cpp"
+#include "JSHistory.cpp"
+#include "JSHkdfParams.cpp"

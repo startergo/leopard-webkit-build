@@ -1,0 +1,8 @@
+#include "JSGainNode.cpp"
+#include "JSGamepad.cpp"
+#include "JSGamepadButton.cpp"
+#include "JSGamepadEvent.cpp"
+#include "JSGeolocation.cpp"
+#include "JSGeolocationCoordinates.cpp"
+#include "JSGeolocationPosition.cpp"
+#include "JSGeolocationPositionError.cpp"

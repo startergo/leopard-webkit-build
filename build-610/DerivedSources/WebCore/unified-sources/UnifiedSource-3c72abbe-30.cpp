@@ -1,0 +1,8 @@
+#include "platform/graphics/cg/PDFDocumentImage.cpp"
+#include "platform/graphics/cg/PathCG.cpp"
+#include "platform/graphics/cg/PatternCG.cpp"
+#include "platform/graphics/cg/SubimageCacheWithTimer.cpp"
+#include "platform/graphics/cg/TransformationMatrixCG.cpp"
+#include "platform/graphics/cg/UTIRegistry.cpp"
+#include "platform/graphics/cocoa/FontCacheCoreText.cpp"
+#include "platform/graphics/cocoa/FontDescriptionCocoa.cpp"

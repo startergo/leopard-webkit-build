@@ -1,0 +1,5 @@
+JSPaymentMethodChangeEvent.h : PaymentRequestUpdateEvent.idl Event.idl PaymentRequestUpdateEventInit.idl EventInit.idl
+PaymentRequestUpdateEvent.idl :
+Event.idl :
+PaymentRequestUpdateEventInit.idl :
+EventInit.idl :

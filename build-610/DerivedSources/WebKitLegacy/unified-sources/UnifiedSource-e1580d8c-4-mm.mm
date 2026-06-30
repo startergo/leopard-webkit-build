@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMDocument.mm"
+#include "mac/DOM/DOMDocumentFragment.mm"
+#include "mac/DOM/DOMDocumentType.mm"
+#include "mac/DOM/DOMElement.mm"
+#include "mac/DOM/DOMEntity.mm"
+#include "mac/DOM/DOMEntityReference.mm"
+#include "mac/DOM/DOMEvent.mm"
+#include "mac/DOM/DOMEvents.mm"

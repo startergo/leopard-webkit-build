@@ -1,0 +1,8 @@
+#include "svg/SVGMarkerElement.cpp"
+#include "svg/SVGMaskElement.cpp"
+#include "svg/SVGMetadataElement.cpp"
+#include "svg/SVGMissingGlyphElement.cpp"
+#include "svg/SVGParserUtilities.cpp"
+#include "svg/SVGPathBlender.cpp"
+#include "svg/SVGPathBuilder.cpp"
+#include "svg/SVGPathByteStreamBuilder.cpp"

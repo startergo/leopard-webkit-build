@@ -1,0 +1,8 @@
+#include "html/MediaDocument.cpp"
+#include "html/MediaElementSession.cpp"
+#include "html/MediaFragmentURIParser.cpp"
+#include "html/MonthInputType.cpp"
+#include "html/NumberInputType.cpp"
+#include "html/OffscreenCanvas.cpp"
+#include "html/PasswordInputType.cpp"
+#include "html/PluginDocument.cpp"

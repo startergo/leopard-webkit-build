@@ -1,0 +1,8 @@
+#include "JSGetAnimationsOptions.cpp"
+#include "JSGlobalCrypto.cpp"
+#include "JSGlobalEventHandlers.cpp"
+#include "JSGlobalPerformance.cpp"
+#include "JSHTMLAllCollection.cpp"
+#include "JSHTMLAnchorElement.cpp"
+#include "JSHTMLAppletElement.cpp"
+#include "JSHTMLAreaElement.cpp"

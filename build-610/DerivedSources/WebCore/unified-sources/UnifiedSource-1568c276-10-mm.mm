@@ -1,0 +1,8 @@
+#include "platform/mac/ScrollViewMac.mm"
+#include "platform/mac/SerializedPlatformDataCueMac.mm"
+#include "platform/mac/StringUtilities.mm"
+#include "platform/mac/SuddenTermination.mm"
+#include "platform/mac/ThemeMac.mm"
+#include "platform/mac/UserActivityMac.mm"
+#include "platform/mac/UserAgentMac.mm"
+#include "platform/mac/ValidationBubbleMac.mm"

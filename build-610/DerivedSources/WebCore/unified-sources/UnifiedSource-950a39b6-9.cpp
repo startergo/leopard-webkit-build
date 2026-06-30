@@ -1,0 +1,8 @@
+#include "html/HTMLHtmlElement.cpp"
+#include "html/HTMLIFrameElement.cpp"
+#include "html/HTMLImageElement.cpp"
+#include "html/HTMLImageLoader.cpp"
+#include "html/HTMLInputElement.cpp"
+#include "html/HTMLKeygenElement.cpp"
+#include "html/HTMLLIElement.cpp"
+#include "html/HTMLLabelElement.cpp"

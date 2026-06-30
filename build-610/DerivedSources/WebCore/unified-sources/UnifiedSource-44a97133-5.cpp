@@ -1,0 +1,8 @@
+#include "crypto/mac/CryptoAlgorithmAES_CFBMac.cpp"
+#include "crypto/mac/CryptoAlgorithmAES_CTRMac.cpp"
+#include "crypto/mac/CryptoAlgorithmAES_GCMMac.cpp"
+#include "crypto/mac/CryptoAlgorithmAES_KWMac.cpp"
+#include "crypto/mac/CryptoAlgorithmECDHMac.cpp"
+#include "crypto/mac/CryptoAlgorithmECDSAMac.cpp"
+#include "crypto/mac/CryptoAlgorithmHKDFMac.cpp"
+#include "crypto/mac/CryptoAlgorithmHMACMac.cpp"

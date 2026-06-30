@@ -1,0 +1,8 @@
+#include "Modules/indexeddb/server/IndexValueEntry.cpp"
+#include "Modules/indexeddb/server/IndexValueStore.cpp"
+#include "Modules/indexeddb/server/MemoryBackingStoreTransaction.cpp"
+#include "Modules/indexeddb/server/MemoryCursor.cpp"
+#include "Modules/indexeddb/server/MemoryIDBBackingStore.cpp"
+#include "Modules/indexeddb/server/MemoryIndex.cpp"
+#include "Modules/indexeddb/server/MemoryIndexCursor.cpp"
+#include "Modules/indexeddb/server/MemoryObjectStore.cpp"

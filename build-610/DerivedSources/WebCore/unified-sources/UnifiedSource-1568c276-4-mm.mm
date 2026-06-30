@@ -1,0 +1,8 @@
+#include "platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm"
+#include "platform/graphics/ca/cocoa/WebSystemBackdropLayer.mm"
+#include "platform/graphics/ca/cocoa/WebTiledBackingLayer.mm"
+#include "platform/graphics/ca/cocoa/WebVideoContainerLayer.mm"
+#include "platform/graphics/cg/ImageSourceCGMac.mm"
+#include "platform/graphics/cocoa/ColorCocoa.mm"
+#include "platform/graphics/cocoa/FloatRectCocoa.mm"
+#include "platform/graphics/cocoa/FontCascadeCocoa.mm"

@@ -1,0 +1,8 @@
+#include "JSWorkerGlobalScopeFetch.cpp"
+#include "JSWorkerGlobalScopeIndexedDatabase.cpp"
+#include "JSWorkerLocation.cpp"
+#include "JSWorkerNavigator.cpp"
+#include "JSWorkerNavigatorGPU.cpp"
+#include "JSWorkerType.cpp"
+#include "JSWorklet.cpp"
+#include "JSWorkletGlobalScope.cpp"

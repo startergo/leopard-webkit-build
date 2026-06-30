@@ -1,0 +1,12 @@
+partial interface ServiceWorkerGlobalScope {
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker] attribute ExtendableEventConstructor ExtendableEvent;
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker] attribute ExtendableMessageEventConstructor ExtendableMessageEvent;
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker] attribute FetchEventConstructor FetchEvent;
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker, SecureContext] attribute ServiceWorkerConstructor ServiceWorker;
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker] attribute ServiceWorkerClientConstructor Client;
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker] attribute ServiceWorkerClientsConstructor Clients;
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker, SecureContext] attribute ServiceWorkerContainerConstructor ServiceWorkerContainer;
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker] attribute ServiceWorkerGlobalScopeConstructor ServiceWorkerGlobalScope;
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker, SecureContext] attribute ServiceWorkerRegistrationConstructor ServiceWorkerRegistration;
+    [Conditional=SERVICE_WORKER, EnabledAtRuntime=ServiceWorker] attribute ServiceWorkerWindowClientConstructor WindowClient;
+};

@@ -1,0 +1,8 @@
+#include "platform/cocoa/SearchPopupMenuCocoa.mm"
+#include "platform/cocoa/SharedBufferCocoa.mm"
+#include "platform/cocoa/SystemVersion.mm"
+#include "platform/cocoa/ThemeCocoa.mm"
+#include "platform/cocoa/UserAgentCocoa.mm"
+#include "platform/cocoa/WebCoreNSErrorExtras.mm"
+#include "platform/graphics/ca/cocoa/PlatformCAAnimationCocoa.mm"
+#include "platform/graphics/ca/cocoa/PlatformCAFiltersCocoa.mm"

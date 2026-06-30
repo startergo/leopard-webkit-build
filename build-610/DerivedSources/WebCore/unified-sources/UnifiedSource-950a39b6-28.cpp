@@ -1,0 +1,8 @@
+#include "html/canvas/WebGLRenderbuffer.cpp"
+#include "html/canvas/WebGLRenderingContext.cpp"
+#include "html/canvas/WebGLRenderingContextBase.cpp"
+#include "html/canvas/WebGLSampler.cpp"
+#include "html/canvas/WebGLShader.cpp"
+#include "html/canvas/WebGLShaderPrecisionFormat.cpp"
+#include "html/canvas/WebGLSharedObject.cpp"
+#include "html/canvas/WebGLSync.cpp"

@@ -1,0 +1,8 @@
+#include "platform/mac/PasteboardWriter.mm"
+#include "platform/mac/PlatformEventFactoryMac.mm"
+#include "platform/mac/PlatformPasteboardMac.mm"
+#include "platform/mac/PlatformScreenMac.mm"
+#include "platform/mac/PlatformSpeechSynthesizerMac.mm"
+#include "platform/mac/PluginBlacklist.mm"
+#include "platform/mac/PublicSuffixMac.mm"
+#include "platform/mac/RemoteCommandListenerMac.mm"

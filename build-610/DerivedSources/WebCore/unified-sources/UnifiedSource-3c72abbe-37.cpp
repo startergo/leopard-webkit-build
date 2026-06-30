@@ -1,0 +1,8 @@
+#include "platform/graphics/iso/ISOSchemeTypeBox.cpp"
+#include "platform/graphics/iso/ISOTrackEncryptionBox.cpp"
+#include "platform/graphics/iso/ISOVTTCue.cpp"
+#include "platform/graphics/mac/DisplayRefreshMonitorMac.cpp"
+#include "platform/graphics/mac/FontCustomPlatformData.cpp"
+#include "platform/graphics/mac/GlyphPageMac.cpp"
+#include "platform/graphics/mac/SimpleFontDataCoreText.cpp"
+#include "platform/graphics/mac/SwitchingGPUClient.cpp"

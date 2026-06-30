@@ -1,0 +1,8 @@
+#include "JSCanvasTransform.cpp"
+#include "JSCanvasUserInterface.cpp"
+#include "JSChannelMergerNode.cpp"
+#include "JSChannelSplitterNode.cpp"
+#include "JSCharacterData.cpp"
+#include "JSChildNode.cpp"
+#include "JSClipboard.cpp"
+#include "JSClipboardEvent.cpp"

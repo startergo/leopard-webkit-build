@@ -1,0 +1,2 @@
+ApplePayRequest.h : ApplePayRequestBase.idl
+ApplePayRequestBase.idl :

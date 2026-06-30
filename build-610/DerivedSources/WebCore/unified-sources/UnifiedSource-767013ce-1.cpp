@@ -1,0 +1,8 @@
+#include "page/AbstractDOMWindow.cpp"
+#include "page/AbstractFrame.cpp"
+#include "page/ActivityState.cpp"
+#include "page/AutoscrollController.cpp"
+#include "page/BarProp.cpp"
+#include "page/Base64Utilities.cpp"
+#include "page/CaptionUserPreferences.cpp"
+#include "page/Chrome.cpp"

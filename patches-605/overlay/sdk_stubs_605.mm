@@ -31,6 +31,7 @@ typedef void *xpc_object_t;
 #include <pthread.h>
 #include <objc/objc.h>
 #include <objc/runtime.h>
+#include <objc/message.h>
 #include <stdlib.h>
 #include <dlfcn.h>
 #include <mach/mach_types.h>
@@ -161,34 +162,59 @@ extern "C" CFIndex CFStringGetHyphenationLocationBeforeIndex(CFStringRef string,
 
 // Safari 5.0.5 ↔ 605 WebView SPI bridge.  Safari calls private SPIs on its BrowserWebView
 // (a WebView subclass) that the 605 branch removed/renamed; stub the removed ones as no-ops
-// so Safari launches against our 605 WebKit.  Uses a +load hook (NOT a category) because
-// sdk_stubs_605.o is force-linked into ALL three frameworks (JSC, WebCore, WebKitLegacy);
-// a category's @implementation would emit a _OBJC_CLASS_$_WebView link-time reference
-// in JSC, which has no WebView class and fails dyld load ("Symbol not found:
-// _OBJC_CLASS_$_WebView"). The +load hook uses objc_getClass (runtime lookup) which
-// returns NULL in JSC/WebCore (no WebView there) and the real class in WebKitLegacy,
-// where it adds the method via class_addMethod — exactly the proven WebIconDatabase
-// injector pattern at the bottom of this file.
-@interface WebViewSPIInjector : NSObject
-@end
+// so Safari launches against our 605 WebKit.  Uses __attribute__((constructor)) (NOT +load)
+// because sdk_stubs_605.o is force-linked into ALL three frameworks and the ObjC runtime
+// deduplicates the +load class across images — only ONE image's +load runs, and it might
+// be JSC (where objc_getClass("WebView") returns NULL). A constructor function runs in
+// EVERY image independently, so the WebKitLegacy one always gets to inject.
 
-/* Plain C IMP for _setJavaScriptURLsAreAllowed: — void return, no-op.
- * Signature "v@:c" = void(id, SEL, BOOL) where BOOL is signed char on 10.6. */
+/* IMP for _setJavaScriptURLsAreAllowed: — void return, no-op. */
 static void webViewSPI_setJavaScriptURLsAreAllowed(id self, SEL _cmd, BOOL flag) {
     (void)self; (void)_cmd; (void)flag;
 }
 
-@implementation WebViewSPIInjector
-+ (void)load {
+/* IMP for _usesDocumentViews — returns YES (WK1 always uses document views). */
+static BOOL webViewSPI_usesDocumentViews(id self, SEL _cmd) {
+    (void)self; (void)_cmd; return YES;
+}
+
+/* IMP for _initWithFrame:frameName:groupName:usesDocumentViews: — forwards to the
+ * private 3-arg _initWithFrame:frameName:groupName: (NOT the public initWithFrame:
+ * which BrowserWebView overrides and re-dispatches to the 4-arg version, causing
+ * infinite recursion). The 3-arg private init is WebView's actual implementation. */
+static id webViewSPI_initWithFrameFrameNameGroupNameUsesDocumentViews(id self, SEL _cmd, NSRect frame, NSString *frameName, NSString *groupName, BOOL usesDocumentViews) {
+    (void)_cmd; (void)usesDocumentViews;
+    return ((id(*)(id, SEL, NSRect, NSString*, NSString*))objc_msgSend)(
+        self, sel_registerName("_initWithFrame:frameName:groupName:"), frame, frameName, groupName);
+}
+
+__attribute__((constructor))
+static void webViewSPI_inject(void) {
     Class webView = objc_getClass("WebView");
     if (!webView)
-        return; /* not present in this image (e.g. JSC/WebCore copies) */
-    SEL sel = sel_registerName("_setJavaScriptURLsAreAllowed:");
-    if (class_getInstanceMethod(webView, sel))
-        return; /* already implemented — don't clobber a real future impl */
-    class_addMethod(webView, sel, (IMP)webViewSPI_setJavaScriptURLsAreAllowed, "v@:c");
+        return; /* not present in this image (JSC/WebCore copies) */
+
+    /* _setJavaScriptURLsAreAllowed: — removed in 605, no-op. */
+    SEL sel1 = sel_registerName("_setJavaScriptURLsAreAllowed:");
+    if (!class_getInstanceMethod(webView, sel1))
+        class_addMethod(webView, sel1, (IMP)webViewSPI_setJavaScriptURLsAreAllowed, "v@:c");
+
+    /* _usesDocumentViews — Safari 5.0.5 queries this to check if WK1 document
+     * views are used. Always YES in WK1 (the only mode on 605). */
+    SEL sel3 = sel_registerName("_usesDocumentViews");
+    if (!class_getInstanceMethod(webView, sel3)) {
+        extern BOOL webViewSPI_usesDocumentViews(id, SEL);
+        class_addMethod(webView, sel3, (IMP)webViewSPI_usesDocumentViews, "c@:");
+    }
+
+    /* _initWithFrame:frameName:groupName:usesDocumentViews: — Safari 5.0.5's BrowserWebView
+     * calls this private 4-arg init. Forward to the public 3-arg init. */
+    SEL sel2 = sel_registerName("_initWithFrame:frameName:groupName:usesDocumentViews:");
+    if (!class_getInstanceMethod(webView, sel2)) {
+        class_addMethod(webView, sel2, (IMP)webViewSPI_initWithFrameFrameNameGroupNameUsesDocumentViews,
+                        "@@:{CGRect=dddd}@@c");
+    }
 }
-@end
 
 // NSFont +systemFontOfSize:weight: (10.8+, SPI per pal/spi/mac/NSFontSPI.h:38).  WebCore's
 // FontCacheMac.mm:80 system-font lookup (-apple-system / system-ui) calls the weighted
@@ -512,7 +538,10 @@ uintptr_t g_nativeCodePoison = 0;
 
 // CABackdropLayer is 10.10+. Minimal ObjC class stub.
 @interface CABackdropLayer : CALayer @end
-@implementation CABackdropLayer @end
+@implementation CABackdropLayer
+- (void)setWindowServerAware:(BOOL)flag { (void)flag; }
+- (BOOL)isWindowServerAware { return YES; }
+@end
 
 /* WebKitLegacy helper classes referenced by legacy plugin/inspector code. */
 @interface WebHostedNetscapePluginView : NSObject @end
@@ -521,6 +550,8 @@ uintptr_t g_nativeCodePoison = 0;
 @implementation WebKeyGenerator @end
 @interface WebRenderNode : NSObject @end
 @implementation WebRenderNode @end
+@interface WebRenderLayer : NSObject @end
+@implementation WebRenderLayer @end
 @interface WebSerializedJSValue : NSObject @end
 @implementation WebSerializedJSValue @end
 
@@ -916,242 +947,13 @@ struct __float2 __sincospif_stret(float x) {
 /*  at LINK time what urename.h would have done at compile time: map    */
 /*  each plain name to its _55 implementation.  Generated from the      */
 /*  undefined-vs-defined symbol diff of our own frameworks.             */
-asm(".globl _u_charDirection");
-asm(".set _u_charDirection, _u_charDirection_55");
-asm(".globl _u_charMirror");
-asm(".set _u_charMirror, _u_charMirror_55");
-asm(".globl _u_charType");
-asm(".set _u_charType, _u_charType_55");
-asm(".globl _u_errorName");
-asm(".set _u_errorName, _u_errorName_55");
-asm(".globl _u_foldCase");
-asm(".set _u_foldCase, _u_foldCase_55");
-asm(".globl _u_getCombiningClass");
-asm(".set _u_getCombiningClass, _u_getCombiningClass_55");
-asm(".globl _u_getIntPropertyValue");
-asm(".set _u_getIntPropertyValue, _u_getIntPropertyValue_55");
-asm(".globl _u_getPropertyValueEnum");
-asm(".set _u_getPropertyValueEnum, _u_getPropertyValueEnum_55");
-asm(".globl _u_hasBinaryProperty");
-asm(".set _u_hasBinaryProperty, _u_hasBinaryProperty_55");
-asm(".globl _u_isUWhiteSpace");
-asm(".set _u_isUWhiteSpace, _u_isUWhiteSpace_55");
-asm(".globl _u_isprint");
-asm(".set _u_isprint, _u_isprint_55");
-asm(".globl _u_ispunct");
-asm(".set _u_ispunct, _u_ispunct_55");
-asm(".globl _u_strFoldCase");
-asm(".set _u_strFoldCase, _u_strFoldCase_55");
-asm(".globl _u_strToLower");
-asm(".set _u_strToLower, _u_strToLower_55");
-asm(".globl _u_strToUpper");
-asm(".set _u_strToUpper, _u_strToUpper_55");
-asm(".globl _u_tolower");
-asm(".set _u_tolower, _u_tolower_55");
-asm(".globl _u_totitle");
-asm(".set _u_totitle, _u_totitle_55");
-asm(".globl _u_toupper");
-asm(".set _u_toupper, _u_toupper_55");
-asm(".globl _ublock_getCode");
-asm(".set _ublock_getCode, _ublock_getCode_55");
-asm(".globl _ubrk_close");
-asm(".set _ubrk_close, _ubrk_close_55");
-asm(".globl _ubrk_current");
-asm(".set _ubrk_current, _ubrk_current_55");
-asm(".globl _ubrk_first");
-asm(".set _ubrk_first, _ubrk_first_55");
-asm(".globl _ubrk_following");
-asm(".set _ubrk_following, _ubrk_following_55");
-asm(".globl _ubrk_getRuleStatus");
-asm(".set _ubrk_getRuleStatus, _ubrk_getRuleStatus_55");
-asm(".globl _ubrk_isBoundary");
-asm(".set _ubrk_isBoundary, _ubrk_isBoundary_55");
-asm(".globl _ubrk_next");
-asm(".set _ubrk_next, _ubrk_next_55");
-asm(".globl _ubrk_openRules");
-asm(".set _ubrk_openRules, _ubrk_openRules_55");
-asm(".globl _ubrk_open");
-asm(".set _ubrk_open, _ubrk_open_55");
-asm(".globl _ubrk_preceding");
-asm(".set _ubrk_preceding, _ubrk_preceding_55");
-asm(".globl _ubrk_setText");
-asm(".set _ubrk_setText, _ubrk_setText_55");
-asm(".globl _ubrk_setUText");
-asm(".set _ubrk_setUText, _ubrk_setUText_55");
-asm(".globl _ucal_getCanonicalTimeZoneID");
-asm(".set _ucal_getCanonicalTimeZoneID, _ucal_getCanonicalTimeZoneID_55");
-asm(".globl _ucal_getDefaultTimeZone");
-asm(".set _ucal_getDefaultTimeZone, _ucal_getDefaultTimeZone_55");
-asm(".globl _ucal_getKeywordValuesForLocale");
-asm(".set _ucal_getKeywordValuesForLocale, _ucal_getKeywordValuesForLocale_55");
-asm(".globl _ucal_openTimeZones");
-asm(".set _ucal_openTimeZones, _ucal_openTimeZones_55");
-asm(".globl _ucnv_cbFromUWriteBytes");
-asm(".set _ucnv_cbFromUWriteBytes, _ucnv_cbFromUWriteBytes_55");
-asm(".globl _ucnv_cbFromUWriteUChars");
-asm(".set _ucnv_cbFromUWriteUChars, _ucnv_cbFromUWriteUChars_55");
-asm(".globl _ucnv_close");
-asm(".set _ucnv_close, _ucnv_close_55");
-asm(".globl _ucnv_fromUnicode");
-asm(".set _ucnv_fromUnicode, _ucnv_fromUnicode_55");
-asm(".globl _ucnv_getCanonicalName");
-asm(".set _ucnv_getCanonicalName, _ucnv_getCanonicalName_55");
-asm(".globl _ucnv_getName");
-asm(".set _ucnv_getName, _ucnv_getName_55");
-asm(".globl _ucnv_open");
-asm(".set _ucnv_open, _ucnv_open_55");
-asm(".globl _ucnv_reset");
-asm(".set _ucnv_reset, _ucnv_reset_55");
-asm(".globl _ucnv_setFallback");
-asm(".set _ucnv_setFallback, _ucnv_setFallback_55");
-asm(".globl _ucnv_setFromUCallBack");
-asm(".set _ucnv_setFromUCallBack, _ucnv_setFromUCallBack_55");
-asm(".globl _ucnv_setSubstChars");
-asm(".set _ucnv_setSubstChars, _ucnv_setSubstChars_55");
-asm(".globl _ucnv_setToUCallBack");
-asm(".set _ucnv_setToUCallBack, _ucnv_setToUCallBack_55");
-asm(".globl _ucnv_toUnicode");
-asm(".set _ucnv_toUnicode, _ucnv_toUnicode_55");
-asm(".globl _ucol_close");
-asm(".set _ucol_close, _ucol_close_55");
-asm(".globl _ucol_countAvailable");
-asm(".set _ucol_countAvailable, _ucol_countAvailable_55");
-asm(".globl _ucol_getAvailable");
-asm(".set _ucol_getAvailable, _ucol_getAvailable_55");
-asm(".globl _ucol_getKeywordValuesForLocale");
-asm(".set _ucol_getKeywordValuesForLocale, _ucol_getKeywordValuesForLocale_55");
-asm(".globl _ucol_getStrength");
-asm(".set _ucol_getStrength, _ucol_getStrength_55");
-asm(".globl _ucol_open");
-asm(".set _ucol_open, _ucol_open_55");
-asm(".globl _ucol_setAttribute");
-asm(".set _ucol_setAttribute, _ucol_setAttribute_55");
-asm(".globl _ucol_setStrength");
-asm(".set _ucol_setStrength, _ucol_setStrength_55");
-asm(".globl _ucol_strcollIter");
-asm(".set _ucol_strcollIter, _ucol_strcollIter_55");
-asm(".globl _ucsdet_close");
-asm(".set _ucsdet_close, _ucsdet_close_55");
-asm(".globl _ucsdet_detectAll");
-asm(".set _ucsdet_detectAll, _ucsdet_detectAll_55");
-asm(".globl _ucsdet_enableInputFilter");
-asm(".set _ucsdet_enableInputFilter, _ucsdet_enableInputFilter_55");
-asm(".globl _ucsdet_getConfidence");
-asm(".set _ucsdet_getConfidence, _ucsdet_getConfidence_55");
-asm(".globl _ucsdet_getName");
-asm(".set _ucsdet_getName, _ucsdet_getName_55");
-asm(".globl _ucsdet_open");
-asm(".set _ucsdet_open, _ucsdet_open_55");
-asm(".globl _ucsdet_setText");
-asm(".set _ucsdet_setText, _ucsdet_setText_55");
-asm(".globl _udat_close");
-asm(".set _udat_close, _udat_close_55");
-asm(".globl _udat_countAvailable");
-asm(".set _udat_countAvailable, _udat_countAvailable_55");
-asm(".globl _udat_formatForFields");
-asm(".set _udat_formatForFields, _udat_formatForFields_55");
-asm(".globl _udat_format");
-asm(".set _udat_format, _udat_format_55");
-asm(".globl _udat_getAvailable");
-asm(".set _udat_getAvailable, _udat_getAvailable_55");
-asm(".globl _udat_open");
-asm(".set _udat_open, _udat_open_55");
-asm(".globl _udatpg_close");
-asm(".set _udatpg_close, _udatpg_close_55");
-asm(".globl _udatpg_getBestPattern");
-asm(".set _udatpg_getBestPattern, _udatpg_getBestPattern_55");
-asm(".globl _udatpg_open");
-asm(".set _udatpg_open, _udatpg_open_55");
-asm(".globl _uenum_close");
-asm(".set _uenum_close, _uenum_close_55");
-asm(".globl _uenum_next");
-asm(".set _uenum_next, _uenum_next_55");
-asm(".globl _uenum_unext");
-asm(".set _uenum_unext, _uenum_unext_55");
-asm(".globl _ufieldpositer_close");
-asm(".set _ufieldpositer_close, _ufieldpositer_close_55");
-asm(".globl _ufieldpositer_next");
-asm(".set _ufieldpositer_next, _ufieldpositer_next_55");
-asm(".globl _ufieldpositer_open");
-asm(".set _ufieldpositer_open, _ufieldpositer_open_55");
-asm(".globl _uidna_IDNToASCII");
-asm(".set _uidna_IDNToASCII, _uidna_IDNToASCII_55");
-asm(".globl _uidna_nameToASCII");
-asm(".set _uidna_nameToASCII, _uidna_nameToASCII_55");
-asm(".globl _uidna_nameToUnicode");
-asm(".set _uidna_nameToUnicode, _uidna_nameToUnicode_55");
-asm(".globl _uidna_openUTS46");
-asm(".set _uidna_openUTS46, _uidna_openUTS46_55");
-asm(".globl _uiter_setString");
-asm(".set _uiter_setString, _uiter_setString_55");
-asm(".globl _uiter_setUTF8");
-asm(".set _uiter_setUTF8, _uiter_setUTF8_55");
-asm(".globl _uloc_getDefault");
-asm(".set _uloc_getDefault, _uloc_getDefault_55");
-asm(".globl _uloc_setKeywordValue");
-asm(".set _uloc_setKeywordValue, _uloc_setKeywordValue_55");
-asm(".globl _unorm2_getNFCInstance");
-asm(".set _unorm2_getNFCInstance, _unorm2_getNFCInstance_55");
-asm(".globl _unorm2_getNFDInstance");
-asm(".set _unorm2_getNFDInstance, _unorm2_getNFDInstance_55");
-asm(".globl _unorm2_getNFKCInstance");
-asm(".set _unorm2_getNFKCInstance, _unorm2_getNFKCInstance_55");
-asm(".globl _unorm2_getNFKDInstance");
-asm(".set _unorm2_getNFKDInstance, _unorm2_getNFKDInstance_55");
-asm(".globl _unorm2_normalize");
-asm(".set _unorm2_normalize, _unorm2_normalize_55");
-asm(".globl _unorm_normalize");
-asm(".set _unorm_normalize, _unorm_normalize_55");
-asm(".globl _unorm_quickCheck");
-asm(".set _unorm_quickCheck, _unorm_quickCheck_55");
-asm(".globl _unum_close");
-asm(".set _unum_close, _unum_close_55");
-asm(".globl _unum_countAvailable");
-asm(".set _unum_countAvailable, _unum_countAvailable_55");
-asm(".globl _unum_formatDouble");
-asm(".set _unum_formatDouble, _unum_formatDouble_55");
-asm(".globl _unum_getAvailable");
-asm(".set _unum_getAvailable, _unum_getAvailable_55");
-asm(".globl _unum_open");
-asm(".set _unum_open, _unum_open_55");
-asm(".globl _unum_setAttribute");
-asm(".set _unum_setAttribute, _unum_setAttribute_55");
-asm(".globl _unum_setTextAttribute");
-asm(".set _unum_setTextAttribute, _unum_setTextAttribute_55");
-asm(".globl _unumsys_close");
-asm(".set _unumsys_close, _unumsys_close_55");
-asm(".globl _unumsys_getName");
-asm(".set _unumsys_getName, _unumsys_getName_55");
-asm(".globl _unumsys_openAvailableNames");
-asm(".set _unumsys_openAvailableNames, _unumsys_openAvailableNames_55");
-asm(".globl _unumsys_open");
-asm(".set _unumsys_open, _unumsys_open_55");
-asm(".globl _uscript_getScript");
-asm(".set _uscript_getScript, _uscript_getScript_55");
-asm(".globl _usearch_getCollator");
-asm(".set _usearch_getCollator, _usearch_getCollator_55");
-asm(".globl _usearch_getMatchedLength");
-asm(".set _usearch_getMatchedLength, _usearch_getMatchedLength_55");
-asm(".globl _usearch_next");
-asm(".set _usearch_next, _usearch_next_55");
-asm(".globl _usearch_open");
-asm(".set _usearch_open, _usearch_open_55");
-asm(".globl _usearch_reset");
-asm(".set _usearch_reset, _usearch_reset_55");
-asm(".globl _usearch_setAttribute");
-asm(".set _usearch_setAttribute, _usearch_setAttribute_55");
-asm(".globl _usearch_setOffset");
-asm(".set _usearch_setOffset, _usearch_setOffset_55");
-asm(".globl _usearch_setPattern");
-asm(".set _usearch_setPattern, _usearch_setPattern_55");
-asm(".globl _usearch_setText");
-asm(".set _usearch_setText, _usearch_setText_55");
-asm(".globl _utext_close");
-asm(".set _utext_close, _utext_close_55");
-asm(".globl _utext_setup");
-asm(".set _utext_setup, _utext_setup_55");
-asm(".globl _utf8_appendCharSafeBody");
-asm(".set _utf8_appendCharSafeBody, _utf8_appendCharSafeBody_55");
+/* [leopard-webkit-build] Removed: these 2 aliases conflict with the static ICU 55
+ * library (which also defines the plain names) when -fvisibility=default exports
+ * them globally. The library provides both _55 and plain versions for these. */
+/* asm(".globl _ucnv_cbFromUWriteBytes"); */
+/* asm(".set _ucnv_cbFromUWriteBytes, _ucnv_cbFromUWriteBytes_55"); */
+/* asm(".globl _ucnv_cbFromUWriteUChars"); */
+/* asm(".set _ucnv_cbFromUWriteUChars, _ucnv_cbFromUWriteUChars_55"); */
 
 /* =====================================================================
  * NSSCROLLERIMP STUBS — 10.7+ overlay-scrollbar classes for 10.6.
@@ -1608,4 +1410,134 @@ static void webIconDBSPI_checkIntegrityBeforeOpening(id self, SEL _cmd)
     Class meta = object_getClass(webIconDB);
     class_addMethod(meta, sel, (IMP)webIconDBSPI_checkIntegrityBeforeOpening, "v@:");
 }
+@end
+
+/* NSScrollElasticity — 10.7+ enum controlling rubber-band scroll behavior.
+ * 10.6 has no scroll elasticity at all; the values are #define'd in
+ * WebFrameLoaderClient.mm so the build compiles. These no-op stubs let the
+ * 10.7+ SPI selectors resolve at runtime instead of throwing
+ * "unrecognized selector" (which aborts Safari during page load). */
+enum {
+    NSScrollElasticityAutomatic_stubs = 0,
+    NSScrollElasticityNone_stubs = 1,
+    NSScrollElasticityAllowed_stubs = 2,
+};
+
+@interface NSScrollView (WebKitCompat605ScrollElasticity)
+@end
+
+@implementation NSScrollView (WebKitCompat605ScrollElasticity)
+- (void)setVerticalScrollElasticity:(NSInteger)elasticity { (void)elasticity; }
+- (void)setHorizontalScrollElasticity:(NSInteger)elasticity { (void)elasticity; }
+- (NSInteger)verticalScrollElasticity { return NSScrollElasticityNone_stubs; }
+- (NSInteger)horizontalScrollElasticity { return NSScrollElasticityNone_stubs; }
+@end
+
+/* _webcore_effectiveFirstResponder — SPI on NSView/NSClipView/NSScrollView
+ * normally provided by WebCore/platform/mac/WebCoreView.m, which the CMake
+ * build doesn't compile. Without it the responder chain walk aborts with
+ * "unrecognized selector" on WebHTMLView (and any NSView subclass that
+ * doesn't explicitly override it). WebView, WebFrameView, and
+ * WebDynamicScrollBarsView already provide their own implementations; this
+ * category covers everything else via the NSView base. */
+@interface NSView (WebKitCompat605EffectiveFirstResponder)
+@end
+
+@implementation NSView (WebKitCompat605EffectiveFirstResponder)
+- (NSView *)_webcore_effectiveFirstResponder { return self; }
+@end
+
+@interface NSClipView (WebKitCompat605EffectiveFirstResponder)
+@end
+
+@implementation NSClipView (WebKitCompat605EffectiveFirstResponder)
+- (NSView *)_webcore_effectiveFirstResponder
+{
+    NSView *view = [self documentView];
+    return view ? [view _webcore_effectiveFirstResponder] : [super _webcore_effectiveFirstResponder];
+}
+@end
+
+/* +[NSColor colorWithCGColor:] — 10.8+ factory method used by WebCore's
+ * ColorMac to convert CG colors for CSS rendering. On 10.6 it doesn't exist;
+ * convert via calibrated RGB using the CG color's components. */
+@interface NSColor (WebKitCompat605CGColor)
+@end
+
+@implementation NSColor (WebKitCompat605CGColor)
++ (NSColor *)colorWithCGColor:(CGColorRef)cgColor
+{
+    if (!cgColor)
+        return nil;
+    size_t count = CGColorGetNumberOfComponents(cgColor);
+    const CGFloat *components = CGColorGetComponents(cgColor);
+    if (!components || count < 4)
+        return [NSColor blackColor];
+    return [NSColor colorWithCalibratedRed:components[0] green:components[1] blue:components[2] alpha:components[3]];
+}
+@end
+
+/* -[NSEvent isDirectionInvertedFromDevice] — 10.7+ method reporting whether
+ * the trackpad uses "natural" scrolling (inverted direction). 10.6 has no
+ * natural scrolling; always return NO. Called by WebCore's scroll event handler. */
+@interface NSEvent (WebKitCompat605ScrollDirection)
+@end
+
+@implementation NSEvent (WebKitCompat605ScrollDirection)
+- (BOOL)isDirectionInvertedFromDevice { return NO; }
+@end
+
+/* +[NSHTTPCookie _parsedCookiesWithResponseHeaderFields:forURL:] — private SPI
+ * used by WebCore to parse Set-Cookie headers. Delegate to the public
+ * +cookiesWithResponseHeaderFields:forURL: (10.4+). */
+@interface NSHTTPCookie (WebKitCompat605CookieParse)
+@end
+
+@implementation NSHTTPCookie (WebKitCompat605CookieParse)
++ (NSArray *)_parsedCookiesWithResponseHeaderFields:(NSDictionary *)headerFields forURL:(NSURL *)URL
+{
+    return [self cookiesWithResponseHeaderFields:headerFields forURL:URL];
+}
+@end
+
+/* -[NSButtonCell _stateAnimationRunning] — 10.10+ private SPI checked by
+ * RenderThemeMac::paintToggleButton to decide if a checkbox/radio should
+ * animate its state transition. 10.6 has no such animation; always return NO. */
+@interface NSButtonCell (WebKitCompat605ButtonAnim)
+@end
+
+@implementation NSButtonCell (WebKitCompat605ButtonAnim)
+- (BOOL)_stateAnimationRunning { return NO; }
+@end
+
+/* -[NSWindow setMinFullScreenContentSize:] / minFullScreenContentSize —
+ * 10.7+ SPI for full-screen content size limits. No-op on 10.6. */
+@interface NSWindow (WebKitCompat605FullScreen)
+@end
+
+@implementation NSWindow (WebKitCompat605FullScreen)
+- (void)setMinFullScreenContentSize:(NSSize)size { (void)size; }
+- (NSSize)minFullScreenContentSize { return NSZeroSize; }
+- (void)setMaxFullScreenContentSize:(NSSize)size { (void)size; }
+- (NSSize)maxFullScreenContentSize { return NSMakeSize(10000, 10000); }
+@end
+
+/* -[NSSearchFieldCell setCenteredLook:] — 10.7+ SPI for search field styling.
+ * No-op on 10.6 (always uses legacy appearance). */
+@interface NSSearchFieldCell (WebKitCompat605SearchField)
+@end
+
+@implementation NSSearchFieldCell (WebKitCompat605SearchField)
+- (void)setCenteredLook:(BOOL)flag { (void)flag; }
+- (BOOL)centeredLook { return NO; }
+@end
+
+/* -[NSButtonCell _setState:animated:] — 10.10+ SPI for animated state transitions.
+ * Just set the state without animation on 10.6. */
+@interface NSButtonCell (WebKitCompat605ButtonState)
+@end
+
+@implementation NSButtonCell (WebKitCompat605ButtonState)
+- (void)_setState:(NSInteger)state animated:(BOOL)animated { [self setState:state]; (void)animated; }
+- (void)_setHighlighted:(BOOL)flag animated:(BOOL)animated { [self setHighlighted:flag]; (void)animated; }
 @end

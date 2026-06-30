@@ -1,0 +1,8 @@
+#include "JSMediaStream.cpp"
+#include "JSMediaStreamAudioDestinationNode.cpp"
+#include "JSMediaStreamAudioSourceNode.cpp"
+#include "JSMediaStreamTrack.cpp"
+#include "JSMediaStreamTrackEvent.cpp"
+#include "JSMediaTrackConstraints.cpp"
+#include "JSMediaTrackSupportedConstraints.cpp"
+#include "JSMerchantValidationEvent.cpp"

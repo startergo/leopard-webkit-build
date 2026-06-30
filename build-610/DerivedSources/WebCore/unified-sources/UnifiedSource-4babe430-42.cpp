@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WHLSL/AST/WHLSLUnnamedType.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLUnsignedIntegerLiteral.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLUnsignedIntegerLiteralType.cpp"
+#include "Modules/webgpu/WHLSL/Metal/WHLSLEntryPointScaffolding.cpp"
+#include "Modules/webgpu/WHLSL/Metal/WHLSLFunctionWriter.cpp"
+#include "Modules/webgpu/WHLSL/Metal/WHLSLMetalCodeGenerator.cpp"
+#include "Modules/webgpu/WHLSL/Metal/WHLSLNativeFunctionWriter.cpp"
+#include "Modules/webgpu/WHLSL/Metal/WHLSLNativeTypeWriter.cpp"

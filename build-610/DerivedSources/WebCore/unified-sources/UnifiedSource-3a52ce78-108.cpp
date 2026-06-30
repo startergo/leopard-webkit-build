@@ -1,0 +1,8 @@
+#include "JSWebGLCompressedTextureASTC.cpp"
+#include "JSWebGLCompressedTextureATC.cpp"
+#include "JSWebGLCompressedTextureETC.cpp"
+#include "JSWebGLCompressedTextureETC1.cpp"
+#include "JSWebGLCompressedTexturePVRTC.cpp"
+#include "JSWebGLCompressedTextureS3TC.cpp"
+#include "JSWebGLContextAttributes.cpp"
+#include "JSWebGLContextEvent.cpp"

@@ -1,0 +1,8 @@
+#include "JSAuthenticatorTransport.cpp"
+#include "JSBarProp.cpp"
+#include "JSBasicCredential.cpp"
+#include "JSBeforeLoadEvent.cpp"
+#include "JSBeforeUnloadEvent.cpp"
+#include "JSBiquadFilterNode.cpp"
+#include "JSBlob.cpp"
+#include "JSBlobCallback.cpp"

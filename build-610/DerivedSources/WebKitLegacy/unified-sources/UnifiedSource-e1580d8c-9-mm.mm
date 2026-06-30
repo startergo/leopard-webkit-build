@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMHTMLLabelElement.mm"
+#include "mac/DOM/DOMHTMLLegendElement.mm"
+#include "mac/DOM/DOMHTMLLinkElement.mm"
+#include "mac/DOM/DOMHTMLMapElement.mm"
+#include "mac/DOM/DOMHTMLMarqueeElement.mm"
+#include "mac/DOM/DOMHTMLMediaElement.mm"
+#include "mac/DOM/DOMHTMLMenuElement.mm"
+#include "mac/DOM/DOMHTMLMetaElement.mm"

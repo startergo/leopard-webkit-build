@@ -1,0 +1,8 @@
+#include "dom/NodeList.cpp"
+#include "dom/NodeRareData.cpp"
+#include "dom/NodeTraversal.cpp"
+#include "dom/OverflowEvent.cpp"
+#include "dom/PageTransitionEvent.cpp"
+#include "dom/PendingScript.cpp"
+#include "dom/PointerEvent.cpp"
+#include "dom/PopStateEvent.cpp"

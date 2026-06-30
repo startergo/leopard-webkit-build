@@ -1,0 +1,8 @@
+#include "JSVTTRegion.cpp"
+#include "JSVTTRegionList.cpp"
+#include "JSValidityState.cpp"
+#include "JSVideoConfiguration.cpp"
+#include "JSVideoPlaybackQuality.cpp"
+#include "JSVideoTrack.cpp"
+#include "JSVideoTrackList.cpp"
+#include "JSVisibilityState.cpp"

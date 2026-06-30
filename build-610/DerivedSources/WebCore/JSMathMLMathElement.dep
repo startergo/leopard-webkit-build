@@ -1,0 +1,5 @@
+JSMathMLMathElement.h : MathMLElement.idl Element.idl Node.idl EventTarget.idl
+MathMLElement.idl :
+Element.idl :
+Node.idl :
+EventTarget.idl :

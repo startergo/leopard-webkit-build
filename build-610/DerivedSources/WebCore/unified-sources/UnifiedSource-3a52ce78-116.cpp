@@ -1,0 +1,8 @@
+#include "JSWebKitTransitionEvent.cpp"
+#include "JSWebSocket.cpp"
+#include "JSWheelEvent.cpp"
+#include "JSWindowEventHandlers.cpp"
+#include "JSWindowOrWorkerGlobalScope.cpp"
+#include "JSWorker.cpp"
+#include "JSWorkerGlobalScope.cpp"
+#include "JSWorkerGlobalScopeCaches.cpp"

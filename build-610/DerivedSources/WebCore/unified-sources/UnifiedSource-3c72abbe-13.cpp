@@ -1,0 +1,8 @@
+#include "platform/audio/MultiChannelResampler.cpp"
+#include "platform/audio/Panner.cpp"
+#include "platform/audio/PlatformMediaSession.cpp"
+#include "platform/audio/PlatformMediaSessionManager.cpp"
+#include "platform/audio/Reverb.cpp"
+#include "platform/audio/ReverbAccumulationBuffer.cpp"
+#include "platform/audio/ReverbConvolver.cpp"
+#include "platform/audio/ReverbConvolverStage.cpp"

@@ -1,0 +1,8 @@
+#include "page/cocoa/MemoryReleaseCocoa.mm"
+#include "page/cocoa/PerformanceLoggingCocoa.mm"
+#include "page/cocoa/ResourceUsageOverlayCocoa.mm"
+#include "page/cocoa/SettingsBaseCocoa.mm"
+#include "page/ios/EventHandlerIOS.mm"
+#include "page/ios/FrameIOS.mm"
+#include "page/ios/WebEventRegion.mm"
+#include "page/mac/ChromeMac.mm"

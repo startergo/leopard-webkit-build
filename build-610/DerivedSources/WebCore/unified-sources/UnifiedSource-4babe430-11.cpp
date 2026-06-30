@@ -1,0 +1,8 @@
+#include "Modules/indexeddb/server/MemoryObjectStoreCursor.cpp"
+#include "Modules/indexeddb/server/SQLiteIDBBackingStore.cpp"
+#include "Modules/indexeddb/server/SQLiteIDBCursor.cpp"
+#include "Modules/indexeddb/server/SQLiteIDBTransaction.cpp"
+#include "Modules/indexeddb/server/ServerOpenDBRequest.cpp"
+#include "Modules/indexeddb/server/UniqueIDBDatabase.cpp"
+#include "Modules/indexeddb/server/UniqueIDBDatabaseConnection.cpp"
+#include "Modules/indexeddb/server/UniqueIDBDatabaseTransaction.cpp"

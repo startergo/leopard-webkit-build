@@ -1,0 +1,220 @@
+-- The C compiler identification is AppleClang 21.0.0.21000101
+-- The CXX compiler identification is AppleClang 21.0.0.21000101
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- The CMake build type is: Release
+-- Found Perl: /usr/bin/perl (found suitable version "5.34.1", minimum required is "5.10.0")
+-- Found PerlModules: TRUE  found components: JSON::PP
+CMake Warning (dev) at Source/cmake/WebKitCommon.cmake:21 (find_package):
+  Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs modules
+  are removed.  Run "cmake --help-policy CMP0148" for policy details.  Use
+  the cmake_policy command to set the policy and suppress this warning.
+
+Call Stack (most recent call first):
+  CMakeLists.txt:182 (include)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Found PythonInterp: /usr/local/bin/python2.7 (found suitable version "2.7.18", minimum required is "2.7.0")
+-- Found Ruby: /usr/bin/ruby (found suitable version "2.6.10", minimum required is "1.9")
+-- Enabling ccache: Couldn't find ccache program. Not enabling it.
+-- Performing Test C_COMPILER_SUPPORTS_-fno-strict-aliasing
+-- Performing Test C_COMPILER_SUPPORTS_-fno-strict-aliasing - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-fno-strict-aliasing
+-- Performing Test CXX_COMPILER_SUPPORTS_-fno-strict-aliasing - Success
+-- Performing Test C_COMPILER_SUPPORTS_-fno-exceptions
+-- Performing Test C_COMPILER_SUPPORTS_-fno-exceptions - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-fno-exceptions
+-- Performing Test CXX_COMPILER_SUPPORTS_-fno-exceptions - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-fno-rtti
+-- Performing Test CXX_COMPILER_SUPPORTS_-fno-rtti - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wcast-align
+-- Performing Test C_COMPILER_SUPPORTS_-Wcast-align - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wformat-security
+-- Performing Test C_COMPILER_SUPPORTS_-Wformat-security - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wmissing-format-attribute
+-- Performing Test C_COMPILER_SUPPORTS_-Wmissing-format-attribute - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wpointer-arith
+-- Performing Test C_COMPILER_SUPPORTS_-Wpointer-arith - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wundef
+-- Performing Test C_COMPILER_SUPPORTS_-Wundef - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wwrite-strings
+-- Performing Test C_COMPILER_SUPPORTS_-Wwrite-strings - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wcast-align
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wcast-align - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wformat-security
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wformat-security - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wmissing-format-attribute
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wmissing-format-attribute - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wpointer-arith
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wpointer-arith - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wundef
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wundef - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wwrite-strings
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wwrite-strings - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Qunused-arguments
+-- Performing Test C_COMPILER_SUPPORTS_-Qunused-arguments - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wno-maybe-uninitialized
+-- Performing Test C_COMPILER_SUPPORTS_-Wno-maybe-uninitialized - Failed
+-- Performing Test C_COMPILER_SUPPORTS_-Wno-parentheses-equality
+-- Performing Test C_COMPILER_SUPPORTS_-Wno-parentheses-equality - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wno-psabi
+-- Performing Test C_COMPILER_SUPPORTS_-Wno-psabi - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Qunused-arguments
+-- Performing Test CXX_COMPILER_SUPPORTS_-Qunused-arguments - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-maybe-uninitialized
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-maybe-uninitialized - Failed
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-parentheses-equality
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-parentheses-equality - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-psabi
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-psabi - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-noexcept-type
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-noexcept-type - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wall
+-- Performing Test C_COMPILER_SUPPORTS_-Wall - Success
+-- Performing Test C_COMPILER_SUPPORTS_-Wextra
+-- Performing Test C_COMPILER_SUPPORTS_-Wextra - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wall
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wall - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wextra
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wextra - Success
+-- Performing Test C_COMPILER_SUPPORTS_-fcolor-diagnostics
+-- Performing Test C_COMPILER_SUPPORTS_-fcolor-diagnostics - Success
+-- Performing Test C_COMPILER_SUPPORTS_-fdiagnostics-color=always
+-- Performing Test C_COMPILER_SUPPORTS_-fdiagnostics-color=always - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-fcolor-diagnostics
+-- Performing Test CXX_COMPILER_SUPPORTS_-fcolor-diagnostics - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-fdiagnostics-color=always
+-- Performing Test CXX_COMPILER_SUPPORTS_-fdiagnostics-color=always - Success
+-- Performing Test ATOMIC_INT64_IS_BUILTIN
+-- Performing Test ATOMIC_INT64_IS_BUILTIN - Success
+usage:  ar -d [-TLsv] archive file ...
+	ar -m [-TLsv] archive file ...
+	ar -m [-abiTLsv] position archive file ...
+	ar -p [-TLsv] archive [file ...]
+	ar -q [-cTLsv] archive file ...
+	ar -r [-cuTLsv] archive file ...
+	ar -r [-abciuTLsv] position archive file ...
+	ar -t [-TLsv] archive [file ...]
+	ar -x [-ouTLsv] archive [file ...]
+-- Looking for features.h
+-- Looking for features.h - not found
+-- Looking for errno.h
+-- Looking for errno.h - found
+-- Looking for langinfo.h
+-- Looking for langinfo.h - found
+-- Looking for sys/mman.h
+-- Looking for sys/mman.h - found
+-- Looking for pthread_np.h
+-- Looking for pthread_np.h - not found
+-- Looking for sys/param.h
+-- Looking for sys/param.h - found
+-- Looking for sys/time.h
+-- Looking for sys/time.h - found
+-- Looking for sys/timeb.h
+-- Looking for sys/timeb.h - found
+-- Looking for linux/memfd.h
+-- Looking for linux/memfd.h - not found
+-- Looking for _aligned_malloc
+-- Looking for _aligned_malloc - found
+-- Looking for IsDebuggerPresent
+-- Looking for IsDebuggerPresent - found
+-- Looking for localtime_r
+-- Looking for localtime_r - not found
+-- Looking for malloc_trim
+-- Looking for malloc_trim - found
+-- Looking for strnstr
+-- Looking for strnstr - not found
+-- Looking for timegm
+-- Looking for timegm - not found
+-- Looking for vasprintf
+-- Looking for vasprintf - not found
+-- Looking for regexec
+-- Looking for regexec - found
+-- Looking for SIGTRAP
+-- Looking for SIGTRAP - found
+-- Performing Test HAVE_STAT_BIRTHTIME_value
+-- Performing Test HAVE_STAT_BIRTHTIME_value - Success
+-- Performing Test HAVE_TM_GMTOFF_value
+-- Performing Test HAVE_TM_GMTOFF_value - Success
+-- Performing Test HAVE_TM_ZONE_value
+-- Performing Test HAVE_TM_ZONE_value - Success
+-- Looking for sys/types.h
+-- Looking for sys/types.h - found
+-- Looking for stdint.h
+-- Looking for stdint.h - found
+-- Looking for stddef.h
+-- Looking for stddef.h - found
+-- Check size of __int128_t
+-- Check size of __int128_t - done
+-- Disabling ENABLE_APPLE_PAY_SESSION_V3 since ENABLE_APPLE_PAY is disabled.
+-- Disabling ENABLE_APPLE_PAY_SESSION_V4 since ENABLE_APPLE_PAY is disabled.
+-- Disabling ENABLE_INSPECTOR_ALTERNATE_DISPATCHERS since ENABLE_REMOTE_INSPECTOR is disabled.
+-- Found Gperf: /usr/bin/gperf (Required is at least version "3.0.1")
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/bmalloc/PlatformMac.cmake
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WTF/wtf/PlatformMac.cmake
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/JavaScriptCore/PlatformMac.cmake
+-- Performing Test CXX_COMPILER_SUPPORTS_-ffp-contract=off
+-- Performing Test CXX_COMPILER_SUPPORTS_-ffp-contract=off - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-fno-slp-vectorize
+-- Performing Test CXX_COMPILER_SUPPORTS_-fno-slp-vectorize - Success
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/JavaScriptCore/shell/PlatformMac.cmake
+-- Using source list file: Sources.txt
+-- Using source list file: SourcesCocoa.txt
+-- Platform-specific CMakeLists not found: /Users/macbookpro/leopard-webkit-build/sources_610/Source/ThirdParty/ANGLE/PlatformMac.cmake
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-cast-align
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-cast-align - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-deprecated-copy
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-deprecated-copy - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-suggest-attribute=format
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-suggest-attribute=format - Failed
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-type-limits
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-type-limits - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-undef
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-undef - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-unused-parameter
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-unused-parameter - Success
+-- Platform-specific CMakeLists not found: /Users/macbookpro/leopard-webkit-build/sources_610/Source/ThirdParty/gtest/PlatformMac.cmake
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-stringop-truncation
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-stringop-truncation - Failed
+-- Platform-specific CMakeLists not found: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebInspectorUI/PlatformMac.cmake
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/PAL/pal/PlatformMac.cmake
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/PlatformMac.cmake
+CMake Warning (dev) at /Applications/CMake.app/Contents/share/cmake-3.31/Modules/FindPackageHandleStandardArgs.cmake:441 (message):
+  The package name passed to `find_package_handle_standard_args` (SQLite3)
+  does not match the name of the calling package (Sqlite3).  This can lead to
+  problems in calling code that expects `find_package` result variables
+  (e.g., `_FOUND`) to follow a certain pattern.
+Call Stack (most recent call first):
+  Source/cmake/FindSqlite3.cmake:84 (find_package_handle_standard_args)
+  Source/cmake/WebKitFindPackage.cmake:104 (_find_package)
+  Source/WebCore/PlatformMac.cmake:21 (find_package)
+  Source/cmake/WebKitMacros.cmake:74 (include)
+  Source/WebCore/CMakeLists.txt:1720 (WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Found SQLite3: /Users/macbookpro/leopard-webkit-build/sdk/MacOSX-SDKs/MacOSX10.6.sdk/usr/lib/libsqlite3.dylib (found version "3.51.0")
+-- Found ZLIB: /Users/macbookpro/leopard-webkit-build/sdk/MacOSX-SDKs/MacOSX10.6.sdk/usr/lib/libz.dylib (found version "1.2.3")
+-- Using source list file: Sources.txt
+-- Using source list file: SourcesCocoa.txt
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/PlatformMac.cmake
+-- Using source list file: SourcesCocoa.txt
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/PlatformMac.cmake
+-- Enabled features:
+-- Configuring done (9.8s)
+-- Generating done (1.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_POLICY_VERSION_MINIMUM
+    ENABLE_SUBTLE_CRYPTO
+
+
+-- Build files have been written to: /Users/macbookpro/leopard-webkit-build/build-610

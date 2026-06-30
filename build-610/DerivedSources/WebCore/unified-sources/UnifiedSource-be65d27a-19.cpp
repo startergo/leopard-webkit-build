@@ -1,0 +1,8 @@
+#include "dom/TemplateContentDocumentFragment.cpp"
+#include "dom/Text.cpp"
+#include "dom/TextDecoder.cpp"
+#include "dom/TextEncoder.cpp"
+#include "dom/TextEvent.cpp"
+#include "dom/TextNodeTraversal.cpp"
+#include "dom/TransformSourceLibxslt.cpp"
+#include "dom/TransitionEvent.cpp"

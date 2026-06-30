@@ -1,0 +1,8 @@
+#include "JSVisualViewport.cpp"
+#include "JSVoidCallback.cpp"
+#include "JSWaveShaperNode.cpp"
+#include "JSWebAnimation.cpp"
+#include "JSWebGL2RenderingContext.cpp"
+#include "JSWebGLActiveInfo.cpp"
+#include "JSWebGLBuffer.cpp"
+#include "JSWebGLColorBufferFloat.cpp"

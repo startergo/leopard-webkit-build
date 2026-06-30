@@ -1,0 +1,8 @@
+#include "platform/network/cocoa/ProtectionSpaceCocoa.mm"
+#include "platform/network/cocoa/ResourceRequestCocoa.mm"
+#include "platform/network/ios/NetworkStateNotifierIOS.mm"
+#include "platform/network/ios/WebCoreURLResponseIOS.mm"
+#include "platform/network/mac/AuthenticationMac.mm"
+#include "platform/network/mac/BlobDataFileReferenceMac.mm"
+#include "platform/network/mac/CookieStorageMac.mm"
+#include "platform/network/mac/CredentialStorageMac.mm"

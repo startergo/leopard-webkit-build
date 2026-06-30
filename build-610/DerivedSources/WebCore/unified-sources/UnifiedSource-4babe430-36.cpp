@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WebGPUShaderModule.cpp"
+#include "Modules/webgpu/WebGPUSwapChain.cpp"
+#include "Modules/webgpu/WebGPUSwapChainDescriptor.cpp"
+#include "Modules/webgpu/WebGPUTexture.cpp"
+#include "Modules/webgpu/WebGPUTextureView.cpp"
+#include "Modules/webgpu/WorkerNavigatorGPU.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLASTDumper.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLCheckDuplicateFunctions.cpp"

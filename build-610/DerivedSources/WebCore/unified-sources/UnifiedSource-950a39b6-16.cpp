@@ -1,0 +1,8 @@
+#include "html/HTMLVideoElement.cpp"
+#include "html/HTMLWBRElement.cpp"
+#include "html/HiddenInputType.cpp"
+#include "html/ImageBitmap.cpp"
+#include "html/ImageData.cpp"
+#include "html/ImageDocument.cpp"
+#include "html/ImageInputType.cpp"
+#include "html/InputMode.cpp"

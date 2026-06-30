@@ -1,0 +1,8 @@
+#include "svg/SVGSVGElement.cpp"
+#include "svg/SVGScriptElement.cpp"
+#include "svg/SVGSetElement.cpp"
+#include "svg/SVGStopElement.cpp"
+#include "svg/SVGStyleElement.cpp"
+#include "svg/SVGSwitchElement.cpp"
+#include "svg/SVGSymbolElement.cpp"
+#include "svg/SVGTRefElement.cpp"

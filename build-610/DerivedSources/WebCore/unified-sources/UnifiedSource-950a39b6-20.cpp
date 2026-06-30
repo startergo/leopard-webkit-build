@@ -1,0 +1,8 @@
+#include "html/StepRange.cpp"
+#include "html/SubmitInputType.cpp"
+#include "html/TelephoneInputType.cpp"
+#include "html/TextDocument.cpp"
+#include "html/TextFieldInputType.cpp"
+#include "html/TextInputType.cpp"
+#include "html/TimeInputType.cpp"
+#include "html/TimeRanges.cpp"

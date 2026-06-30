@@ -1,0 +1,8 @@
+#include "JSHTMLTableSectionElement.cpp"
+#include "JSHTMLTemplateElement.cpp"
+#include "JSHTMLTextAreaElement.cpp"
+#include "JSHTMLTimeElement.cpp"
+#include "JSHTMLTitleElement.cpp"
+#include "JSHTMLTrackElement.cpp"
+#include "JSHTMLUListElement.cpp"
+#include "JSHTMLUnknownElement.cpp"

@@ -1,0 +1,8 @@
+#include "dom/AbortController.cpp"
+#include "dom/AbortSignal.cpp"
+#include "dom/ActiveDOMCallback.cpp"
+#include "dom/ActiveDOMObject.cpp"
+#include "dom/AllDescendantsCollection.cpp"
+#include "dom/AnimationEvent.cpp"
+#include "dom/Attr.cpp"
+#include "dom/BeforeLoadEvent.cpp"

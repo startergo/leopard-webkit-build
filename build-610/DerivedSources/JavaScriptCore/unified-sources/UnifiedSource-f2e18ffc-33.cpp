@@ -1,0 +1,8 @@
+#include "runtime/StrictEvalActivation.cpp"
+#include "runtime/StringConstructor.cpp"
+#include "runtime/StringIteratorPrototype.cpp"
+#include "runtime/StringObject.cpp"
+#include "runtime/StringPrototype.cpp"
+#include "runtime/StringRecursionChecker.cpp"
+#include "runtime/Structure.cpp"
+#include "runtime/StructureCache.cpp"

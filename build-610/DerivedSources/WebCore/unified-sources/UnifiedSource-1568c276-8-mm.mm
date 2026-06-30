@@ -1,0 +1,8 @@
+#include "platform/graphics/mac/WebKitNSImageExtras.mm"
+#include "platform/graphics/mac/WebLayer.mm"
+#include "platform/mac/BlacklistUpdater.mm"
+#include "platform/mac/LocalCurrentGraphicsContextMac.mm"
+#include "platform/mac/LocalDefaultSystemAppearance.mm"
+#include "platform/mac/LoggingMac.mm"
+#include "platform/mac/NSScrollerImpDetails.mm"
+#include "platform/mac/PasteboardMac.mm"

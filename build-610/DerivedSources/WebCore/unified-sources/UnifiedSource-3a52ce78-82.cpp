@@ -1,0 +1,8 @@
+#include "JSSVGAnimatedPreserveAspectRatio.cpp"
+#include "JSSVGAnimatedRect.cpp"
+#include "JSSVGAnimatedString.cpp"
+#include "JSSVGAnimatedTransformList.cpp"
+#include "JSSVGAnimationElement.cpp"
+#include "JSSVGCircleElement.cpp"
+#include "JSSVGClipPathElement.cpp"
+#include "JSSVGComponentTransferFunctionElement.cpp"

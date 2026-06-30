@@ -1,0 +1,8 @@
+#include "html/FileListCreator.cpp"
+#include "html/FormAssociatedElement.cpp"
+#include "html/FormController.cpp"
+#include "html/GenericCachedHTMLCollection.cpp"
+#include "html/HTMLAllCollection.cpp"
+#include "html/HTMLAnchorElement.cpp"
+#include "html/HTMLAppletElement.cpp"
+#include "html/HTMLAreaElement.cpp"

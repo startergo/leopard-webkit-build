@@ -1,0 +1,8 @@
+#include "JSAudioProcessingEvent.cpp"
+#include "JSAudioTrack.cpp"
+#include "JSAudioTrackList.cpp"
+#include "JSAuthenticationExtensionsClientInputs.cpp"
+#include "JSAuthenticationExtensionsClientOutputs.cpp"
+#include "JSAuthenticatorAssertionResponse.cpp"
+#include "JSAuthenticatorAttestationResponse.cpp"
+#include "JSAuthenticatorResponse.cpp"

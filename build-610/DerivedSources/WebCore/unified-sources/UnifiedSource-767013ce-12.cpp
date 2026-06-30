@@ -1,0 +1,8 @@
+#include "page/TextIndicator.cpp"
+#include "page/UndoItem.cpp"
+#include "page/UndoManager.cpp"
+#include "page/UserContentController.cpp"
+#include "page/UserContentProvider.cpp"
+#include "page/UserContentURLPattern.cpp"
+#include "page/VisitedLinkStore.cpp"
+#include "page/VisualViewport.cpp"

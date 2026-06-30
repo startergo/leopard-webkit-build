@@ -1,0 +1,8 @@
+#include "JSWebGLDebugRendererInfo.cpp"
+#include "JSWebGLDebugShaders.cpp"
+#include "JSWebGLDepthTexture.cpp"
+#include "JSWebGLDrawBuffers.cpp"
+#include "JSWebGLFramebuffer.cpp"
+#include "JSWebGLLoseContext.cpp"
+#include "JSWebGLProgram.cpp"
+#include "JSWebGLQuery.cpp"

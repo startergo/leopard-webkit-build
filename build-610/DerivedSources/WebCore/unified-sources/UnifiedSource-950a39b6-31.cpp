@@ -1,0 +1,8 @@
+#include "html/parser/HTMLParserOptions.cpp"
+#include "html/parser/HTMLParserScheduler.cpp"
+#include "html/parser/HTMLPreloadScanner.cpp"
+#include "html/parser/HTMLResourcePreloader.cpp"
+#include "html/parser/HTMLScriptRunner.cpp"
+#include "html/parser/HTMLSourceTracker.cpp"
+#include "html/parser/HTMLSrcsetParser.cpp"
+#include "html/parser/HTMLTokenizer.cpp"

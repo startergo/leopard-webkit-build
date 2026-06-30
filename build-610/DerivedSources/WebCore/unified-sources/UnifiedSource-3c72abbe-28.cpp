@@ -1,0 +1,8 @@
+#include "platform/graphics/cg/FloatPointCG.cpp"
+#include "platform/graphics/cg/FloatRectCG.cpp"
+#include "platform/graphics/cg/FloatSizeCG.cpp"
+#include "platform/graphics/cg/GradientCG.cpp"
+#include "platform/graphics/cg/GraphicsContextCG.cpp"
+#include "platform/graphics/cg/GraphicsContextGLCG.cpp"
+#include "platform/graphics/cg/IOSurfacePool.cpp"
+#include "platform/graphics/cg/ImageBufferCGBackend.cpp"

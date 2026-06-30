@@ -1,0 +1,8 @@
+#include "JSWebGLTransformFeedback.cpp"
+#include "JSWebGLUniformLocation.cpp"
+#include "JSWebGLVertexArrayObject.cpp"
+#include "JSWebGLVertexArrayObjectOES.cpp"
+#include "JSWebGPU.cpp"
+#include "JSWebGPUAdapter.cpp"
+#include "JSWebGPUBindGroup.cpp"
+#include "JSWebGPUBindGroupBinding.cpp"

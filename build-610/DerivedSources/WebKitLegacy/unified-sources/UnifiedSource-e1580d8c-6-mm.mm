@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMHTMLBaseFontElement.mm"
+#include "mac/DOM/DOMHTMLBodyElement.mm"
+#include "mac/DOM/DOMHTMLButtonElement.mm"
+#include "mac/DOM/DOMHTMLCanvasElement.mm"
+#include "mac/DOM/DOMHTMLCollection.mm"
+#include "mac/DOM/DOMHTMLDListElement.mm"
+#include "mac/DOM/DOMHTMLDirectoryElement.mm"
+#include "mac/DOM/DOMHTMLDivElement.mm"

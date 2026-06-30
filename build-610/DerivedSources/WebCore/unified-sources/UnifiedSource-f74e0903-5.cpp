@@ -1,0 +1,8 @@
+#include "workers/service/ServiceWorkerRegistrationOptions.cpp"
+#include "workers/service/ServiceWorkerWindowClient.cpp"
+#include "workers/service/WorkerSWClientConnection.cpp"
+#include "workers/service/context/SWContextManager.cpp"
+#include "workers/service/context/ServiceWorkerDebuggable.cpp"
+#include "workers/service/context/ServiceWorkerFetch.cpp"
+#include "workers/service/context/ServiceWorkerInspectorProxy.cpp"
+#include "workers/service/context/ServiceWorkerThread.cpp"

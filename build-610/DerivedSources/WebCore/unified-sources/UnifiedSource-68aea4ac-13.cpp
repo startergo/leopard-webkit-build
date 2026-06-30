@@ -1,0 +1,8 @@
+#include "bindings/js/JSPopStateEventCustom.cpp"
+#include "bindings/js/JSPromiseRejectionEventCustom.cpp"
+#include "bindings/js/JSReadableStreamSourceCustom.cpp"
+#include "bindings/js/JSRemoteDOMWindowBase.cpp"
+#include "bindings/js/JSRemoteDOMWindowCustom.cpp"
+#include "bindings/js/JSResizeObserverEntryCustom.cpp"
+#include "bindings/js/JSSVGPathSegCustom.cpp"
+#include "bindings/js/JSSVGViewSpecCustom.cpp"

@@ -1,0 +1,8 @@
+#include "platform/audio/mac/AudioFileReaderMac.cpp"
+#include "platform/audio/mac/AudioSampleBufferList.cpp"
+#include "platform/audio/mac/CAAudioStreamDescription.cpp"
+#include "platform/audio/mac/CARingBuffer.cpp"
+#include "platform/audio/mac/FFTFrameMac.cpp"
+#include "platform/cf/KeyedDecoderCF.cpp"
+#include "platform/cf/KeyedEncoderCF.cpp"
+#include "platform/cf/MainThreadSharedTimerCF.cpp"

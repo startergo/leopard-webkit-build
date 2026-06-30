@@ -1,0 +1,8 @@
+#include "Modules/indexeddb/shared/IDBCursorInfo.cpp"
+#include "Modules/indexeddb/shared/IDBDatabaseInfo.cpp"
+#include "Modules/indexeddb/shared/IDBError.cpp"
+#include "Modules/indexeddb/shared/IDBGetAllRecordsData.cpp"
+#include "Modules/indexeddb/shared/IDBGetRecordData.cpp"
+#include "Modules/indexeddb/shared/IDBIndexInfo.cpp"
+#include "Modules/indexeddb/shared/IDBIterateCursorData.cpp"
+#include "Modules/indexeddb/shared/IDBObjectStoreInfo.cpp"

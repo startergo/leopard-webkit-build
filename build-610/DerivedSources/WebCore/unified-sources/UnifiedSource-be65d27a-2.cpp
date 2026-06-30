@@ -1,0 +1,8 @@
+#include "dom/BeforeTextInsertedEvent.cpp"
+#include "dom/BeforeUnloadEvent.cpp"
+#include "dom/CDATASection.cpp"
+#include "dom/CharacterData.cpp"
+#include "dom/ChildListMutationScope.cpp"
+#include "dom/ChildNodeList.cpp"
+#include "dom/ClassCollection.cpp"
+#include "dom/ClipboardEvent.cpp"

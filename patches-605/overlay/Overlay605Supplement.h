@@ -145,6 +145,12 @@
 #define __NSSCROLLERSTYLE_TYPEDEF_605__
 typedef long NSScrollerStyle;
 #endif
+#ifndef NSScrollerStyleLegacy
+#define NSScrollerStyleLegacy 0
+#endif
+#ifndef NSScrollerStyleOverlay
+#define NSScrollerStyleOverlay 1
+#endif
 
 /* NSScrollerKnobStyle — AppKit enum (Default/Light/Dark), 10.7+.
    Used as a property type by pal/spi/mac/NSScrollerImpSPI.h:59.

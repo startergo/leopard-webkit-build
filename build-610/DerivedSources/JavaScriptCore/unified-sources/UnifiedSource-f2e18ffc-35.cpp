@@ -1,0 +1,8 @@
+#include "runtime/TemplateObjectDescriptor.cpp"
+#include "runtime/TestRunnerUtils.cpp"
+#include "runtime/ThrowScope.cpp"
+#include "runtime/TypeLocationCache.cpp"
+#include "runtime/TypeProfiler.cpp"
+#include "runtime/TypeProfilerLog.cpp"
+#include "runtime/TypeSet.cpp"
+#include "runtime/TypedArrayController.cpp"

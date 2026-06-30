@@ -1,0 +1,8 @@
+#include "platform/mock/RTCDataChannelHandlerMock.cpp"
+#include "platform/mock/RTCNotifiersMock.cpp"
+#include "platform/mock/ScrollAnimatorMock.cpp"
+#include "platform/mock/ScrollbarThemeMock.cpp"
+#include "platform/mock/MediaPlaybackTargetMock.cpp"
+#include "platform/mock/MediaPlaybackTargetPickerMock.cpp"
+#include "platform/mock/MockAudioDestinationCocoa.cpp"
+#include "platform/network/AuthenticationChallengeBase.cpp"

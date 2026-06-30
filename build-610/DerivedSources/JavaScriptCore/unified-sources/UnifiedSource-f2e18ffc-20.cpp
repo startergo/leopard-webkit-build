@@ -1,0 +1,8 @@
+#include "runtime/JSInternalPromisePrototype.cpp"
+#include "runtime/JSLexicalEnvironment.cpp"
+#include "runtime/JSLock.cpp"
+#include "runtime/JSMap.cpp"
+#include "runtime/JSMapIterator.cpp"
+#include "runtime/JSMicrotask.cpp"
+#include "runtime/JSModuleEnvironment.cpp"
+#include "runtime/JSModuleLoader.cpp"

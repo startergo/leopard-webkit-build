@@ -1,0 +1,8 @@
+#include "platform/encryptedmedia/CDMProxy.cpp"
+#include "platform/gamepad/mac/HIDGamepad.cpp"
+#include "platform/gamepad/mac/HIDGamepadProvider.cpp"
+#include "platform/graphics/ANGLEWebKitBridge.cpp"
+#include "platform/graphics/BitmapImage.cpp"
+#include "platform/graphics/Color.cpp"
+#include "platform/graphics/ColorUtilities.cpp"
+#include "platform/graphics/ComplexTextController.cpp"

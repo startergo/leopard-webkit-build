@@ -1,0 +1,8 @@
+#include "rendering/RenderButton.cpp"
+#include "rendering/RenderCombineText.cpp"
+#include "rendering/RenderCounter.cpp"
+#include "rendering/RenderDeprecatedFlexibleBox.cpp"
+#include "rendering/RenderDetailsMarker.cpp"
+#include "rendering/RenderElement.cpp"
+#include "rendering/RenderEmbeddedObject.cpp"
+#include "rendering/RenderFileUploadControl.cpp"

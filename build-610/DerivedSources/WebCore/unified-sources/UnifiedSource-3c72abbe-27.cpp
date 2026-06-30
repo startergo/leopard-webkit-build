@@ -1,0 +1,8 @@
+#include "platform/graphics/ca/LayerPool.cpp"
+#include "platform/graphics/ca/PlatformCAAnimation.cpp"
+#include "platform/graphics/ca/PlatformCALayer.cpp"
+#include "platform/graphics/ca/TileController.cpp"
+#include "platform/graphics/ca/TileCoverageMap.cpp"
+#include "platform/graphics/ca/TileGrid.cpp"
+#include "platform/graphics/ca/TransformationMatrixCA.cpp"
+#include "platform/graphics/cg/ColorCG.cpp"

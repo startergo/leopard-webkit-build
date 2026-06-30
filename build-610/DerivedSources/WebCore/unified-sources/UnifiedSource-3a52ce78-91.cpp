@@ -1,0 +1,8 @@
+#include "JSSVGPathSegArcAbs.cpp"
+#include "JSSVGPathSegArcRel.cpp"
+#include "JSSVGPathSegClosePath.cpp"
+#include "JSSVGPathSegCurvetoCubicAbs.cpp"
+#include "JSSVGPathSegCurvetoCubicRel.cpp"
+#include "JSSVGPathSegCurvetoCubicSmoothAbs.cpp"
+#include "JSSVGPathSegCurvetoCubicSmoothRel.cpp"
+#include "JSSVGPathSegCurvetoQuadraticAbs.cpp"

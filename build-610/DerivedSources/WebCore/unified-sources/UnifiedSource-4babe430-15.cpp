@@ -1,0 +1,8 @@
+#include "Modules/mediasource/DOMURLMediaSource.cpp"
+#include "Modules/mediasource/MediaSource.cpp"
+#include "Modules/mediasource/MediaSourceRegistry.cpp"
+#include "Modules/mediasource/SampleMap.cpp"
+#include "Modules/mediasource/SourceBuffer.cpp"
+#include "Modules/mediasource/SourceBufferList.cpp"
+#include "Modules/mediasource/VideoPlaybackQuality.cpp"
+#include "Modules/mediastream/CanvasCaptureMediaStreamTrack.cpp"

@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMFile.mm"
+#include "mac/DOM/DOMFileList.mm"
+#include "mac/DOM/DOMHTML.mm"
+#include "mac/DOM/DOMHTMLAnchorElement.mm"
+#include "mac/DOM/DOMHTMLAppletElement.mm"
+#include "mac/DOM/DOMHTMLAreaElement.mm"
+#include "mac/DOM/DOMHTMLBRElement.mm"
+#include "mac/DOM/DOMHTMLBaseElement.mm"

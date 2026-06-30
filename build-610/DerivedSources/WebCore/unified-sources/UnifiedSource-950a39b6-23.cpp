@@ -1,0 +1,8 @@
+#include "html/canvas/EXTColorBufferHalfFloat.cpp"
+#include "html/canvas/EXTFragDepth.cpp"
+#include "html/canvas/EXTShaderTextureLOD.cpp"
+#include "html/canvas/EXTTextureFilterAnisotropic.cpp"
+#include "html/canvas/EXTsRGB.cpp"
+#include "html/canvas/GPUBasedCanvasRenderingContext.cpp"
+#include "html/canvas/ImageBitmapRenderingContext.cpp"
+#include "html/canvas/OESElementIndexUint.cpp"

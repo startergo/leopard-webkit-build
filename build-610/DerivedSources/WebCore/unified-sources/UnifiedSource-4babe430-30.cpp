@@ -1,0 +1,8 @@
+#include "Modules/webauthn/fido/Pin.cpp"
+#include "Modules/webauthn/fido/U2fCommandConstructor.cpp"
+#include "Modules/webauthn/fido/U2fResponseConverter.cpp"
+#include "Modules/webdatabase/ChangeVersionWrapper.cpp"
+#include "Modules/webdatabase/DOMWindowWebDatabase.cpp"
+#include "Modules/webdatabase/Database.cpp"
+#include "Modules/webdatabase/DatabaseAuthorizer.cpp"
+#include "Modules/webdatabase/DatabaseContext.cpp"

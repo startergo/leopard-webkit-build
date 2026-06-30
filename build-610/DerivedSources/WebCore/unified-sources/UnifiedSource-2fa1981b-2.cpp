@@ -1,0 +1,5 @@
+#include "bridge/c/c_class.cpp"
+#include "bridge/c/c_instance.cpp"
+#include "bridge/c/c_runtime.cpp"
+#include "bridge/c/c_utility.cpp"
+#include "bridge/jsc/BridgeJSC.cpp"

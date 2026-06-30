@@ -1,0 +1,8 @@
+#include "crypto/mac/CryptoAlgorithmPBKDF2Mac.cpp"
+#include "crypto/mac/CryptoAlgorithmRSAES_PKCS1_v1_5Mac.cpp"
+#include "crypto/mac/CryptoAlgorithmRSASSA_PKCS1_v1_5Mac.cpp"
+#include "crypto/mac/CryptoAlgorithmRSA_OAEPMac.cpp"
+#include "crypto/mac/CryptoAlgorithmRSA_PSSMac.cpp"
+#include "crypto/mac/CryptoAlgorithmRegistryMac.cpp"
+#include "crypto/mac/CryptoKeyECMac.cpp"
+#include "crypto/mac/CryptoKeyMac.cpp"

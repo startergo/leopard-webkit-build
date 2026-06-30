@@ -1,0 +1,8 @@
+#include "Modules/indexeddb/WorkerGlobalScopeIndexedDatabase.cpp"
+#include "Modules/indexeddb/client/IDBConnectionProxy.cpp"
+#include "Modules/indexeddb/client/IDBConnectionToServer.cpp"
+#include "Modules/indexeddb/client/TransactionOperation.cpp"
+#include "Modules/indexeddb/server/IDBConnectionToClient.cpp"
+#include "Modules/indexeddb/server/IDBSerialization.cpp"
+#include "Modules/indexeddb/server/IDBSerializationContext.cpp"
+#include "Modules/indexeddb/server/IDBServer.cpp"

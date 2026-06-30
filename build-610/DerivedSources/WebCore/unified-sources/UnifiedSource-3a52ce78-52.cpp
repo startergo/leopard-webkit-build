@@ -1,0 +1,8 @@
+#include "JSInspectorAuditAccessibilityObject.cpp"
+#include "JSInspectorAuditDOMObject.cpp"
+#include "JSInspectorAuditResourcesObject.cpp"
+#include "JSInspectorFrontendHost.cpp"
+#include "JSIntersectionObserver.cpp"
+#include "JSIntersectionObserverCallback.cpp"
+#include "JSIntersectionObserverEntry.cpp"
+#include "JSIterationCompositeOperation.cpp"

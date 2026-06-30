@@ -1,0 +1,8 @@
+#include "dom/Traversal.cpp"
+#include "dom/TreeScope.cpp"
+#include "dom/TreeScopeOrderedMap.cpp"
+#include "dom/TreeWalker.cpp"
+#include "dom/UIEvent.cpp"
+#include "dom/UIEventWithKeyState.cpp"
+#include "dom/UserActionElementSet.cpp"
+#include "dom/UserGestureIndicator.cpp"

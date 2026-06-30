@@ -1,0 +1,8 @@
+#include "JSFillMode.cpp"
+#include "JSFocusEvent.cpp"
+#include "JSFontFace.cpp"
+#include "JSFontFaceSet.cpp"
+#include "JSGPUBindGroupLayoutBinding.cpp"
+#include "JSGPUBindGroupLayoutDescriptor.cpp"
+#include "JSGPUBlendDescriptor.cpp"
+#include "JSGPUBufferDescriptor.cpp"

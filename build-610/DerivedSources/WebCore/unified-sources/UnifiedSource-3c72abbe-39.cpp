@@ -1,0 +1,8 @@
+#include "platform/graphics/opentype/OpenTypeCG.cpp"
+#include "platform/graphics/transforms/AffineTransform.cpp"
+#include "platform/graphics/transforms/Matrix3DTransformOperation.cpp"
+#include "platform/graphics/transforms/MatrixTransformOperation.cpp"
+#include "platform/graphics/transforms/PerspectiveTransformOperation.cpp"
+#include "platform/graphics/transforms/RotateTransformOperation.cpp"
+#include "platform/graphics/transforms/ScaleTransformOperation.cpp"
+#include "platform/graphics/transforms/SkewTransformOperation.cpp"

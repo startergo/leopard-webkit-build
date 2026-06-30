@@ -1,0 +1,8 @@
+#include "Modules/webaudio/MediaStreamAudioSource.cpp"
+#include "Modules/webaudio/MediaStreamAudioSourceNode.cpp"
+#include "Modules/webaudio/OfflineAudioCompletionEvent.cpp"
+#include "Modules/webaudio/OfflineAudioContext.cpp"
+#include "Modules/webaudio/OfflineAudioDestinationNode.cpp"
+#include "Modules/webaudio/OscillatorNode.cpp"
+#include "Modules/webaudio/PannerNode.cpp"
+#include "Modules/webaudio/PeriodicWave.cpp"

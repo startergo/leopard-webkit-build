@@ -1,0 +1,5 @@
+JSFetchEvent.h : ExtendableEvent.idl Event.idl ExtendableEventInit.idl EventInit.idl
+ExtendableEvent.idl :
+Event.idl :
+ExtendableEventInit.idl :
+EventInit.idl :

@@ -1,0 +1,2 @@
+JSWebGPUComputePassEncoder.h : WebGPUProgrammablePassEncoder.idl
+WebGPUProgrammablePassEncoder.idl :

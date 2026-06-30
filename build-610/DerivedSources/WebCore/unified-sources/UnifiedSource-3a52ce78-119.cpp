@@ -1,0 +1,8 @@
+#include "JSXPathExpression.cpp"
+#include "JSXPathNSResolver.cpp"
+#include "JSXPathResult.cpp"
+#include "JSXSLTProcessor.cpp"
+#include "MathMLElementFactory.cpp"
+#include "PlugInsResourcesData.cpp"
+#include "SVGElementFactory.cpp"
+#include "StyleBuilderGenerated.cpp"

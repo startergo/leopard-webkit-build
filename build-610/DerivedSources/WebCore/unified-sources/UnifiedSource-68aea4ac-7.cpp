@@ -1,0 +1,8 @@
+#include "bindings/js/JSDOMWrapper.cpp"
+#include "bindings/js/JSDOMWrapperCache.cpp"
+#include "bindings/js/JSDeprecatedCSSOMValueCustom.cpp"
+#include "bindings/js/JSDocumentCustom.cpp"
+#include "bindings/js/JSDocumentFragmentCustom.cpp"
+#include "bindings/js/JSElementCustom.cpp"
+#include "bindings/js/JSErrorEventCustom.cpp"
+#include "bindings/js/JSErrorHandler.cpp"

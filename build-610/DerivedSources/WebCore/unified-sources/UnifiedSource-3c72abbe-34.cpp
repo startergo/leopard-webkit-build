@@ -1,0 +1,8 @@
+#include "platform/graphics/filters/FETile.cpp"
+#include "platform/graphics/filters/FETurbulence.cpp"
+#include "platform/graphics/filters/FilterEffect.cpp"
+#include "platform/graphics/filters/FilterOperation.cpp"
+#include "platform/graphics/filters/FilterOperations.cpp"
+#include "platform/graphics/filters/PointLightSource.cpp"
+#include "platform/graphics/filters/SourceAlpha.cpp"
+#include "platform/graphics/filters/SourceGraphic.cpp"

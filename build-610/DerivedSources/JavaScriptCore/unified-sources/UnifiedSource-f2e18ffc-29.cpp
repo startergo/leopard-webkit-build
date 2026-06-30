@@ -1,0 +1,8 @@
+#include "runtime/PromiseTimer.cpp"
+#include "runtime/PropertyDescriptor.cpp"
+#include "runtime/PropertySlot.cpp"
+#include "runtime/PropertyTable.cpp"
+#include "runtime/ProxyConstructor.cpp"
+#include "runtime/ProxyObject.cpp"
+#include "runtime/ProxyRevoke.cpp"
+#include "runtime/RandomizingFuzzerAgent.cpp"

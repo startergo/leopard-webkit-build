@@ -1,0 +1,8 @@
+#include "Modules/webauthn/AuthenticatorResponse.cpp"
+#include "Modules/webauthn/PublicKeyCredential.cpp"
+#include "Modules/webauthn/WebAuthenticationUtils.cpp"
+#include "Modules/webauthn/apdu/ApduCommand.cpp"
+#include "Modules/webauthn/apdu/ApduResponse.cpp"
+#include "Modules/webauthn/cbor/CBORReader.cpp"
+#include "Modules/webauthn/cbor/CBORValue.cpp"
+#include "Modules/webauthn/cbor/CBORWriter.cpp"

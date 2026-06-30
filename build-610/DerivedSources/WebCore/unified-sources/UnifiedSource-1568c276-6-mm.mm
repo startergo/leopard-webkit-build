@@ -1,0 +1,8 @@
+#include "platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm"
+#include "platform/graphics/cocoa/WebCoreCALayerExtras.mm"
+#include "platform/graphics/cocoa/WebGLLayer.mm"
+#include "platform/graphics/ios/DisplayRefreshMonitorIOS.mm"
+#include "platform/graphics/ios/FontCacheIOS.mm"
+#include "platform/graphics/ios/IconIOS.mm"
+#include "platform/graphics/mac/ColorMac.mm"
+#include "platform/graphics/mac/ComplexTextControllerCoreText.mm"

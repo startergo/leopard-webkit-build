@@ -1,0 +1,5 @@
+#include "style/StyleScopeRuleSets.cpp"
+#include "style/StyleSharingResolver.cpp"
+#include "style/StyleTreeResolver.cpp"
+#include "style/StyleUpdate.cpp"
+#include "style/UserAgentStyle.cpp"

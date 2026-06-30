@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WHLSL/WHLSLStatementBehaviorChecker.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLSynthesizeConstructors.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLSynthesizeEnumerationFunctions.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLVisitor.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLBuiltInSemantic.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLExpression.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLFloatLiteralType.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLIntegerLiteral.cpp"

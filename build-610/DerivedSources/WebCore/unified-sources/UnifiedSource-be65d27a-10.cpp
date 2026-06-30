@@ -1,0 +1,8 @@
+#include "dom/GCReachableRef.cpp"
+#include "dom/GenericEventQueue.cpp"
+#include "dom/HashChangeEvent.cpp"
+#include "dom/IdTargetObserver.cpp"
+#include "dom/IdTargetObserverRegistry.cpp"
+#include "dom/IdleCallbackController.cpp"
+#include "dom/IdleDeadline.cpp"
+#include "dom/InlineClassicScript.cpp"

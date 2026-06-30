@@ -1,0 +1,8 @@
+#include "platform/graphics/opengl/GraphicsContextGLOpenGL.cpp"
+#include "platform/graphics/opengl/ExtensionsGLOpenGL.cpp"
+#include "platform/graphics/opengl/ExtensionsGLOpenGLCommon.cpp"
+#include "platform/graphics/opengl/GraphicsContextGLOpenGLBase.cpp"
+#include "platform/graphics/opengl/GraphicsContextGLOpenGLCommon.cpp"
+#include "platform/graphics/opengl/GraphicsContextGLOpenGLManager.cpp"
+#include "platform/graphics/opengl/TemporaryOpenGLSetting.cpp"
+#include "platform/graphics/opentype/OpenTypeMathData.cpp"

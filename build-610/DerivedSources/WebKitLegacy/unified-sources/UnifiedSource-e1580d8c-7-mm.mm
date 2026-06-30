@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMHTMLDocument.mm"
+#include "mac/DOM/DOMHTMLElement.mm"
+#include "mac/DOM/DOMHTMLEmbedElement.mm"
+#include "mac/DOM/DOMHTMLFieldSetElement.mm"
+#include "mac/DOM/DOMHTMLFontElement.mm"
+#include "mac/DOM/DOMHTMLFormElement.mm"
+#include "mac/DOM/DOMHTMLFrameElement.mm"
+#include "mac/DOM/DOMHTMLFrameSetElement.mm"

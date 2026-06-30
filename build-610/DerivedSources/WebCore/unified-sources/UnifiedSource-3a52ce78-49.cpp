@@ -1,0 +1,8 @@
+#include "JSHmacKeyParams.cpp"
+#include "JSIDBCursor.cpp"
+#include "JSIDBCursorDirection.cpp"
+#include "JSIDBCursorWithValue.cpp"
+#include "JSIDBDatabase.cpp"
+#include "JSIDBFactory.cpp"
+#include "JSIDBIndex.cpp"
+#include "JSIDBKeyRange.cpp"

@@ -1,0 +1,8 @@
+#include "html/parser/HTMLTreeBuilder.cpp"
+#include "html/parser/TextDocumentParser.cpp"
+#include "html/parser/XSSAuditor.cpp"
+#include "html/parser/XSSAuditorDelegate.cpp"
+#include "html/shadow/AutoFillButtonElement.cpp"
+#include "html/shadow/DataListButtonElement.cpp"
+#include "html/shadow/DetailsMarkerControl.cpp"
+#include "html/shadow/MediaControlTextTrackContainerElement.cpp"

@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMRect.mm"
+#include "mac/DOM/DOMStyleSheet.mm"
+#include "mac/DOM/DOMStyleSheetList.mm"
+#include "mac/DOM/DOMText.mm"
+#include "mac/DOM/DOMTextEvent.mm"
+#include "mac/DOM/DOMTimeRanges.mm"
+#include "mac/DOM/DOMTokenList.mm"
+#include "mac/DOM/DOMTreeWalker.mm"

@@ -1,0 +1,8 @@
+#include "JSPath2D.cpp"
+#include "JSPayerErrorFields.cpp"
+#include "JSPaymentAddress.cpp"
+#include "JSPaymentComplete.cpp"
+#include "JSPaymentCurrencyAmount.cpp"
+#include "JSPaymentDetailsBase.cpp"
+#include "JSPaymentDetailsInit.cpp"
+#include "JSPaymentDetailsModifier.cpp"

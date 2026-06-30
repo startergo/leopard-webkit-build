@@ -1,0 +1,8 @@
+#include "bindings/js/JSOffscreenCanvasRenderingContext2DCustom.cpp"
+#include "bindings/js/JSPaintRenderingContext2DCustom.cpp"
+#include "bindings/js/JSPaintWorkletGlobalScopeCustom.cpp"
+#include "bindings/js/JSPaymentMethodChangeEventCustom.cpp"
+#include "bindings/js/JSPaymentResponseCustom.cpp"
+#include "bindings/js/JSPerformanceEntryCustom.cpp"
+#include "bindings/js/JSPerformanceObserverCustom.cpp"
+#include "bindings/js/JSPluginElementFunctions.cpp"

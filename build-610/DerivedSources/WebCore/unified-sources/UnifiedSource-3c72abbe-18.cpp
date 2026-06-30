@@ -1,0 +1,8 @@
+#include "platform/graphics/CrossfadeGeneratedImage.cpp"
+#include "platform/graphics/CustomPaintImage.cpp"
+#include "platform/graphics/DisplayRefreshMonitor.cpp"
+#include "platform/graphics/DisplayRefreshMonitorClient.cpp"
+#include "platform/graphics/DisplayRefreshMonitorManager.cpp"
+#include "platform/graphics/ExtendedColor.cpp"
+#include "platform/graphics/FloatPoint.cpp"
+#include "platform/graphics/FloatPoint3D.cpp"

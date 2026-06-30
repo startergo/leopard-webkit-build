@@ -1,0 +1,8 @@
+#include "platform/mediastream/RealtimeMediaSourceCenter.cpp"
+#include "platform/mediastream/RealtimeMediaSourceFactory.cpp"
+#include "platform/mediastream/RealtimeMediaSourceSettings.cpp"
+#include "platform/mediastream/RealtimeMediaSourceSupportedConstraints.cpp"
+#include "platform/mediastream/RealtimeOutgoingAudioSource.cpp"
+#include "platform/mediastream/RealtimeOutgoingVideoSource.cpp"
+#include "platform/mediastream/RealtimeVideoCaptureSource.cpp"
+#include "platform/mediastream/RealtimeVideoSource.cpp"

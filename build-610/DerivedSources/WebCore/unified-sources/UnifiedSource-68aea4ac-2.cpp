@@ -1,0 +1,8 @@
+#include "bindings/js/JSAbortControllerCustom.cpp"
+#include "bindings/js/JSAbortSignalCustom.cpp"
+#include "bindings/js/JSAnimationEffectCustom.cpp"
+#include "bindings/js/JSAnimationTimelineCustom.cpp"
+#include "bindings/js/JSAttrCustom.cpp"
+#include "bindings/js/JSAudioTrackCustom.cpp"
+#include "bindings/js/JSAudioTrackListCustom.cpp"
+#include "bindings/js/JSAuthenticatorResponseCustom.cpp"

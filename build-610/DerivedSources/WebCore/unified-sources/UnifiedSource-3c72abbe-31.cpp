@@ -1,0 +1,8 @@
+#include "platform/graphics/cocoa/FontFamilySpecificationCoreText.cpp"
+#include "platform/graphics/cocoa/SystemFontDatabaseCoreText.cpp"
+#include "platform/graphics/cpu/arm/filters/FELightingNEON.cpp"
+#include "platform/graphics/displaylists/DisplayList.cpp"
+#include "platform/graphics/displaylists/DisplayListDrawingContext.cpp"
+#include "platform/graphics/displaylists/DisplayListItems.cpp"
+#include "platform/graphics/displaylists/DisplayListRecorder.cpp"
+#include "platform/graphics/displaylists/DisplayListReplayer.cpp"

@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WebGPUComputePassEncoder.cpp"
+#include "Modules/webgpu/WebGPUComputePipeline.cpp"
+#include "Modules/webgpu/WebGPUComputePipelineDescriptor.cpp"
+#include "Modules/webgpu/WebGPUDevice.cpp"
+#include "Modules/webgpu/WebGPUDeviceErrorScopes.cpp"
+#include "Modules/webgpu/WebGPUPipeline.cpp"
+#include "Modules/webgpu/WebGPUPipelineLayout.cpp"
+#include "Modules/webgpu/WebGPUPipelineLayoutDescriptor.cpp"

@@ -1,0 +1,2 @@
+WebGPURenderPipelineDescriptor.h : WebGPUPipelineDescriptorBase.idl
+WebGPUPipelineDescriptorBase.idl :

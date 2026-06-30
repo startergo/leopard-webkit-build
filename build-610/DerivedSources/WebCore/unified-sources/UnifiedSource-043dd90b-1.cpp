@@ -1,0 +1,8 @@
+#include "rendering/AutoTableLayout.cpp"
+#include "rendering/BidiRun.cpp"
+#include "rendering/BorderEdge.cpp"
+#include "rendering/BreakLines.cpp"
+#include "rendering/CSSFilter.cpp"
+#include "rendering/ClipRect.cpp"
+#include "rendering/ComplexLineLayout.cpp"
+#include "rendering/ContentfulPaintChecker.cpp"

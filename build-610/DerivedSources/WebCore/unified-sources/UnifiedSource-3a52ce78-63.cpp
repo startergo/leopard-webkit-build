@@ -1,0 +1,8 @@
+#include "JSOESTextureHalfFloatLinear.cpp"
+#include "JSOESVertexArrayObject.cpp"
+#include "JSOfflineAudioCompletionEvent.cpp"
+#include "JSOfflineAudioContext.cpp"
+#include "JSOffscreenCanvas.cpp"
+#include "JSOffscreenCanvasRenderingContext2D.cpp"
+#include "JSOptionalEffectTiming.cpp"
+#include "JSOscillatorNode.cpp"

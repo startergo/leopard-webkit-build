@@ -1,0 +1,8 @@
+#include "JSWebGPUShaderModuleDescriptor.cpp"
+#include "JSWebGPUSwapChain.cpp"
+#include "JSWebGPUTexture.cpp"
+#include "JSWebGPUTextureView.cpp"
+#include "JSWebKitAnimationEvent.cpp"
+#include "JSWebKitCSSMatrix.cpp"
+#include "JSWebKitPlaybackTargetAvailabilityEvent.cpp"
+#include "JSWebKitPoint.cpp"

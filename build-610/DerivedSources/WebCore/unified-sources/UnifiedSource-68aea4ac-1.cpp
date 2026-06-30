@@ -1,0 +1,8 @@
+#include "bindings/js/CachedModuleScriptLoader.cpp"
+#include "bindings/js/CachedScriptFetcher.cpp"
+#include "bindings/js/CallTracer.cpp"
+#include "bindings/js/CommonVM.cpp"
+#include "bindings/js/DOMGCOutputConstraint.cpp"
+#include "bindings/js/DOMWrapperWorld.cpp"
+#include "bindings/js/GCController.cpp"
+#include "bindings/js/IDBBindingUtilities.cpp"

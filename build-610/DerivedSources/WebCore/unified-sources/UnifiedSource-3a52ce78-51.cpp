@@ -1,0 +1,8 @@
+#include "JSIdleRequestOptions.cpp"
+#include "JSImageBitmap.cpp"
+#include "JSImageBitmapOptions.cpp"
+#include "JSImageBitmapRenderingContext.cpp"
+#include "JSImageBitmapRenderingContextSettings.cpp"
+#include "JSImageData.cpp"
+#include "JSImageSmoothingQuality.cpp"
+#include "JSInputEvent.cpp"

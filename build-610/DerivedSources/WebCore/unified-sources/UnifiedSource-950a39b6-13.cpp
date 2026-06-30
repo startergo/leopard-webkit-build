@@ -1,0 +1,8 @@
+#include "html/HTMLQuoteElement.cpp"
+#include "html/HTMLScriptElement.cpp"
+#include "html/HTMLSelectElement.cpp"
+#include "html/HTMLSlotElement.cpp"
+#include "html/HTMLSourceElement.cpp"
+#include "html/HTMLSpanElement.cpp"
+#include "html/HTMLStyleElement.cpp"
+#include "html/HTMLSummaryElement.cpp"

@@ -1,0 +1,8 @@
+#include "platform/graphics/cocoa/FontCocoa.mm"
+#include "platform/graphics/cocoa/FontPlatformDataCocoa.mm"
+#include "platform/graphics/cocoa/GraphicsContextCocoa.mm"
+#include "platform/graphics/cocoa/GraphicsContextGLOpenGLCocoa.mm"
+#include "platform/graphics/cocoa/IOSurface.mm"
+#include "platform/graphics/cocoa/IOSurfacePoolCocoa.mm"
+#include "platform/graphics/cocoa/IntRectCocoa.mm"
+#include "platform/graphics/cocoa/TextTrackRepresentationCocoa.mm"

@@ -1,0 +1,8 @@
+#include "Modules/mediastream/RTCIceTransport.cpp"
+#include "Modules/mediastream/RTCPeerConnection.cpp"
+#include "Modules/mediastream/RTCPeerConnectionIceEvent.cpp"
+#include "Modules/mediastream/RTCRtpReceiver.cpp"
+#include "Modules/mediastream/RTCRtpSender.cpp"
+#include "Modules/mediastream/RTCRtpTransceiver.cpp"
+#include "Modules/mediastream/RTCSessionDescription.cpp"
+#include "Modules/mediastream/RTCTrackEvent.cpp"

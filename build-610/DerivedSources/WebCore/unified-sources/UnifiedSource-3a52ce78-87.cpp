@@ -1,0 +1,8 @@
+#include "JSSVGFilterElement.cpp"
+#include "JSSVGFilterPrimitiveStandardAttributes.cpp"
+#include "JSSVGFitToViewBox.cpp"
+#include "JSSVGFontElement.cpp"
+#include "JSSVGFontFaceElement.cpp"
+#include "JSSVGFontFaceFormatElement.cpp"
+#include "JSSVGFontFaceNameElement.cpp"
+#include "JSSVGFontFaceSrcElement.cpp"

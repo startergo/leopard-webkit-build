@@ -1,0 +1,8 @@
+#include "page/RenderingUpdateScheduler.cpp"
+#include "page/ResizeObservation.cpp"
+#include "page/ResizeObserver.cpp"
+#include "page/ResourceUsageOverlay.cpp"
+#include "page/ResourceUsageThread.cpp"
+#include "page/RuntimeEnabledFeatures.cpp"
+#include "page/Screen.cpp"
+#include "page/ScrollBehavior.cpp"

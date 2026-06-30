@@ -1,0 +1,8 @@
+#include "platform/graphics/gpu/GPUValidationError.cpp"
+#include "platform/graphics/gpu/Texture.cpp"
+#include "platform/graphics/gpu/TilingData.cpp"
+#include "platform/graphics/iso/ISOBox.cpp"
+#include "platform/graphics/iso/ISOOriginalFormatBox.cpp"
+#include "platform/graphics/iso/ISOProtectionSchemeInfoBox.cpp"
+#include "platform/graphics/iso/ISOProtectionSystemSpecificHeaderBox.cpp"
+#include "platform/graphics/iso/ISOSchemeInformationBox.cpp"

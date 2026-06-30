@@ -1,0 +1,8 @@
+#include "html/TypeAhead.cpp"
+#include "html/URLDecomposition.cpp"
+#include "html/URLInputType.cpp"
+#include "html/URLSearchParams.cpp"
+#include "html/ValidationMessage.cpp"
+#include "html/WeekInputType.cpp"
+#include "html/canvas/ANGLEInstancedArrays.cpp"
+#include "html/canvas/CanvasGradient.cpp"
