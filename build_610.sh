@@ -392,6 +392,7 @@ phase4_cmake() {
     COMMON_FLAGS="$COMMON_FLAGS -D_LIBCPP_DISABLE_EXTERN_TEMPLATE"
     COMMON_FLAGS="$COMMON_FLAGS -DOS_OBJECT_USE_OBJC=0"
     COMMON_FLAGS="$COMMON_FLAGS -DNS_NONATOMIC_IOSONLY=nonatomic"
+    COMMON_FLAGS="$COMMON_FLAGS -DLEOPARD_WEBKIT"
     COMMON_FLAGS="$COMMON_FLAGS $FW_FLAGS"
     # [leopard] WebCore's 610 ANGLE/WebGL files (platform/graphics/angle/*.cpp,
     # GraphicsContextGL*Cocoa.mm) include <ANGLE/...> and ANGLE-internal headers
