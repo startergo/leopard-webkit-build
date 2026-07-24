@@ -283,7 +283,20 @@ glDeleteTextures(1, &testTex);  // safe — thread_add is synchronous in 1.4
 
 ## Next steps (separate session)
 
-1. **Source-build gst-plugins-bad 1.4.5's GL library against the 10.6 SDK** with three patches (10.7+ selector `#if` guards, dispatch_sync inline-on-main fix, activate-nil-context sanity check) + the two diagnostic logging hooks above. Output: `libgstgl-1.0.0.dylib` + `libgstopengl.so` with `LC_VERSION_MIN_MACOSX = 10.6`, no runtime shim required.
+**Build dependency decision (resolve first):** the consumer port must link
+against GStreamer headers + libs that include the GL API. Currently
+`dist/macports-mirror/` resolves to MacPorts 1.28.5 (no `gstreamer-gl-1.0`,
+since `+quartz` failed to build against 10.6 SDK). The source-built
+`libgstgl` + `libgstopengl.so` are 1.4.5 (in `/Users/macbookpro/gst-plugins-bad`,
+deployed to the mini's `/Library/Frameworks/GStreamer.framework/`).
+For the consumer port, either: (a) add the 1.4.5 devel extract
+(`/tmp/gst-devel-extract/`) to the mirror so WebKit links against 1.4.5
+GL headers, or (b) bundle 1.4.5 entirely and rewire `build_610.sh` to
+use the framework instead of MacPorts. The 1.x→1.x core ABI is stable
+enough that mixing 1.4.5 libgstgl with 1.28.5 libgstreamer works at
+runtime, but the cleaner path is a single consistent version.
+
+1. **Source-build gst-plugins-bad 1.4.5's GL library against the 10.6 SDK** with three patches (10.7+ selector `#if` guards, dispatch_sync inline-on-main fix, activate-nil-context sanity check) + the two diagnostic logging hooks above. Output: `libgstgl-1.0.0.dylib` + `libgstopengl.so` with `LC_VERSION_MIN_MACOSX = 10.6`, no runtime shim required. **Done** — see `gst-plugins-bad` branch `snowleopard-1.4.5`, `build-snowleopard.sh`.
 2. **Bundle** the source-built dylibs into `WebKit.app/Contents/Frameworks/10.6/GStreamer/` with `install_name_tool` surgery so they reference `@rpath/...` instead of `/Library/Frameworks/...`. Plus `GST_PLUGIN_PATH` setup so the registry finds the bundled plugins.
 3. **Write the Cocoa GL consumer in `MediaPlayerPrivateGStreamer`** — `copyVideoTextureToPlatformTexture` for Cocoa behind a new `USE_GSTREAMER_GL_COCOA` CMake flag (since `USE(GSTREAMER_GL)` is EGL/GTK/WPE-only). The architecture diagram above is the shape.
 4. **Wire up GstContext propagation** through `playbin` so the wrapped context reaches `glupload`/`gldownload`.
