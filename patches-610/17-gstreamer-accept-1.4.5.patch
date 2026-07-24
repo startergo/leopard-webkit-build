@@ -1,0 +1,30 @@
+From: leopard-webkit-build
+Subject: [PATCH] cmake: accept GStreamer 1.4.5 for the WebKit 610 + 10.6 build
+
+WebKit's GStreamerChecks.cmake gates find_package(GStreamer) at >= 1.10.0,
+but the official 10.6-native GStreamer.framework is 1.4.5 (compat 406) and
+that is what we bundle inside WebKit.app. Every feature WebKit 610 actually
+uses (ENABLE_VIDEO + USE_GSTREAMER_GL + ENABLE_WEB_AUDIO; ENABLE_MEDIA_SOURCE
+and ENABLE_MEDIA_STREAM/WEB_RTC are OFF) is available at 1.4.5 — every
+GST_CHECK_VERSION gate in MediaPlayerPrivateGStreamer.cpp /
+GLVideoSinkGStreamer.cpp has a working <1.10 #else fallback. Relax the
+single version gate so pkg-config resolves against the bundled
+dist/gst145-mirror/ instead of failing.
+
+See plan: "Rebuild WebKit 610 against GStreamer 1.4.5, bundled in the app,
+with USE(GSTREAMER_GL)".
+
+---
+diff --git a/Source/cmake/GStreamerChecks.cmake b/Source/cmake/GStreamerChecks.cmake
+index cbf1fe20ef..04a178c3e1 100644
+--- a/Source/cmake/GStreamerChecks.cmake
++++ b/Source/cmake/GStreamerChecks.cmake
+@@ -10,7 +10,7 @@ if (ENABLE_VIDEO OR ENABLE_WEB_AUDIO)
+         SET_AND_EXPOSE_TO_BUILD(USE_WEBAUDIO_GSTREAMER TRUE)
+     endif ()
+
+-    find_package(GStreamer 1.10.0 REQUIRED COMPONENTS ${GSTREAMER_COMPONENTS})
++    find_package(GStreamer 1.4.5 REQUIRED COMPONENTS ${GSTREAMER_COMPONENTS})
+
+     if (ENABLE_WEB_AUDIO)
+         if (NOT PC_GSTREAMER_AUDIO_FOUND OR NOT PC_GSTREAMER_FFT_FOUND)

@@ -406,30 +406,53 @@ phase4_cmake() {
     COMMON_FLAGS="$COMMON_FLAGS -I$SOURCE_DIR/Source/ThirdParty/woff2/include"
 
     # [leopard] Force the build to resolve gstreamer/glib headers + .pc files
-    # from the target's dist/macports-mirror/ rather than the build host's
-    # /opt/local/. The host's MacPorts ships a newer glib whose gint64 is
-    # `long` while the SDK's int64_t is `long long` — distinct C++ types
-    # that break gst_element_query_duration / gst_structure_get_uint64
-    # overload resolution. The mirror has rewritten .pc files with the
-    # correct target prefix and a glib that matches.
+    # from a target-side mirror rather than the build host's /opt/local/.
+    # The host's MacPorts ships a newer glib whose gint64 is `long` while
+    # the SDK's int64_t is `long long` — distinct C++ types that break
+    # gst_element_query_duration / gst_structure_get_uint64 overload
+    # resolution. The mirror has rewritten .pc files with the correct
+    # target prefix and a glib that matches.
     # Also export PKG_CONFIG_PATH so cmake's find_package(GStreamer) and
     # find_package(PkgConfig) for GLib (WTF PlatformMac.cmake) resolve to
     # the mirror — these end up on WebCore's INCLUDE_FLAGS via cmake, while
     # the -isystem flags below cover WebKitLegacy + other TUs that pull
     # <gst/gst.h> + <glib.h> in transitively via WebCore forwarding headers.
+    #
+    # Two mirrors are supported, in priority order:
+    #   1. dist/gst145-mirror/   — official GStreamer 1.4.5 devel set that
+    #      ships inside the GStreamer.framework we bundle in the app. This
+    #      is the source of truth for USE_GSTREAMER_GL builds (libgstgl +
+    #      gstreamer-gl-1.0.pc are present). When active, macports-mirror
+    #      MUST NOT also be wired — otherwise pkg-config resolves the base
+    #      gstreamer to 1.28.4 (a Frankenstein).
+    #   2. dist/macports-mirror/ — MacPorts 1.28.x devel set, used by the
+    #      pre-GL WebKit build. Fallback only; lacks gstreamer-gl-1.0.pc.
+    local GST145_MIRROR="$PROJECT_ROOT/dist/gst145-mirror"
     local MACPORTS_MIRROR="$PROJECT_ROOT/dist/macports-mirror"
-    if [ -d "$MACPORTS_MIRROR/lib/pkgconfig" ]; then
-        export PKG_CONFIG_PATH="$MACPORTS_MIRROR/lib/pkgconfig:$MACPORTS_MIRROR/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include/gstreamer-1.0"
-        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include/glib-2.0"
-        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/lib/glib-2.0/include"
-        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include/orc-0.4"
-        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include/gio-unix-2.0"
-        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include"
-        info "    macports-mirror: PKG_CONFIG_PATH + include paths wired ($MACPORTS_MIRROR)"
+    local GST_MIRROR=""
+    if [ -d "$GST145_MIRROR/lib/pkgconfig" ] && [ -f "$GST145_MIRROR/lib/pkgconfig/gstreamer-gl-1.0.pc" ]; then
+        GST_MIRROR="$GST145_MIRROR"
+        info "    gst145-mirror: PKG_CONFIG_PATH + include paths wired ($GST_MIRROR) — USE_GSTREAMER_GL capable"
+    elif [ -d "$MACPORTS_MIRROR/lib/pkgconfig" ]; then
+        GST_MIRROR="$MACPORTS_MIRROR"
+        warn "    gst145-mirror not found at $GST145_MIRROR — falling back to macports-mirror (1.28.x, no GL)"
     else
-        warn "    macports-mirror not found at $MACPORTS_MIRROR — falling back to host /opt/local (may cause int64/gint64 mismatch)"
+        err "    no gstreamer mirror found (looked for $GST145_MIRROR and $MACPORTS_MIRROR)"
+        err "    falling back to host /opt/local will cause int64/gint64 mismatch — aborting"
+        exit 1
     fi
+    # share/pkgconfig only exists for macports-mirror; include it conditionally.
+    if [ -d "$GST_MIRROR/share/pkgconfig" ]; then
+        export PKG_CONFIG_PATH="$GST_MIRROR/lib/pkgconfig:$GST_MIRROR/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+    else
+        export PKG_CONFIG_PATH="$GST_MIRROR/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+    fi
+    COMMON_FLAGS="$COMMON_FLAGS -isystem $GST_MIRROR/include/gstreamer-1.0"
+    COMMON_FLAGS="$COMMON_FLAGS -isystem $GST_MIRROR/include/glib-2.0"
+    COMMON_FLAGS="$COMMON_FLAGS -isystem $GST_MIRROR/lib/glib-2.0/include"
+    COMMON_FLAGS="$COMMON_FLAGS -isystem $GST_MIRROR/include/orc-0.4"
+    COMMON_FLAGS="$COMMON_FLAGS -isystem $GST_MIRROR/include/gio-unix-2.0"
+    COMMON_FLAGS="$COMMON_FLAGS -isystem $GST_MIRROR/include"
 
     local CXX_FLAGS="$COMMON_FLAGS -std=gnu++14 -Wno-nontrivial-memcall -Wno-missing-template-arg-list-after-template-kw"
 
