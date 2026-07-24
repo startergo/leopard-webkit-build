@@ -1,18 +1,140 @@
-# WebKit 610's GStreamer header floor
+# WebKit 610 + GStreamer 1.4.5 on 10.6 — spike findings
 
-Spike determining the minimum GStreamer devel set against which WebKit
-610's `Source/WebCore/platform/graphics/gstreamer/` compiles
-unmodified, and what that floor implies for the bundled-runtime
-strategy.
-
-**Status:** floor located at **GStreamer ≥ 1.10** (header level). Both
-1.4.5 and 1.6.5 runtime targets are ruled out as compile targets unless
-WebKit source is patched. Scaffolding committed; source-gating patch
-deferred to a fresh session.
+Two findings, in descending order of importance. The GL-off finding
+supersedes much of the earlier header-floor analysis's relevance —
+read it first.
 
 ---
 
-## TL;DR
+## HEADLINE FINDING: USE_GSTREAMER_GL is forced OFF by a CMake wiring bug
+
+**Status:** GL is OFF at compile time, despite `find_package(GStreamer 1.4.5 ...
+gl)` succeeding, `PC_GSTREAMER_GL_FOUND=1`, `GSTREAMER_GL_LIBRARIES`
+pointing at the mirror's `libgstgl-1.0.dylib`, and the
+`GLVideoSinkGStreamer.cpp.o` target being present in `build.ninja`.
+
+### Root cause
+
+`Source/cmake/OptionsMac.cmake:120` uses plain `set()`:
+
+```cmake
+set(ENABLE_GRAPHICS_CONTEXT_GL ON)
+```
+
+`ENABLE_GRAPHICS_CONTEXT_GL` is **only** registered as a `WEBKIT_OPTION` in
+`OptionsGTK.cmake:92` and `OptionsWPE.cmake:89` — *not* in `OptionsMac.cmake`.
+Plain `set()` creates a regular CMake variable; the `WEBKIT_OPTION` framework
+only knows about options registered via `WEBKIT_OPTION_DEFINE`.
+
+`Source/cmake/GStreamerDependencies.cmake:2` declares:
+
+```cmake
+WEBKIT_OPTION_DEPEND(USE_GSTREAMER_GL ENABLE_GRAPHICS_CONTEXT_GL)
+```
+
+The `WEBKIT_OPTION_DEPEND` resolver looks up the *registered* option
+`ENABLE_GRAPHICS_CONTEXT_GL`. On the Mac platform that option doesn't exist
+in the registry → the dependency is treated as unsatisfied →
+`USE_GSTREAMER_GL` is forced `OFF`, overriding its `WEBKIT_OPTION_DEFINE(...)
+PRIVATE ON` default.
+
+### Consequence
+
+Every `#if USE(GSTREAMER_GL)` source guard evaluates false. Specifically:
+
+- `GLVideoSinkGStreamer.cpp` — entire body gated on line 22:
+  `#if ENABLE(VIDEO) && USE(GSTREAMER_GL)`. The file compiles to an empty
+  translation unit. The `GLVideoSinkGStreamer.cpp.o` in `build.ninja` is
+  real but empty.
+- `PlatformDisplayGStreamer.cpp` — not even added to the build
+  (gated by `if (USE_GSTREAMER_GL)` in `Source/WebCore/platform/GStreamer.cmake:120`).
+- `GStreamerVideoFrameHolder.cpp`'s GL sections, the `GstEGLImage`
+  specializations in `GRefPtrGStreamer.{h,cpp}`, the GL branches in
+  `MediaPlayerPrivateGStreamer.cpp` — all preprocessed away.
+
+The patched `libgstgl` + `libgstopengl.so` we deployed to the bundle have
+no consumer in WebCore. The standalone `videotestsrc ! glimagesink` probe
+(spike: `spikes/gstreamer-gl-investigation/`) is real — that path runs in
+the GStreamer framework's own process, not in WebKit. The WebKit consumer
+port has not started.
+
+### The fix is one line — but it opens rather than closes work
+
+```cmake
+# OptionsMac.cmake, replace line 120:
+WEBKIT_OPTION_DEFINE(ENABLE_GRAPHICS_CONTEXT_GL "Whether to use OpenGL." PUBLIC ON)
+```
+
+(or equivalently `-DUSE_GSTREAMER_GL=ON` on the `cmake` invocation in
+`build_610.sh`). Either flips GL on at compile time. But doing so
+activates a much larger body of GL code that was previously preprocessed
+out — code written for the EGL/GTK/WPE platforms. On a Cocoa/CGL target
+that code references symbols that don't exist in the 1.4.5 Cocoa GL
+backend (`GstEGLImage`, the EGL/X11 display constructors in
+`PlatformDisplayGStreamer.cpp`, etc.). That's the multi-day consumer
+port already scoped in `spikes/gstreamer-gl-investigation/README.md`.
+
+### How this went uncaught
+
+The build script's verification steps ("GLVideoSinkGStreamer.cpp.o
+present in build.ninja", "PC_GSTREAMER_GL_FOUND=1 in CMakeCache") were
+all green. They measure *infrastructure presence*, not *code path
+activation*. A `.o` file that compiles to nothing satisfies the build
+system without satisfying the goal. `DUSE_GSTREAMER_GL` is absent from
+every compile command in the build log — the one tell that would have
+surfaced this — but nothing was looking for it.
+
+**Lesson:** the GL-on verification needs to be `grep -E 'DUSE_GSTREAMER_GL'
+in the actual compile command`, not "library found" or "`.o` target
+present." Add this check to `build_610.sh`'s Phase 7 verify.
+
+---
+
+## Measurement attempts and their validity
+
+A symbol-gap analysis was performed mid-spike. Its results are **void** —
+recorded here only so the methodology isn't trusted for the wrong build.
+
+| Measurement | Result | Validity |
+|---|---|---|
+| 39-symbol closed gap list | Bounded, "finishable" | **Invalid.** Measured against the GL-off build. Most "missing" GL/EGL symbols were inside `#if USE(GSTREAMER_GL)` guards that were false, so the preprocessor eliminated them. The actual gap for the intended (GL-on) build is unmeasured. |
+| 4 `gst_allocator_fast_malloc_*` symbols | Real gap | **False positive.** These are auto-generated by `G_DEFINE_TYPE` — `_init`/`_class_init` are file-local statics; `_get_type` is exported under its C++ mangled name. Source-grep can't distinguish external refs from macro-emitted local names. |
+| Type-mismatch errors on `gst_element_query_duration` / `gst_structure_get_uint64` | gint64/long-long issue | **Real, mirror-side fix.** See "Mirror glibconfig.h patch" below. |
+
+The methodology (source-grep + nm-on-dylibs + diff) is sound; the
+*application* was wrong. Re-running it against the GL-on build is a
+next-session task.
+
+---
+
+## Mirror-side requirement: glibconfig.h gint64 patch
+
+The mirror at `dist/gst145-mirror/lib/glib-2.0/include/x86_64/glibconfig.h`
+ships with the LP64-default `typedef long gint64`. The 10.6 SDK's
+`int64_t` is `long long` — a C++-distinct type. This breaks overload
+resolution for `gst_element_query_duration`, `gst_structure_get_uint64`,
+and similar 1.0-era APIs that take `gint64*`/`guint64*`.
+
+The macports-mirror has a hand-patched glibconfig.h that forces
+`typedef signed long long gint64`. Port that patch to gst145-mirror —
+see `dist/macports-mirror/lib/glib-2.0/include/glibconfig.h:67-76` for
+the reference. ABI is identical on x86_64 LP64 (both 8-byte); only C++
+type identity changes, so the 1.4.5 dylibs (built with `typedef long`)
+remain link-compatible.
+
+This fix is independent of the GL-on question — it's required for *any*
+compile against gst145-mirror.
+
+---
+
+## SECONDARY FINDING: WebKit 610's GStreamer header floor (1.10+)
+
+Valid finding, but downstream of the GL-off issue. Kept here for the
+record; its in-flight patch (patches-610/20) is committable as
+playbin3-path gating regardless of GL state, but it doesn't unblock the
+consumer port.
+
+### TL;DR (header-floor portion)
 
 - **WebKit 610 was written assuming GStreamer ≥ 1.10.** Three type
   families are referenced *unconditionally* in header template
@@ -159,8 +281,8 @@ implemented — depends on step 4 succeeding).
 
 ## Next session: the gating patch
 
-Concrete shape of the source patch (Option 2), so the next session opens
-on the real work rather than re-deriving it:
+Concrete shape of the source patch (Option 2) — **done, captured in
+`patches-610/20-gstreamer-pre-1.10-type-gates.patch`**:
 
 1. **`GRefPtrGStreamer.h:119-125`** — wrap the `GstStream` and
    `GstStreamCollection` template specializations
@@ -188,22 +310,56 @@ on the real work rather than re-deriving it:
    pattern; the `create(..., GRefPtr<GstStream>)` overloads are
    playbin3-path entry points and can be `#if`'d out wholesale.
 
-6. **Verify** by grepping the post-patch source for any remaining
-   unconditional `GstStream`/`GstStreamCollection`/`GstVideoConverter`/
-   `GstAudioConverter` references; iterate until clean.
+The bus-handler risk flagged in the prior session (whether playbin's
+`select-stream` flow depends on a `GstStream` handle reaching the track
+object) was verified safe: `stream()` is only called from inside
+`!m_isLegacyPlaybin` branches, and the GstPad ctor path never sets
+`m_stream`. Patch 20 gates the field and accessors cleanly.
 
-7. **Run the clean rebuild.** Expect `GLVideoSinkGStreamer.cpp.o`,
-   `PlatformDisplayGStreamer.cpp.o`, `VideoTextureCopierGStreamer.cpp.o`
-   to compile. Verify `otool -L WebCore` shows
-   `/Library/Frameworks/GStreamer.framework/Versions/1.0/lib/libgstgl-1.0.0.dylib`
-   linked (previously absent) and no `/opt/local/lib/` paths.
+---
 
-**Risk to watch during the gate:** the `TrackPrivateBaseGStreamer`
-ctor signature is on a hot code path (every track created for every
-media element goes through it). Verify the playbin path's
-`select-stream` flow doesn't secretly depend on a `GstStream` handle
-reaching the track object — if it does, the gate has to preserve the
-handle as `void*` or a forward-declared opaque type rather than eliding
-the field. Read `MediaPlayerPrivateGStreamer`'s bus handler around the
-`GST_MESSAGE_STREAM_STATUS` / `select-stream` call sites before writing
-the gate.
+## Next session entry point
+
+**Step 1: Turn GL on at compile time.** Apply the one-line CMake fix
+(see "Root cause" above). Verify with:
+
+```
+./build_610.sh --clean
+grep -E 'DUSE_GSTREAMER_GL' build-610/build.ninja
+# expect: -DUSE_GSTREAMER_GL=1 in every WebCore TU's compile command
+```
+
+If `DUSE_GSTREAMER_GL` is still absent, the fix didn't take — debug the
+WEBKIT_OPTION chain before proceeding.
+
+**Step 2: Re-measure the symbol gap against the GL-on build.** The
+39-symbol list above is void. With GL on, `GLVideoSinkGStreamer.cpp`'s
+body, `PlatformDisplayGStreamer.cpp`, `GStreamerVideoFrameHolder.cpp`'s
+GL sections, and the `GstEGLImage` specializations all compile. Run the
+symbol diff fresh:
+
+```
+nm -u $(find build-610 -name "*.o" -path "*gstreamer*") 2>/dev/null \
+  | grep -oE '\b_gst_[A-Za-z_]+' | sed 's/^_//' | sort -u > /tmp/wants.txt
+for lib in dist/gst145-mirror/lib/libgst*.dylib; do nm -gU "$lib"; done \
+  | grep -oE '\b_gst_[A-Za-z_]+' | sed 's/^_//' | sort -u > /tmp/has.txt
+comm -23 /tmp/wants.txt /tmp/has.txt
+```
+
+Expect a different and larger set. Most of it will be EGL/X11 GL backend
+symbols that need Cocoa-aware gating — the consumer-port shape described
+in `spikes/gstreamer-gl-investigation/README.md`.
+
+**Step 3: Decide scope.** The GL-on build is the start of the consumer
+port, not the end of the scaffolding phase. Expect a multi-session
+effort. The gl-investigation spike's architecture diagram and three
+planned diagnostic hooks are the entry points.
+
+**Do not** be surprised by:
+- `GstEGLImage` references that need Cocoa-aware gating (EGL is not CGL).
+- `PlatformDisplayGStreamer.cpp` failing to compile on Cocoa without
+  significant patching — it was written for GTK/WPE.
+- `gst_gl_display_x11_new_with_display` and similar X11 symbols appearing
+  in code that should be platform-gated but isn't.
+
+These are the real consumer-port surface.
