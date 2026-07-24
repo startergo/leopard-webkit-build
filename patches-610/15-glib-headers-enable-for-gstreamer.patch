@@ -1,0 +1,65 @@
+diff --git a/Source/WTF/wtf/glib/GRefPtr.cpp b/Source/WTF/wtf/glib/GRefPtr.cpp
+index c413ed42cc8..a092d0b9fcd 100644
+--- a/Source/WTF/wtf/glib/GRefPtr.cpp
++++ b/Source/WTF/wtf/glib/GRefPtr.cpp
+@@ -19,7 +19,7 @@
+ #include "config.h"
+ #include <wtf/glib/GRefPtr.h>
+ 
+-#if USE(GLIB)
++#if USE(GLIB) || USE(GSTREAMER)
+ 
+ #include <glib-object.h>
+ #include <glib.h>
+diff --git a/Source/WTF/wtf/glib/GRefPtr.h b/Source/WTF/wtf/glib/GRefPtr.h
+index 06133d82cb3..1369c4c35d1 100644
+--- a/Source/WTF/wtf/glib/GRefPtr.h
++++ b/Source/WTF/wtf/glib/GRefPtr.h
+@@ -23,14 +23,12 @@
+ #ifndef WTF_GRefPtr_h
+ #define WTF_GRefPtr_h
+ 
+-#if USE(GLIB)
++#if USE(GLIB) || USE(GSTREAMER)
+ 
+ #include <wtf/HashTraits.h>
+ #include <algorithm>
+ #include <glib.h>
+-
+-extern "C" void g_object_unref(gpointer);
+-extern "C" gpointer g_object_ref_sink(gpointer);
++#include <glib-object.h>
+ 
+ namespace WTF {
+ 
+diff --git a/Source/WTF/wtf/glib/GUniquePtr.h b/Source/WTF/wtf/glib/GUniquePtr.h
+index ef60d1277ae..55901aacc4c 100644
+--- a/Source/WTF/wtf/glib/GUniquePtr.h
++++ b/Source/WTF/wtf/glib/GUniquePtr.h
+@@ -21,7 +21,7 @@
+ #ifndef GUniquePtr_h
+ #define GUniquePtr_h
+ 
+-#if USE(GLIB)
++#if USE(GLIB) || USE(GSTREAMER)
+ 
+ #include <gio/gio.h>
+ #include <utility>
+diff --git a/Source/WTF/wtf/glib/RunLoopSourcePriority.h b/Source/WTF/wtf/glib/RunLoopSourcePriority.h
+index 24cf535be76..63298d6f137 100644
+--- a/Source/WTF/wtf/glib/RunLoopSourcePriority.h
++++ b/Source/WTF/wtf/glib/RunLoopSourcePriority.h
+@@ -19,11 +19,11 @@
+ 
+ #pragma once
+ 
+-#if USE(GLIB)
++#if USE(GLIB) || USE(GSTREAMER)
+ 
+ namespace WTF {
+ 
+-#if PLATFORM(GTK)
++#if PLATFORM(GTK) || PLATFORM(COCOA)
+ 
+ // This is a global enum to define priorities used by GLib run loop sources.
+ // In GLib, priorities are represented by an integer where lower values mean

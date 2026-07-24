@@ -405,6 +405,32 @@ phase4_cmake() {
     COMMON_FLAGS="$COMMON_FLAGS -I$BUILD_DIR/Source/ThirdParty/ANGLE/include"
     COMMON_FLAGS="$COMMON_FLAGS -I$SOURCE_DIR/Source/ThirdParty/woff2/include"
 
+    # [leopard] Force the build to resolve gstreamer/glib headers + .pc files
+    # from the target's dist/macports-mirror/ rather than the build host's
+    # /opt/local/. The host's MacPorts ships a newer glib whose gint64 is
+    # `long` while the SDK's int64_t is `long long` — distinct C++ types
+    # that break gst_element_query_duration / gst_structure_get_uint64
+    # overload resolution. The mirror has rewritten .pc files with the
+    # correct target prefix and a glib that matches.
+    # Also export PKG_CONFIG_PATH so cmake's find_package(GStreamer) and
+    # find_package(PkgConfig) for GLib (WTF PlatformMac.cmake) resolve to
+    # the mirror — these end up on WebCore's INCLUDE_FLAGS via cmake, while
+    # the -isystem flags below cover WebKitLegacy + other TUs that pull
+    # <gst/gst.h> + <glib.h> in transitively via WebCore forwarding headers.
+    local MACPORTS_MIRROR="$PROJECT_ROOT/dist/macports-mirror"
+    if [ -d "$MACPORTS_MIRROR/lib/pkgconfig" ]; then
+        export PKG_CONFIG_PATH="$MACPORTS_MIRROR/lib/pkgconfig:$MACPORTS_MIRROR/share/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include/gstreamer-1.0"
+        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include/glib-2.0"
+        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/lib/glib-2.0/include"
+        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include/orc-0.4"
+        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include/gio-unix-2.0"
+        COMMON_FLAGS="$COMMON_FLAGS -isystem $MACPORTS_MIRROR/include"
+        info "    macports-mirror: PKG_CONFIG_PATH + include paths wired ($MACPORTS_MIRROR)"
+    else
+        warn "    macports-mirror not found at $MACPORTS_MIRROR — falling back to host /opt/local (may cause int64/gint64 mismatch)"
+    fi
+
     local CXX_FLAGS="$COMMON_FLAGS -std=gnu++14 -Wno-nontrivial-memcall -Wno-missing-template-arg-list-after-template-kw"
 
     local LINKER_FLAGS="-target $ARCH-apple-macos10.6"

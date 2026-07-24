@@ -1,0 +1,29 @@
+diff --git a/Source/WebCore/platform/GStreamer.cmake b/Source/WebCore/platform/GStreamer.cmake
+index 1609e91bc0d..76e9efbb523 100644
+--- a/Source/WebCore/platform/GStreamer.cmake
++++ b/Source/WebCore/platform/GStreamer.cmake
+@@ -37,8 +37,13 @@ if (ENABLE_VIDEO OR ENABLE_WEB_AUDIO)
+         platform/graphics/gstreamer/mse/PlaybackPipeline.cpp
+         platform/graphics/gstreamer/mse/SourceBufferPrivateGStreamer.cpp
+         platform/graphics/gstreamer/mse/WebKitMediaSourceGStreamer.cpp
++    )
+ 
+-        platform/mediastream/libwebrtc/GStreamerVideoDecoderFactory.cpp
++    # [leopard] MediaStream + WebRTC GStreamer sources only build when those
++    # features are enabled. Default macOS 10.6 build has both OFF.
++    if (ENABLE_MEDIA_STREAM OR ENABLE_WEB_RTC)
++        list(APPEND WebCore_SOURCES
++            platform/mediastream/libwebrtc/GStreamerVideoDecoderFactory.cpp
+         platform/mediastream/libwebrtc/GStreamerVideoEncoder.cpp
+         platform/mediastream/libwebrtc/GStreamerVideoEncoderFactory.cpp
+         platform/mediastream/libwebrtc/LibWebRTCAudioModule.cpp
+@@ -59,7 +64,8 @@ if (ENABLE_VIDEO OR ENABLE_WEB_AUDIO)
+         platform/mediastream/gstreamer/RealtimeMediaSourceCenterLibWebRTC.cpp
+         platform/mediastream/gstreamer/RealtimeOutgoingAudioSourceLibWebRTC.cpp
+         platform/mediastream/gstreamer/RealtimeOutgoingVideoSourceLibWebRTC.cpp
+-    )
++        )
++    endif ()
+ 
+     list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
+         platform/graphics/gstreamer/GRefPtrGStreamer.h

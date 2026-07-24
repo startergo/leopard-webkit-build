@@ -1,0 +1,16 @@
+diff --git a/Source/WebCore/PlatformMac.cmake b/Source/WebCore/PlatformMac.cmake
+index e076fed572..616e1d8612 100644
+--- a/Source/WebCore/PlatformMac.cmake
++++ b/Source/WebCore/PlatformMac.cmake
+@@ -21,6 +21,11 @@ find_library(XML2_LIBRARY XML2)
+ find_package(Sqlite3 REQUIRED)
+ find_package(ZLIB REQUIRED)
+ 
++# [leopard] GStreamer media backend (replaces AVFoundation which is 10.7+).
++if (USE_GSTREAMER)
++    include(platform/GStreamer.cmake)
++endif()
++
+ # [leopard-webkit-build] 610 links the imported target LibXml2::LibXml2 but the Mac
+ # port only does find_library(XML2_LIBRARY XML2), never creating the imported target.
+ # The 10.6 SDK ships libxml2.2.dylib + headers, so define the target from the SDK.
