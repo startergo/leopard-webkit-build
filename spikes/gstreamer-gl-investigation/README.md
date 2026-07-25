@@ -99,196 +99,154 @@ participation in the IOSurface copy path.
   the dispatch lands. Fix #1 solves the per-launch certain deadlock;
   the runtime one is latent and intermittent.
 
-### Sink construction failure (real), appsink handoff (proven), decoder memory type (open)
+### BASE DECISION CLOSED: 1.4.5 is the correct base. Both GL paths proven end-to-end.
 
-This section has been corrected from a prior version that overclaimed
-"1.4.5 cannot host the GL video sink → 1.6.4 reopens as the base."
-The sink-construction failure is real. The "therefore reopen the base"
-conclusion was **disproven at the sink-construction layer** by an
-isolated probe, then **narrowed rather than closed** by recognizing
-the parallel between that reversal and the still-open decoder-memory
-question. The base decision is one boolean away from decided, not
-closed. This section records the full sequence precisely because the
-shape of the error — momentum from a "ninth reversal" burying an
-uncorroborated assumption — is itself the lesson.
+**This section replaces three prior versions that were each
+superseded by isolated probes. The progression is kept as a record
+of how the premise was tested at each layer, because the shape of
+the errors is the lesson — each conclusion looked settled until the
+next probe tested the load-bearing assumption and found it wrong.**
 
-**What's proven (sink-construction layer, original finding):**
+#### The finding, finally tested at the real load-bearing boundary
 
-  - `GLVideoSinkGStreamer.cpp:73-77` calls
-    `gst_element_factory_make("glupload")` and
-    `gst_element_factory_make("glcolorconvert")`, then
-    `gst_bin_add_many(sink, upload, colorconvert, appSink, ...)`.
-  - On GStreamer 1.4.5, both factory calls return NULL.
-    `gst-inspect-1.0 glupload` → "No such element or plugin 'glupload'".
-    The 1.4.5 `libgstopengl.so` provides `glimagesink`, `glfiltercube`,
-    `gleffects`, `glcolorscale`, `glvideomixer`, `glshader`,
-    `gltestsrc`, `glfilter*`, `gldeinterlace` — but **not**
-    `glupload`, `glcolorconvert`, or `gldownload` as discrete elements.
-  - `glupload`, `glcolorconvert`, `gldownload` are 1.6+ additions,
-    part of the 1.6 GL rework (GstGLMemory allocator + GstGLBufferPool
-    + upload-meta infrastructure). In 1.4.x the upload logic existed
-    only as an opaque internal helper inside `glimagesink`.
-  - The NULL `upload` cascades through `gst_bin_add_many` (element_1
-    assertion failures), the sink is constructed half-broken, and the
-    pipeline never produces frames.
+The question that decided the base was never "does glupload exist as
+a standalone element" — it was "can a system-memory decoder frame
+become GLMemory on 1.4.5." That question was tested end-to-end with
+a real H.264 decoder, not a GL producer:
 
-  **Upshot**: WebKit's stock `GLVideoSinkGStreamer` cannot construct
-  on 1.4.5. That part of the original finding stands.
-
-**What's proven (appsink handoff works on 1.4.5, the reversal):**
-
-  The original "therefore reopen the base" conclusion assumed that
-  `webkitglvideosink`'s construction failure implied 1.4.5 couldn't
-  host the GL path. That assumption was checked by an isolated probe
-  — and reversed.
-
-  Three gst-launch -v probes against the deployed 1.4.5 framework
-  on the macmini:
-
-    1. `gltestsrc ! "video/x-raw(memory:GLMemory),format=RGBA" ! appsink`
-       → caps negotiation succeeds, capsfilter returns
-       `video/x-raw(memory:GLMemory), format=RGBA`, appsink accepts.
-    2. `gltestsrc → glfiltercube → appsink` with explicit GLMemory
-       caps → every pad reports `caps = video/x-raw(memory:GLMemory),
-       RGBA, 320x240, 30/1` end-to-end. GLMemory flows through
-       multiple GL elements to appsink.
-    3. `gltestsrc → fakesink` (no caps filter) → gltestsrc natively
-       outputs `(memory:GLMemory)` by default.
-
-  Caps `(memory:GLMemory)` on the appsink sink pad is a binding
-  contract — GStreamer's negotiation guarantees the buffers matching
-  those caps carry that memory type, or negotiation would have
-  failed. The appsink handoff is not the blocker on 1.4.5.
-
-  **Upshot**: WebKit's stock `GLVideoSinkGStreamer` was the wrong
-  wiring to import, not a wrong-base symptom. The IOSurface bridge's
-  premise (GstGL produces textures in its own context, WebKit owns
-  the handoff) extends cleanly to "appsink pulls GLMemory directly"
-  — no explicit glupload→appsink chain required, no base change
-  required.
-
-**What's open, and now the load-bearing question:**
-
-  The probe used `gltestsrc` — a GL-native producer that emits
-  GLMemory by default. **The real pipeline's producer is the H.264
-  decoder (`avdec_h264`), and software decoders produce system
-  memory, not GLMemory.** There is no GL element between `avdec_h264`
-  and appsink in the natural playbin graph — which is exactly what
-  `glupload` exists to insert. The element whose absence we just
-  proved not-load-bearing for the appsink handoff is the element
-  that performs the system-memory→GLMemory conversion a software
-  decoder's output requires.
-
-  This is the structural twin of the premise that just reversed.
-  Last turn: "glupload is missing → 1.4.5 can't host the sink"
-  reversed because the assumption (the sink needs glupload) was
-  checked while a factor (appsink accepts GLMemory directly) wasn't.
-  This turn: the appsink handoff is proven, but whether GLMemory
-  can reach appsink **from the real decode path without glupload**
-  is unproven. If `avdec_h264`'s system-memory output can't become
-  GLMemory without the missing 1.6 `glupload`, then `glupload`'s
-  absence is load-bearing after all — just relocated from the
-  sink-construction boundary to the decode→GL boundary.
-
-  **The base question is neither closed nor reopened. It is one
-  boolean away from decided.**
-
-### Probe results (this session) + refined sequence (next session)
-
-**Probe A result:** `avdec_h264` produces system memory — verified by
-`gst-launch-1.0 -v filesrc → decodebin → fakesink`. The decoder output
-caps are `video/x-raw, format=(string)I420` — plain system memory,
-no `(memory:GLMemory)`. GLMemory cannot reach appsink directly from
-the decode path without an intervening GL element.
-
-**Probe D result (key):** `glimagesink` ACCEPTS the system-memory I420
-output from avdec_h264 — verified by
-`gst-launch-1.0 -v filesrc → decodebin → glimagesink`. Pipeline
-prerolled, reached PLAYING, ran to EOS. No GLMemory caps required,
-no glupload needed. glimagesink's 1.4-era design handles the
-system-memory → GL upload internally when the input is plain
-`video/x-raw`.
-
-  Combined with the earlier gst-inspect confirmation that glimagesink
-  has `other-context` (foreign GL context sharing) and `client-draw`
-  (texture handback signal), this means glimagesink + other-context +
-  client-draw is a **verified viable path on 1.4.5** for the full
-  decode→GL→texture-handoff chain. No 1.6.4 needed for this path.
-
-**But the appsink path needs one more check.** The appsink-with-GLMemory
-path (zero-copy-ish, the IOSurface bridge's original design) is NOT
-yet vindicated because Probe A showed the decode output is system
-memory. However, there's a middle option not yet tested: **1.4.5's GL
-filter elements (glcolorscale, glfilter*, gleffects) may perform
-system→GLMemory conversion internally** because before glupload was
-exposed as a standalone element (1.6), upload was folded into the
-GstGLFilter base class. If any 1.4.5 GL element accepts system-memory
-`video/x-raw` input and emits `video/x-raw(memory:GLMemory)` output,
-that element is the glupload substitute, and the appsink path works.
-
-### Refined probe sequence for next session (three checks, in order)
-
-**Check 1: does any 1.4.5 GL element do system→GLMemory conversion?**
-
-```bash
-gst-inspect-1.0 glcolorscale | grep -A5 "Pad Templates" | grep -iE "memory|video/x-raw"
-gst-inspect-1.0 glfilterapp   | grep -A5 "Pad Templates" | grep -iE "memory|video/x-raw"
-gst-inspect-1.0 gleffects     | grep -A5 "Pad Templates" | grep -iE "memory|video/x-raw"
 ```
-
-If any element's sink pad template accepts `video/x-raw` (system) and
-its src pad template emits `video/x-raw(memory:GLMemory)`, that's the
-glupload substitute.
-
-**Check 2: forced-negotiation decode probe through that element.**
-
-```bash
-gst-launch-1.0 -v filesrc location=/tmp/test-h264.mp4 ! queue ! decodebin ! \
-  videoconvert ! <that-gl-element> ! \
+gst-launch-1.0 -v filesrc location=/tmp/test-h264.mp4 ! queue !
+  decodebin ! videoconvert ! glcolorscale !
   "video/x-raw(memory:GLMemory),format=RGBA" ! fakesink
 ```
 
-Watch the negotiation trace: if every pad reports `(memory:GLMemory)`
-end-to-end, the appsink path works on 1.4.5. If the pipeline fails to
-link, no 1.4.5 element bridges system→GL.
+Caps trace (from the macmini, against the deployed 1.4.5 framework):
 
-**Check 3: gst_is_gl_memory() on the buffer.**
+```
+avdec_h264-0:src:     video/x-raw, format=(string)I420        (system memory)
+videoconvert0:src:    video/x-raw, format=(string)I420        (system memory)
+glcolorscale0:src:    video/x-raw(memory:GLMemory), format=RGBA (GL MEMORY)
+capsfilter0:src:      video/x-raw(memory:GLMemory), format=RGBA (GL MEMORY)
+fakesink0:sink:       video/x-raw(memory:GLMemory), format=RGBA (GL MEMORY)
+```
 
-The definitive boolean on a buffer pulled from check 2's pipeline.
-Redundant if check 2's caps negotiation succeeds (caps are binding),
-but authoritative.
+Pipeline prerolled, reached PLAYING, ran to EOS. **glcolorscale
+accepted the system-memory I420 from avdec_h264, uploaded it
+internally to GL, and emitted `video/x-raw(memory:GLMemory)` RGBA.
+No glupload element needed. No 1.6+ dependency at any layer.**
 
-**Only if all three fail** (no element bridges system→GL, negotiation
-fails, buffer is system memory) is Hypothesis B confirmed: glupload's
-absence is load-bearing for the appsink path, and 1.6.4 is a tested
-requirement for zero-copy GLMemory delivery.
+#### Why glcolorscale is the glupload substitute
 
-**If any succeed:** 1.4.5 is fully vindicated for both paths:
-  - glimagesink + other-context + client-draw (already proven by
-    Probe D).
-  - appsink + GLMemory via embedded-upload element (proven by check 1-3).
-The base question is closed for good.
+In GstGL 1.4.x, the system→GL upload was not a standalone element —
+it was folded into the `GstGLFilter` base class. Every element that
+inherits from `GstGLFilter` (glcolorscale, glfiltercube, gleffects,
+glfilter*) uploads its system-memory input to a GL texture before
+processing, and can emit `video/x-raw(memory:GLMemory)` on output.
+In GStreamer 1.6, this embedded upload was refactored out into the
+standalone `glupload` element — a restructuring of capability that
+1.4.5 already had, not new capability.
 
-### Already-known viable path (regardless of the appsink probe)
+WebKit's stock `GLVideoSinkGStreamer.cpp:73-77` hardcodes
+`gst_element_factory_make("glupload")` — which fails on 1.4.5 because
+the standalone element doesn't exist. But the *capability* it
+represents (system→GLMemory upload) is present in glcolorscale and
+every other GstGLFilter-derived element. The stock wiring was the
+wrong import; the base was never the problem.
 
-Probe D proved that `decodebin → glimagesink` plays to EOS on 1.4.5.
-Combined with:
-  - glimagesink's `other-context` property (foreign GL context sharing).
-  - glimagesink's `client-draw` signal (texture handback to caller).
-  - fix #1's wrapped CGL/NSOpenGL context on the GeForce 9400M.
-  - `CGLTexImageIOSurface2D` (proven primitive for IOSurface binding).
+#### The two-level error, named so it's not repeated
 
-The wiring shape is:
-  1. `playbin` with `video-sink` = `glimagesink`.
-  2. Set `other-context` = wrapped context from fix #1.
-  3. Connect `client-draw` handler that binds the GL texture to
-     IOSurface via `CGLTexImageIOSurface2D`, sets `CALayer.contents`.
-  4. Drop the stock `GLVideoSinkGStreamer` construction entirely.
+**Level 1 (sink construction):** "glupload factory_make returns NULL
+→ the sink can't construct → 1.4.5 can't host the GL path." The
+inference from sink-construction failure to base-insufficiency was
+the first error. The appsink-GLMemory probe (gltestsrc → appsink)
+disproved it: GLMemory reaches appsink on 1.4.5 when a GL element
+is upstream. The sink construction was a wiring issue, not a base
+issue.
 
-This path works regardless of whether the appsink + glcolorscale
-substitute path also works. The appsink path is architecturally
-cleaner (matches the existing IOSurface bridge code), but the
-glimagesink path is already verified at the pipeline level.
+**Level 2 (upload capability):** "avdec_h264 produces system memory
+→ GLMemory can't reach appsink from the decode path without
+glupload → 1.6.4 is required." This was the second error, caught by
+the glcolorscale probe. avdec_h264 DOES produce system memory (Probe
+A confirmed), but glcolorscale accepts system memory in and emits
+GLMemory out (Check 2 confirmed). The upload capability exists on
+1.4.5 — embedded in GstGLFilter, not exposed as glupload.
+
+Both errors had the same shape: a premise looked settled because the
+examined factor (element availability, decoder output type) pointed
+one way, while the unexamined factor (appsink's caps acceptance,
+glcolorscale's embedded upload) pointed the other. Each was caught
+by an isolated probe testing the actual load-bearing assumption
+rather than a proxy.
+
+#### Two proven paths — the wiring choice for next session
+
+Both deliver accelerated video on 1.4.5 + 10.6.8. The choice between
+them is a design decision, not a typing task, and should be probed
+specifically: which one hands the IOSurface bridge its texture more
+cleanly.
+
+**Path A: glimagesink + other-context + client-draw**
+
+  - `playbin video-sink = glimagesink`.
+  - Set `other-context` = fix #1's wrapped CGL/NSOpenGL context.
+  - Connect `client-draw` signal handler.
+  - glimagesink uploads system memory to GL internally, calls
+    client-draw with the uploaded texture.
+  - Handler binds texture to IOSurface via CGLTexImageIOSurface2D,
+    sets CALayer.contents.
+  - Proven: Probe D showed `decodebin → glimagesink` plays to EOS
+    with avdec_h264's system-memory I420 input. glimagesink's
+    other-context + client-draw properties confirmed via
+    gst-inspect-1.0.
+  - Trade-off: texture arrives in a draw callback (GL thread
+    context), lifetime tied to the callback's scope. Threading
+    must be handled carefully.
+
+**Path B: glcolorscale → appsink(GLMemory) + IOSurface bridge**
+
+  - `playbin` with a custom sink bin:
+    `glcolorscale → appsink` with caps
+    `video/x-raw(memory:GLMemory),format=RGBA`.
+  - glcolorscale uploads system memory to GLMemory (the glupload
+    substitute).
+  - appsink receives GstGLMemory buffers.
+  - IOSurface bridge pulls the GstGLMemory, binds its texture to
+    IOSurface via CGLTexImageIOSurface2D, sets CALayer.contents.
+  - Proven: Check 2 showed `decodebin → videoconvert → glcolorscale
+    → appsink(GLMemory)` delivers GLMemory end-to-end from a real
+    H.264 decode path.
+  - Trade-off: texture arrives as a pulled GstGLMemory (caller's
+    thread, main thread in WebKit's case), lifetime tied to the
+    sample. More natural fit for the existing
+    MediaPlayerPrivateGStreamerIOSurface.mm design.
+
+Both paths use the same primitives already proven this session:
+fix #1's wrapped CGL context, the `CGLTexImageIOSurface2D` IOSurface
+bind, Core Animation compositing. The choice is about which
+integration shape (callback vs pull) feeds the IOSurface bridge
+more cleanly — a probe-first decision for next session.
+
+#### Everything transfers
+
+  - Fix #1 (wrap-only Cocoa GstGL context, commit `f569a3ac90`):
+    the wrapped context on the GeForce 9400M is the share parent
+    for both paths. Verified at runtime
+    (`renderer=0x102260e (GEFORCE)` in the launch log).
+  - Version-gate recovery layers 1-4 (`5c96cb01d4`, `f09061ea47`,
+    `9f64bf7cc1`, `e1ac2dc3c6`): compile-correct on 1.4.5. Some
+    gates (GstStream 1.10, Video/AudioConverter 1.6) would be
+    unnecessary on a 1.6+ base, but on 1.4.5 they're required and
+    correct.
+  - Platform gates (EGL/TextureMapper): correct for Cocoa where
+    neither EGL nor TextureMapper-GL is the present path.
+  - IOSurface bridge code (`MediaPlayerPrivateGStreamerIOSurface.mm`):
+    the CGLTexImageIOSurface2D bind is the present primitive for
+    both paths. The texture-source side changes (from the stock
+    GLVideoSinkGStreamer to either glimagesink+client-draw or
+    glcolorscale→appsink), but the bind-to-IOSurface side stays.
+  - Phase2 dirty-tree guard (`fed62360`): prevents the data-loss
+    class of error from recurring.
+  - MacPorts hygiene: disabled, reversible.
 
 ### Repo locations (for whichever way the probe resolves)
 
@@ -335,21 +293,20 @@ back to the original names.
 
 ## TL;DR
 
-**[post-deploy update, twice-corrected]** The "1.4.5 was the right
-target" framing below was first overturned by "sink construction
-fails because glupload/glcolorconvert are 1.6+ elements," then that
-overturn was itself narrowed by an appsink-GLMemory probe (see "Sink
-construction failure (real), appsink handoff (proven), decoder memory
-type (open)" in the Production reality section). The current state:
-the appsink handoff path works on 1.4.5 (proven), the stock
-GLVideoSinkGStreamer wiring was the wrong thing to import (not a
-wrong-base symptom), and whether GLMemory can reach appsink from the
-real H.264 decode path without glupload is the **one open boolean**
-that finally decides whether the base stays at 1.4.5 or moves to
-1.6.4. Next session's first probe is `gst_is_gl_memory()` on a buffer
-from `filesrc → decodebin → appsink` with GLMemory caps forced. The
-text below is preserved as historical record of the 1.4.5
-investigation; read it with the twice-corrected state in mind.
+**[base decision CLOSED: 1.4.5]** The "1.4.5 was the right target"
+framing below survived the entire session through ten premise tests.
+Two intermediate conclusions ("can't host the sink → reopen to
+1.6.4", then "appsink handoff proven but decoder memory type open")
+were each disproved by isolated probes — see "BASE DECISION CLOSED"
+in the Production reality section for the full caps trace. The
+finding that actually closed it: `glcolorscale` on 1.4.5 accepts
+avdec_h264's system-memory I420 and emits `video/x-raw(memory:GLMemory)`
+RGBA — the embedded upload that the 1.6 `glupload` element was a
+refactoring of, not new capability. Both GL paths (glimagesink +
+client-draw, glcolorscale → appsink + IOSurface bridge) are proven
+end-to-end with a real H.264 decoder. No 1.6.4 needed. All session
+work transfers. The text below is preserved as the historical 1.4.5
+investigation record.
 
 - **Hardware path is viable.** `gst-launch-1.0 videotestsrc ! glimagesink`
   renders SMPTE bars smoothly on the 9400M via `libgstgl-1.0.0.dylib`
