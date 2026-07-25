@@ -76,6 +76,8 @@ int main(int argc, char **argv) {
         kCGLPFAColorSize,     (CGLPixelFormatAttribute)24,
         kCGLPFAAlphaSize,     (CGLPixelFormatAttribute)8,
         kCGLPFADoubleBuffer,
+        kCGLPFAAccelerated,
+        kCGLPFANoRecovery,
         (CGLPixelFormatAttribute)0
     };
     CGLPixelFormatObj pf = NULL;
@@ -99,14 +101,19 @@ int main(int argc, char **argv) {
     g_print("  CGLSetCurrentContext: ok\n\n");
 
     /* ---- 2. Create an IOSurface ----
-     * IOSurfaceCreate is a 10.6 API. We create a BGRA surface matching
-     * what CGLTexImageIOSurface2D expects. */
+     * IOSurfaceCreate is a 10.6 API. Must set kIOSurfacePixelFormat to
+     * 'BGRA' (OSType 0x42475241) to match the GL_BGRA /
+     * GL_UNSIGNED_INT_8_8_8_8_REV format used in CGLTexImageIOSurface2D.
+     * Without the format tag, the IOSurface's storage layout is undefined
+     * and GL may bind successfully but render black (the silent-failure
+     * mode for format-mismatched IOSurface textures on 10.6). */
     g_print("=== Step 2: IOSurface creation ===\n");
     int w = PROBE_WIDTH, h = PROBE_HEIGHT;
     int bytes_per_row = PROBE_WIDTH * 4;
     int bytes_per_element = 4;
     int element_width = 1, element_height = 1;
-    int is_global = 1;  /* mark global so it can cross process boundaries */
+    int is_global = 1;
+    OSType pixel_format = 'BGRA';  /* 0x42475241 — matches GL_BGRA */
 
     CFNumberRef cf_w   = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &w);
     CFNumberRef cf_h   = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &h);
@@ -115,13 +122,16 @@ int main(int argc, char **argv) {
     CFNumberRef cf_ew  = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &element_width);
     CFNumberRef cf_eh  = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &element_height);
     CFNumberRef cf_glob = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &is_global);
+    CFNumberRef cf_pf  = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pixel_format);
 
     const void *keys[] = {
+        kIOSurfacePixelFormat,
         kIOSurfaceWidth, kIOSurfaceHeight, kIOSurfaceBytesPerRow,
         kIOSurfaceBytesPerElement, kIOSurfaceElementWidth, kIOSurfaceElementHeight,
         kIOSurfaceIsGlobal,
     };
     const void *values[] = {
+        cf_pf,
         cf_w, cf_h, cf_bpr, cf_bpe, cf_ew, cf_eh, cf_glob,
     };
 
@@ -138,6 +148,7 @@ int main(int argc, char **argv) {
     CFRelease(cf_ew);
     CFRelease(cf_eh);
     CFRelease(cf_glob);
+    CFRelease(cf_pf);
 
     g_print("  IOSurfaceCreate: surface=%p\n", (void*)surface);
     if (!surface) {
@@ -184,6 +195,31 @@ int main(int argc, char **argv) {
         surface, 0);
     g_print("  CGLTexImageIOSurface2D: err=%d (%s)\n",
             tex_err, CGLErrorString(tex_err));
+
+    /* ---- DIAGNOSTICS: renderer, format, GL error ---- */
+    /* 1. Renderer ID — is this the 9400M hardware or software fallback? */
+    GLint renderer_id = 0;
+    CGLGetParameter(cgl_ctx, kCGLCPCurrentRendererID, &renderer_id);
+    g_print("  DIAG renderer ID: 0x%x (%s)\n", (unsigned)renderer_id,
+            (renderer_id & 0x00020000) ? "GEFORCE (hardware)" :
+            (renderer_id & 0x00040000) ? "SOFTWARE" : "unknown");
+
+    /* 2. IOSurface pixel format — verify the FourCC is actually 'BGRA' */
+    OSType surf_pf = IOSurfaceGetPixelFormat(surface);
+    char pf_cc[5];
+    pf_cc[0] = (surf_pf >> 24) & 0xFF;
+    pf_cc[1] = (surf_pf >> 16) & 0xFF;
+    pf_cc[2] = (surf_pf >> 8) & 0xFF;
+    pf_cc[3] = surf_pf & 0xFF;
+    pf_cc[4] = 0;
+    g_print("  DIAG IOSurface pixel format: 0x%08x ('%s')\n", (unsigned)surf_pf, pf_cc);
+    g_print("  DIAG GL format triple: internal=0x%x format=0x%x type=0x%x\n",
+            internal, format, type);
+
+    /* 3. Explicit GL error check — CGL may swallow GL_INVALID_* silently */
+    GLenum gl_err_after_bind = glGetError();
+    g_print("  DIAG glGetError after bind: 0x%x (%s)\n", gl_err_after_bind,
+            gl_err_after_bind == GL_NO_ERROR ? "GL_NO_ERROR" : "GL ERROR");
     if (tex_err != kCGLNoError) {
         g_printerr("  FAIL: CGLTexImageIOSurface2D failed — IOSurface path NOT viable\n");
         failures++;
@@ -199,43 +235,170 @@ int main(int argc, char **argv) {
     }
     g_print("\n");
 
-    /* ---- 4. Render something into the IOSurface texture to verify write path ----
-     * Bind an FBO to the texture, clear to a recognizable color, read back to confirm. */
+    /* ---- 4. Data-flow verification: three independent mechanisms ----
+     *
+     * Three tests that share NO common failure mode. If all three fail,
+     * the interop is genuinely broken on this hardware.
+     *
+     * 4a: GL clear → IOSurface DIRECT MEMORY readback.
+     *     Clear to blue via FBO with IOSurface texture attached. glFinish.
+     *     Then IOSurfaceLock + inspect base address bytes.
+     *     Tests: does GL writing actually reach the IOSurface backing store?
+     *     Bypasses glReadPixels entirely.
+     *
+     * 4b: IOSurface fill → GL SAMPLING via textured quad.
+     *     Fill IOSurface with red via CPU. Bind IOSurface texture.
+     *     Draw a textured quad into a RENDERBUFFER-backed FBO (not the
+     *     IOSurface texture). glReadPixels from the renderbuffer.
+     *     Tests: can GL SAMPLE an IOSurface-backed texture? This is the
+     *     direction WebKit's compositor actually needs.
+     *
+     * 4c: GL clear → GL READBACK (the test that's been failing).
+     *     FBO clear + glReadPixels from same FBO. Kept as reference.
+     */
     if (failures == 0) {
-        g_print("=== Step 4: FBO render → IOSurface verification ===\n");
-        GLuint fbo = 0;
-        glGenFramebuffersEXT(1, &fbo);
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                                  GL_COLOR_ATTACHMENT0_EXT,
-                                  bind_target, io_tex, 0);
-        GLenum fb_status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
-        g_print("  glCheckFramebufferStatus: 0x%x (expected 0x8CD5 = COMPLETE)\n", fb_status);
-        if (fb_status != GL_FRAMEBUFFER_COMPLETE_EXT) {
-            g_printerr("  FAIL: FBO not complete — cannot render to IOSurface texture\n");
-            failures++;
-        } else {
-            /* Render a test color. */
-            glClearColor(0.2f, 0.4f, 0.6f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glFlush();
+        g_print("=== Step 4: Data-flow verification (3 independent tests) ===\n");
 
-            /* Read back one pixel to verify the write landed. */
-            uint8_t pixel[4] = {0, 0, 0, 0};
-            glReadPixels(PROBE_WIDTH/2, PROBE_HEIGHT/2, 1, 1,
-                         GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, pixel);
-            g_print("  glReadPixels(center): BGRA=(%d,%d,%d,%d) expected ~(51,102,153,255)\n",
-                    pixel[0], pixel[1], pixel[2], pixel[3]);
-            /* Allow some tolerance — GL might not match exactly on the 9400M. */
-            if (abs(pixel[0] - 51) > 5 || abs(pixel[1] - 102) > 5 || abs(pixel[2] - 153) > 5) {
-                g_printerr("  WARN: readback mismatch — render may not have landed in IOSurface\n");
-                /* Not a hard failure — could be float precision or color space. */
+        /* --- 4a: GL clear → IOSurface direct memory --- */
+        g_print("--- 4a: GL→IOSurface (clear to blue, read IOSurface memory directly) ---\n");
+        {
+            GLuint fbo = 0;
+            glGenFramebuffersEXT(1, &fbo);
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+            glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                GL_COLOR_ATTACHMENT0_EXT, bind_target, io_tex, 0);
+            GLenum st = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+            g_print("  FBO status: 0x%x\n", st);
+            glClearColor(0.0f, 0.0f, 1.0f, 1.0f); /* BLUE: BGRA=(255,0,0,255) */
+            glClear(GL_COLOR_BUFFER_BIT);
+            glFinish();
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+            glDeleteFramebuffersEXT(1, &fbo);
+
+            /* Now read the IOSurface's memory directly — bypass GL entirely */
+            uint32_t seed = 0;
+            IOSurfaceLock(surface, kIOSurfaceLockReadOnly, &seed);
+            uint8_t *base = (uint8_t *)IOSurfaceGetBaseAddress(surface);
+            size_t bpr = IOSurfaceGetBytesPerRow(surface);
+            /* Check center pixel */
+            uint8_t *px = base + (PROBE_HEIGHT/2) * bpr + (PROBE_WIDTH/2) * 4;
+            g_print("  IOSurface direct read (center): BGRA=(%d,%d,%d,%d) expected ~(255,0,0,255)\n",
+                    px[0], px[1], px[2], px[3]);
+            IOSurfaceUnlock(surface, kIOSurfaceLockReadOnly, &seed);
+            if (px[0] > 250) {
+                g_print("  PASS 4a: GL→IOSurface write works (visible in IOSurface memory)\n");
             } else {
-                g_print("  PASS: render → readback verified\n");
+                g_printerr("  FAIL 4a: clear did not reach IOSurface backing store\n");
             }
         }
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-        glDeleteFramebuffersEXT(1, &fbo);
+        g_print("\n");
+
+        /* --- 4b: IOSurface fill → GL sampling → renderbuffer readback --- */
+        g_print("--- 4b: IOSurface→GL sampling (fill red, draw quad, read renderbuffer) ---\n");
+        {
+            /* Fill IOSurface with RED: BGRA=(0,0,255,255) */
+            uint32_t seed = 0;
+            IOSurfaceLock(surface, 0, &seed);
+            uint8_t *base = (uint8_t *)IOSurfaceGetBaseAddress(surface);
+            size_t bpr = IOSurfaceGetBytesPerRow(surface);
+            for (int y = 0; y < PROBE_HEIGHT; y++)
+                for (int x = 0; x < PROBE_WIDTH; x++) {
+                    uint8_t *p = base + y * bpr + x * 4;
+                    p[0]=0; p[1]=0; p[2]=255; p[3]=255;
+                }
+            IOSurfaceUnlock(surface, 0, &seed);
+            glFlush();
+
+            /* Create a renderbuffer-backed FBO (normal, NOT IOSurface) */
+            GLuint rb_fbo = 0, rb = 0;
+            glGenFramebuffersEXT(1, &rb_fbo);
+            glGenRenderbuffersEXT(1, &rb);
+            glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, rb);
+            glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_RGBA8, PROBE_WIDTH, PROBE_HEIGHT);
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, rb_fbo);
+            glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+                GL_COLOR_ATTACHMENT0_EXT, GL_RENDERBUFFER_EXT, rb);
+            GLenum st = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+            g_print("  renderbuffer FBO status: 0x%x\n", st);
+
+            if (st == GL_FRAMEBUFFER_COMPLETE_EXT) {
+                /* Set up viewport + fixed-function texture sampling */
+                glViewport(0, 0, PROBE_WIDTH, PROBE_HEIGHT);
+                glMatrixMode(GL_PROJECTION);
+                glLoadIdentity();
+                glOrtho(0, PROBE_WIDTH, 0, PROBE_HEIGHT, -1, 1);
+                glMatrixMode(GL_MODELVIEW);
+                glLoadIdentity();
+
+                /* Clear renderbuffer to black */
+                glClearColor(0, 0, 0, 0);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                /* Bind IOSurface-backed texture as sampling source */
+                glEnable(bind_target);
+                glBindTexture(bind_target, io_tex);
+                glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
+                /* Draw full-screen quad. Rectangle textures use
+                 * non-normalized coords: texcoord (0,0) to (w,h). */
+                glBegin(GL_QUADS);
+                glTexCoord2f(0, 0);
+                glVertex2f(0, 0);
+                glTexCoord2f(PROBE_WIDTH, 0);
+                glVertex2f(PROBE_WIDTH, 0);
+                glTexCoord2f(PROBE_WIDTH, PROBE_HEIGHT);
+                glVertex2f(PROBE_WIDTH, PROBE_HEIGHT);
+                glTexCoord2f(0, PROBE_HEIGHT);
+                glVertex2f(0, PROBE_HEIGHT);
+                glEnd();
+                glFlush();
+                glFinish();
+
+                /* Read from the renderbuffer (not the IOSurface texture) */
+                uint8_t px[4] = {0,0,0,0};
+                glReadPixels(PROBE_WIDTH/2, PROBE_HEIGHT/2, 1, 1,
+                    GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, px);
+                g_print("  glReadPixels(center): BGRA=(%d,%d,%d,%d) expected ~(0,0,255,255)\n",
+                        px[0], px[1], px[2], px[3]);
+                if (px[2] > 250) {
+                    g_print("  PASS 4b: IOSurface→GL sampling works (texture is readable)\n");
+                } else {
+                    g_printerr("  FAIL 4b: sampling returned black — IOSurface texture not readable by GL\n");
+                }
+            } else {
+                g_printerr("  FAIL 4b: renderbuffer FBO not complete\n");
+            }
+            glDisable(bind_target);
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+            glDeleteRenderbuffersEXT(1, &rb);
+            glDeleteFramebuffersEXT(1, &rb_fbo);
+        }
+        g_print("\n");
+
+        /* --- 4c: GL clear → GL readback (reference — previous failing test) --- */
+        g_print("--- 4c: GL→GL (FBO clear, glReadPixels — reference) ---\n");
+        {
+            GLuint fbo = 0;
+            glGenFramebuffersEXT(1, &fbo);
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo);
+            glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                GL_COLOR_ATTACHMENT0_EXT, bind_target, io_tex, 0);
+            glClearColor(0.0f, 1.0f, 0.0f, 1.0f); /* GREEN: BGRA=(0,255,0,255) */
+            glClear(GL_COLOR_BUFFER_BIT);
+            glFinish();
+            uint8_t px[4] = {0,0,0,0};
+            glReadPixels(PROBE_WIDTH/2, PROBE_HEIGHT/2, 1, 1,
+                GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, px);
+            g_print("  glReadPixels(center): BGRA=(%d,%d,%d,%d) expected ~(0,255,0,255)\n",
+                    px[0], px[1], px[2], px[3]);
+            if (px[1] > 250) {
+                g_print("  PASS 4c: GL→GL FBO readback works\n");
+            } else {
+                g_printerr("  FAIL 4c: glReadPixels returned black\n");
+            }
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+            glDeleteFramebuffersEXT(1, &fbo);
+        }
         g_print("\n");
     }
 

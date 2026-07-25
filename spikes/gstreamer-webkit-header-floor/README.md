@@ -162,13 +162,88 @@ appsink, and checks whether the resulting samples reference the wrapped
 texture or allocate new ones. That probe determines path (a) vs (b)
 empirically.
 
-**Probe written (not yet run):** `spikes/gstreamer-gl-investigation/gst-gl-iosurface-probe.c`
-tests the three primitives — IOSurfaceCreate, CGLTexImageIOSurface2D,
-gst_gl_memory_wrapped_texture — on 10.6 + 9400M. Build/run instructions
-in the file header. This is the prerequisite probe; the full
-glupload-pipeline test is a follow-up once these primitives are confirmed.
+### Runtime probe result — IOSurface bridge VIABLE on 9400M/10.6.8
 
-### CPU-download fallback (current baseline)
+**Probe:** `spikes/gstreamer-gl-investigation/gst-gl-iosurface-probe.c`.
+Built against the 10.6 SDK + gst145-mirror, run on the mini
+(10.6.8 + GeForce 9400M, renderer ID 0x102260e = hardware confirmed).
+
+**All primitives pass. The IOSurface bridge path is confirmed viable
+on this hardware.**
+
+| Test | Mechanism | Result |
+|---|---|---|
+| Step 2: `IOSurfaceCreate` | Create a BGRA IOSurface on 10.6 | PASS |
+| Step 3: `CGLTexImageIOSurface2D` | Bind IOSurface as `GL_TEXTURE_RECTANGLE_ARB` in a CGL context on the 9400M hardware renderer (forced via `kCGLPFAAccelerated` + `kCGLPFANoRecovery`) | PASS — `kCGLNoError`, `GL_NO_ERROR`, `glIsTexture`=1 |
+| Step 4a: GL clear → IOSurface **direct memory** readback | After `glClear(blue)` + `glFinish` to an IOSurface-backed FBO, lock the IOSurface and read bytes via `IOSurfaceGetBaseAddress` — bypasses `glReadPixels` entirely | **PASS** — BGRA=(255,0,0,255), exact match. GL writes DO reach the IOSurface backing store. |
+| Step 4b: IOSurface fill → GL **texture sampling** | Fill IOSurface with RED via CPU. Draw a textured quad into a renderbuffer-backed FBO (not the IOSurface texture). `glReadPixels` from the renderbuffer. | **PASS** — BGRA=(0,0,255,255), exact match. GL CAN sample IOSurface-backed textures. This is the direction WebKit's compositor needs. |
+| Step 4c: GL clear → GL `glReadPixels` via FBO-attachment | `glReadPixels` from an FBO whose color attachment is the IOSurface-backed texture. | **FAIL** — (0,0,0,0). This specific mechanism is a driver quirk: `glReadPixels` from an IOSurface-backed FBO attachment returns black on the 9400M. Nothing in the real bridge path uses this — it was the test harness's shared readback mechanism. |
+| Step 6: `gst_gl_memory_wrapped_texture` | Wrap the IOSurface-backed texture id as a GstGLMemory | PASS — `tex_id` preserved |
+
+**The false-black trap:** Every prior iteration of step 4 routed
+through the same `glReadPixels`-from-IOSurface-backed-FBO mechanism
+(4c). It failed identically every time because it was the same broken
+readback path — mechanism-correlated, not intermittent. The "ceiling"
+finding that was one step from being written into the record was an
+artifact of testing through the one mechanism that doesn't work on this
+hardware. The two directions that matter (GL→IOSurface write via direct
+memory, IOSurface→GL sample via textured quad) both pass.
+
+**Signature to remember for next time:** if every test in a series
+shares one mechanism and all fail identically, isolate that mechanism
+before concluding a structural limitation. The FBO-readback produced
+five identical false blacks across three probe iterations because every
+test used it as the readback path.
+
+### The IOSurface bridge architecture (confirmed viable)
+
+```
+1. GstGL renders video into an IOSurface-backed GL_TEXTURE_RECTANGLE_ARB
+   texture (step 4a proves GL→IOSurface write works)
+2. The IOSurface is set as CALayer.contents (standard Mac API)
+3. Core Animation composites it — CA samples the IOSurface (step 4b
+   proves IOSurface→GL texture sampling works; CALayer's internal
+   sampling uses the same mechanism)
+```
+
+No compositor GL context is needed (the CALayer finding was correct —
+there isn't one). No share group is needed (GstGL keeps its own context).
+The IOSurface is the zero-copy handoff medium between GstGL's context
+and Core Animation.
+
+### Stock GLVideoSinkGStreamer probe is the wrong mechanism on Cocoa
+
+The plan document's step 6 success criterion —
+`webKitGLVideoSinkProbePlatform()` returning true, which requires
+`PlatformDisplay::sharedDisplayForCompositing().gstGLContext()`
+non-null — tests for the GTK/WPE compositor-share-group model. That
+model doesn't exist on Mac (no compositor GL context, confirmed by the
+CALayer finding). Turning `USE_GSTREAMER_GL=ON` and running the stock
+probe will compile the sink but fail at runtime — the probe checks for a
+context that doesn't exist on this architecture.
+
+The Cocoa present path is IOSurface-based: a custom video sink (or
+modification to GLVideoSinkGStreamer's present path) that renders into
+an IOSurface-backed texture and hands the IOSurface to the compositor.
+Not the stock compositor-share-group flow.
+
+### Next session: implement the IOSurface sink
+
+The primitives are proven (4a write, 4b sample, step 6 GstGL wrapping).
+What remains is wiring them into WebKit's media player as a
+Cocoa-specific present path:
+
+1. Create a CGL context (GstGL's own, no sharing — confirmed by 4a)
+2. Allocate an IOSurface + bind via `CGLTexImageIOSurface2D` (confirmed
+   by step 3)
+3. Wrap via `gst_gl_memory_wrapped_texture` (confirmed by step 6)
+4. Propagate the GstGL context + wrapped memory through the pipeline via
+   GstContext
+5. Per frame: GstGL renders into the IOSurface-backed texture → set
+   IOSurface as the video layer's `CALayer.contents`
+
+Not the stock-probe rebuild in the plan document — that probe can't
+pass on this architecture. The IOSurface sink is custom Cocoa work.
 
 ### CPU-download fallback (current baseline)
 
