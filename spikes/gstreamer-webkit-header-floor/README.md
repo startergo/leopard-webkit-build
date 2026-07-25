@@ -160,6 +160,23 @@ This is the consumer-port surface — the work scoped in
 `spikes/gstreamer-gl-investigation/README.md`. It is now reachable code,
 not preprocessed-away theory.
 
+### Consumer-port entry gates (patch 23, this session)
+
+Four changes that get the build past the first wave of GL-on failures.
+Each is a discrete, behavior-preserving gate or version substitution —
+not the actual Cocoa→GstGL bridge, which remains multi-day work.
+
+| File | Change | Why |
+|---|---|---|
+| `GRefPtrGStreamer.{h,cpp}` | Tighten `GstEGLImage` template specializations from `USE(GSTREAMER_GL)` to `USE(GSTREAMER_GL) && USE(EGL)`. Gate the `<gst/gl/egl/gsteglimage.h>` include the same way. | GstEGLImage is the EGL-platform wrapper; on Cocoa (CGL) it doesn't apply. Matches the pattern already in `PlatformDisplayGStreamer.cpp:25-33`. |
+| `ImageDecoderGStreamer.cpp:230,235` | `gst_app_sink_try_pull_preroll/_sample(sink, 0)` → blocking `gst_app_sink_pull_preroll/_sample(sink)` on `<1.10`. | Both calls are inside `GstAppSinkCallbacks` (`new_preroll`, `new_sample`), which fire precisely because data is queued. Blocking returns immediately. Per-site comment in source. |
+| `WebKitWebSourceGStreamer.cpp:227` | `gst_element_class_add_static_pad_template(klass, &tmpl)` → two-step `gst_static_pad_template_get(&tmpl)` + `gst_element_class_add_pad_template(klass, ...)` on `<1.14`. | Pure mechanical rewrite — the 1.14+ API is a convenience wrapper around the universal two-step. |
+| `PlatformDisplayGStreamer.cpp:81-130` | Stub `PlatformDisplay::tryEnsureGstGLContext()` to `return false` on Cocoa via `#if PLATFORM(COCOA)`. | The body assumes EGL/GLX/WPE: calls `sharingGLContext()`, `PlatformGraphicsContextGL`, `GLContext::current()` — none exist on Cocoa's PlatformDisplay. The actual CGL→GstGL bridge is the multi-day consumer port. Stubbing lets callers fall back to the non-GL video sink path. |
+
+**Build state post-patch-23:** fails on `VideoTextureCopierGStreamer.h:26: fatal error: 'TextureMapperGLHeaders.h' file not found`. The header exists at `platform/graphics/texmap/TextureMapperGLHeaders.h` but the WebCore ForwardingHeaders mechanism isn't generating a forwarding entry for it (or for `TextureMapperPlatformLayerBuffer.h`). Affected TUs: `VideoTextureCopierGStreamer.cpp` and `MediaPlayerPrivateGStreamer.cpp` (transitively).
+
+**Next-session entry point:** either (a) add `platform/graphics/texmap` to WebCore's include paths in `Source/WebCore/CMakeLists.txt`, (b) extend the ForwardingHeaders generator to cover texmap/, or (c) write the actual Cocoa compositor bridge (the proper consumer port). The first two are mechanical; the third is multi-session.
+
 ### How this went uncaught
 
 The build script's verification steps ("GLVideoSinkGStreamer.cpp.o
