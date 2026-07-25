@@ -340,19 +340,27 @@ IOSurface's base address via `memcpy`. CALayer then composites the
 IOSurface. But this is a GPU→CPU→IOSurface round-trip per frame —
 NOT zero-copy.
 
-### Benchmark verdict: GL+readback wins by 37% at 720p (PATH IS WORTH WIRING)
+### Benchmark verdict: GL+readback wins by 35% at 720p (PATH IS WORTH WIRING)
 
 The zero-copy premise died (render-to-IOSurface broken on the 9400M's
 GL 2.1 driver). The fallback is a per-frame GPU→CPU readback via
 `glGetTexImage`. The question was whether the GPU colorspace conversion
 savings outweigh the readback cost. Answer: **yes, decisively.**
 
-**Isolated readback measurement** (the load-bearing number):
+**Readback measurement** (three methodologies, to rule out glFinish
+deflation and confirm the result is robust):
 
-  `glGetTexImage(GL_TEXTURE_2D, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buf)`
-  at 1280x720 (3.5MB RGBA), 20 iterations with `glFinish` between each:
+  | Methodology | Readback | Notes |
+  |---|---|---|
+  | A) Isolated, no glFinish (static texture) | 1.30 ms | Pure transfer |
+  | B) Realistic (GPU work + glFlush + readback) | **1.98 ms** | Real per-frame stall |
+  | C) Original (glFinish + readback) | 1.34 ms | Slightly deflated |
 
-    **1.48 ms per call**
+  The realistic measurement (B) captures the real per-frame cost: GPU
+  work pending (simulating glcolorscale's conversion) → glFlush →
+  immediate glGetTexImage without glFinish. The 0.64ms difference
+  between B and C is the pipeline stall cost that glFinish was hiding.
+  All three methodologies agree within 0.7ms and all show GL winning.
 
 **Conversion throughput** (gst-launch, 100 frames, sync=false, 720p):
 
@@ -363,9 +371,9 @@ savings outweigh the readback cost. Answer: **yes, decisively.**
 
 **Total per-frame cost comparison:**
 
-  - GL path: glcolorscale 10.2ms + readback 1.5ms = **11.7 ms**
+  - GL path: glcolorscale 10.2ms + readback 1.98ms = **12.2 ms** (realistic)
   - CPU path: videoconvert = **18.6 ms**
-  - **GL wins by 6.9ms (37%)**
+  - **GL wins by 6.4ms (35%)**
 
 The readback is 8% of the CPU path's per-frame budget — negligible
 compared to the 8.4ms conversion savings. At 60fps (16.7ms budget),
