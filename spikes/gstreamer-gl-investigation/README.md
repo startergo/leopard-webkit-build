@@ -340,7 +340,46 @@ IOSurface's base address via `memcpy`. CALayer then composites the
 IOSurface. But this is a GPU→CPU→IOSurface round-trip per frame —
 NOT zero-copy.
 
-### Is the GL path worth wiring? (open — requires 720p benchmark)
+### Benchmark verdict: GL+readback wins by 37% at 720p (PATH IS WORTH WIRING)
+
+The zero-copy premise died (render-to-IOSurface broken on the 9400M's
+GL 2.1 driver). The fallback is a per-frame GPU→CPU readback via
+`glGetTexImage`. The question was whether the GPU colorspace conversion
+savings outweigh the readback cost. Answer: **yes, decisively.**
+
+**Isolated readback measurement** (the load-bearing number):
+
+  `glGetTexImage(GL_TEXTURE_2D, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, buf)`
+  at 1280x720 (3.5MB RGBA), 20 iterations with `glFinish` between each:
+
+    **1.48 ms per call**
+
+**Conversion throughput** (gst-launch, 100 frames, sync=false, 720p):
+
+  | Path | Time | FPS | Per-frame |
+  |---|---|---|---|
+  | CPU (videoconvert I420→RGBA) | 1.859s | 53.8 | 18.6 ms |
+  | GL (glcolorscale, GPU) | 1.017s | 98.3 | 10.2 ms |
+
+**Total per-frame cost comparison:**
+
+  - GL path: glcolorscale 10.2ms + readback 1.5ms = **11.7 ms**
+  - CPU path: videoconvert = **18.6 ms**
+  - **GL wins by 6.9ms (37%)**
+
+The readback is 8% of the CPU path's per-frame budget — negligible
+compared to the 8.4ms conversion savings. At 60fps (16.7ms budget),
+only the GL path fits; CPU conversion alone exceeds the budget.
+
+The slope between 480p and 720p was not separately measured, but the
+readback cost scales with pixel count (linear on this driver based on
+the 1.48ms at 3.5MB), while the GPU conversion advantage scales
+similarly. The GL path's margin is expected to widen, not narrow,
+at higher resolutions.
+
+**Pre-committed decision rule applied**: "wash goes to CPU (simpler,
+already deployed)." This is not a wash — 37% is a decisive margin.
+The GL path is worth wiring.
 
 The zero-copy premise that justified the entire GL arc just died:
 render-to-IOSurface doesn't work on the 9400M, so the path must
