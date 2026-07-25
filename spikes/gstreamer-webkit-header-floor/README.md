@@ -115,22 +115,54 @@ Before writing the IOSurface bridge, answer this:
 FBO/texture backed by an IOSurface, or does it insist on its own
 allocation?**
 
-If GstGL's `gldownload`/`appsink` hands you a `GstGLMemory` with a
-texture *it* allocated, you need a path to get that into your
-IOSurface-backed texture — possibly a blit, possibly
-`CGLTexImageIOSurface2D` on GstGL's own context. That's the first thing
-to probe, same shape as "does the compositor context exist" was this
-session.
+**Probe result (recorded for next-session entry):** both paths exist in
+1.4.5. From `dist/gst145-mirror/include/gstreamer-1.0/gst/gl/gstglmemory.h`:
 
-Concretely: probe `gst_gl_memory_get_texture_id()` and the
-`GstGLMemory` allocator's contract in 1.4.5. Either:
-- (a) GstGL lets you wrap an externally-allocated texture → IOSurface
-  can be the allocator's target, single context, zero-blit
-- (b) GstGL allocates its own texture and you must blit/copy to the
-  IOSurface-backed target → two contexts (or one context with two
-  textures) + a blit, but still no share-group required
+- `gst_gl_memory_wrapped_texture(context, texture_id, tex_type, w, h, user_data, notify)`
+  (line 160) — wraps a caller-provided texture id as a GstGLMemory. GstGL
+  renders into your texture. Zero blit.
+- `gst_gl_memory_alloc(context, tex_type, w, h, stride)` (line 154) —
+  GstGL allocates its own texture. Bridge would then blit.
+- `gst_gl_memory_copy_into_texture(gl_mem, tex_id, tex_type, w, h, stride, respecify)`
+  (line 165) — copies GstGL's texture into a caller-provided target. The
+  blit API.
 
-Either path is workable. The probe determines which.
+The probe question resolves to "both are supported." Choice becomes
+architectural:
+
+- **Path (a) — wrap IOSurface-backed texture:** Bridge code calls
+  `CGLTexImageIOSurface2D` inside GstGL's context to allocate a texture
+  backed by the IOSurface, then calls `gst_gl_memory_wrapped_texture`
+  with that texture id. GstGL's upload elements write directly into the
+  IOSurface-backed texture. Zero blit, single context.
+- **Path (b) — GstGL-allocated + blit:** Let GstGL allocate its own
+  texture via `gst_gl_memory_alloc`. Bridge allocates IOSurface +
+  IOSurface-backed texture in GstGL's context, then calls
+  `gst_gl_memory_copy_into_texture` per frame. Two textures in the same
+  context, one blit.
+
+Either path is single-context (GstGL's own) — no share-group required,
+because CALayer can take the IOSurface directly via `setContents:`
+without needing a GL context on the consumer side. Core Animation
+composites the IOSurface without any WebKit GL involvement.
+
+The architectural decision (path a vs b) is the next session's first
+design choice. Path (a) is structurally simpler but requires the
+wrapped_texture API to be reliable in 1.4.5 (probe its actual behavior
+on a real GstGLMemory produced by glupload — does the wrapped texture
+get respected end-to-end through the pipeline, or do some elements
+insist on allocating their own?). Path (b) is more conservative (GstGL
+controls its own allocation, blit is explicit) but adds per-frame blit
+cost.
+
+Probe before designing: write a small test that allocates an
+IOSurface-backed texture in a CGL context, wraps it via
+`gst_gl_memory_wrapped_texture`, runs videotestsrc ! glupload !
+appsink, and checks whether the resulting samples reference the wrapped
+texture or allocate new ones. That probe determines path (a) vs (b)
+empirically.
+
+### CPU-download fallback (current baseline)
 
 ### CPU-download fallback (current baseline)
 
