@@ -1,13 +1,144 @@
 # WebKit 610 + GStreamer 1.4.5 on 10.6 — spike findings
 
-Two findings, in descending order of importance. The GL-off finding
-supersedes much of the earlier header-floor analysis's relevance —
-read it first.
+Three premise invalidations, in chronological order. Each was caught by
+probing before building, and each changed the plan. The most recent
+(the CALayer finding) redesigns the consumer-port bridge architecture
+and is the current entry point — read it first.
 
-**RESOLUTION (this session):** the GL-off finding is fixed by patches 21
-and 22. GL is now genuinely on at compile time. The downstream consequence
-(the consumer-port surface) is now live — see "Post-fix state" at the
-end of the HEADLINE FINDING section.
+**Status:** All 26 patches landed. Build succeeds end-to-end with
+USE_GSTREAMER_GL genuinely on; DMG produced. The CPU-download fallback
+(patch 26) is the working-but-unaccelerated baseline. The GL-accelerated
+path requires the IOSurface bridge documented in §"CURRENT ENTRY POINT"
+below.
+
+The original two findings (GL-off bug, header floor) remain below as
+historical context — both are resolved, both shaped the path, neither
+is the current question.
+
+---
+
+## CURRENT ENTRY POINT: Mac compositor is plain CALayer — bridge redesigned
+
+**Fourth premise invalidation.** The original spike
+(`spikes/gstreamer-gl-investigation/`) planned a wrapped→native→sharegroup
+architecture: wrap WebKit's compositor NSOpenGLContext via
+`gst_gl_context_new_wrapped()`, let GstGL's contexts share with it via
+share-group inheritance, and the resulting textures would be visible in
+WebKit's compositor. That plan was internally sound — the can_share
+semantics, the dispatch_sync deadlock, the 1.6 sharegroup inheritance,
+all correctly characterized — but it was aimed at the wrong target.
+
+**The premise that doesn't hold: WebKit 610's Mac compositor uses
+CAOpenGLLayer with an NSOpenGLContext we can wrap.**
+
+It doesn't. The compositor uses plain `CALayer` + Core Animation. There
+is no GL context in the compositor at all.
+
+### Evidence
+
+| Source | Finding |
+|---|---|
+| `platform/graphics/cocoa/WebGLLayer.h:39-43` | `WebGLLayer : CALayer` (not `CAOpenGLLayer`) when `USE(OPENGL)` is true |
+| `platform/graphics/ca/cocoa/PlatformCALayerCocoa.h:34` | Compositor layer wrapper manages plain `CALayer` instances |
+| `platform/graphics/ca/PlatformCALayer.h:62-80` | No `LayerTypeCAOpenGLLayer` or equivalent exists |
+| `platform/graphics/gstreamer/PlatformDisplayGStreamer.cpp:81-130` | The `#if PLATFORM(COCOA) return false` stub in patch 23 was correctly avoiding a non-existent API surface |
+
+Additionally: no `PlatformDisplayMac` class exists, no
+`sharingGLContext()` singleton on Mac, no `createShared()` root context.
+`GraphicsContextGLOpenGLCocoa` contexts are WebGL/Canvas-only, not the
+compositor's. `CGLCreateContext` supports sharing via constructor param
+but each context is per-instance — no root share group exists.
+
+### The actual Mac path (what the bridge becomes)
+
+This is structurally good news even though it voids the spike's plan.
+The IOSurface path is the standard, well-trodden macOS zero-copy GPU
+presentation mechanism — `CGLTexImageIOSurface2D` binding an IOSurface
+as a GL render target, then handing that IOSurface to a `CALayer`, is
+how QuickTime, AVFoundation, and every accelerated video layer on the
+Mac has worked since 10.6. Both `IOSurface` and `CGLTexImageIOSurface2D`
+are 10.6-era APIs — no version wall.
+
+The redesigned bridge:
+
+```
+1. GstGL renders into its own CGL context
+   (no sharing needed — see "Why this is a quiet win" below)
+2. The GL texture is bound to an IOSurface via CGLTexImageIOSurface2D
+3. The IOSurface becomes CALayer.contents
+4. Core Animation composites it — no compositor GL context required,
+   because there isn't one
+```
+
+### Why this is a quiet win
+
+Every hard problem mapped in the share-group architecture was in service
+of getting GstGL's texture into WebKit's GL context. On the IOSurface
+path, GstGL keeps its own context entirely and hands off via IOSurface.
+The share-group problem doesn't get solved — it gets deleted.
+
+Concretely, voided from the spike's risk list:
+- Pixel format matching between wrapped and native contexts
+- `can_share` semantics being a circular check rather than real capability
+- The `dispatch_sync(main_queue)` deadlock inside `gst_gl_context_create`
+  (still exists in patched libgstgl but never gets hit — no wrapping)
+- Renderer-ID match for CGL share-group validity
+- The wrapped-vs-native context distinction itself
+
+### What survives from the spike
+
+| Survives | Reason |
+|---|---|
+| Patched 10.6-native `libgstgl` build (`/Users/macbookpro/gst-plugins-bad/`, `snowleopard-1.4.5` branch) | GstGL still produces the texture — just into its own context now, not a wrapped one |
+| 1.4.5-vs-1.6.4 base-version decision | The GstGL version that produces the texture is unaffected by the presentation mechanism |
+| Build scripts (`build-snowleopard.sh`, macports-mirror, gst145-mirror) | Independent of bridge shape |
+| Patches 1-26 (compile-time gates, CMake wiring, Cocoa stubs) | All proven by the end-to-end DMG build |
+
+### What's voided
+
+The entire wrapped→native→sharegroup consumer architecture documented
+in `spikes/gstreamer-gl-investigation/README.md` §"Architecture for the
+consumer port" and §"API surface findings." Those sections describe the
+GTK/EGL/WPE bridge pattern; they don't apply to Cocoa's CALayer-based
+compositor.
+
+The investigation's diagnostic hooks (share-result logging, renderer-ID
+capture) were for observing share-group behavior that no longer matters.
+The three probe files (`gst-gl-probe.c`, `gst-gl-share-probe*.m`) tested
+a wrapping path that the IOSurface bridge doesn't use.
+
+### First probe for next session
+
+Before writing the IOSurface bridge, answer this:
+
+**Does GstGL 1.4.5 expose a way to render into a caller-provided
+FBO/texture backed by an IOSurface, or does it insist on its own
+allocation?**
+
+If GstGL's `gldownload`/`appsink` hands you a `GstGLMemory` with a
+texture *it* allocated, you need a path to get that into your
+IOSurface-backed texture — possibly a blit, possibly
+`CGLTexImageIOSurface2D` on GstGL's own context. That's the first thing
+to probe, same shape as "does the compositor context exist" was this
+session.
+
+Concretely: probe `gst_gl_memory_get_texture_id()` and the
+`GstGLMemory` allocator's contract in 1.4.5. Either:
+- (a) GstGL lets you wrap an externally-allocated texture → IOSurface
+  can be the allocator's target, single context, zero-blit
+- (b) GstGL allocates its own texture and you must blit/copy to the
+  IOSurface-backed target → two contexts (or one context with two
+  textures) + a blit, but still no share-group required
+
+Either path is workable. The probe determines which.
+
+### CPU-download fallback (current baseline)
+
+Patch 26's stubs make the build succeed by routing video through the
+existing `ImageGStreamerCG` CPU paint path. Video plays correctly
+without GL acceleration. This is the working baseline the IOSurface
+bridge replaces — not a workaround to tolerate, but a known-good
+fallback that lets development proceed in parallel.
 
 ---
 
