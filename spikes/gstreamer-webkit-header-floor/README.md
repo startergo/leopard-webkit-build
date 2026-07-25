@@ -4,11 +4,16 @@ Two findings, in descending order of importance. The GL-off finding
 supersedes much of the earlier header-floor analysis's relevance —
 read it first.
 
+**RESOLUTION (this session):** the GL-off finding is fixed by patches 21
+and 22. GL is now genuinely on at compile time. The downstream consequence
+(the consumer-port surface) is now live — see "Post-fix state" at the
+end of the HEADLINE FINDING section.
+
 ---
 
 ## HEADLINE FINDING: USE_GSTREAMER_GL is forced OFF by a CMake wiring bug
 
-**Status:** GL is OFF at compile time, despite `find_package(GStreamer 1.4.5 ...
+**Status (at discovery):** GL is OFF at compile time, despite `find_package(GStreamer 1.4.5 ...
 gl)` succeeding, `PC_GSTREAMER_GL_FOUND=1`, `GSTREAMER_GL_LIBRARIES`
 pointing at the mirror's `libgstgl-1.0.dylib`, and the
 `GLVideoSinkGStreamer.cpp.o` target being present in `build.ninja`.
@@ -73,6 +78,87 @@ that code references symbols that don't exist in the 1.4.5 Cocoa GL
 backend (`GstEGLImage`, the EGL/X11 display constructors in
 `PlatformDisplayGStreamer.cpp`, etc.). That's the multi-day consumer
 port already scoped in `spikes/gstreamer-gl-investigation/README.md`.
+
+### Post-fix state (this session — patches 21 + 22 landed)
+
+The "one line" framing in the prior section was incomplete. The actual
+fix required two patches because there were two stacked wiring bugs,
+not one:
+
+- **Patch 21** (`patches-610/21-options-mac-register-graphics-context-gl.patch`)
+  adds both `include(GStreamerDefinitions)` AND
+  `WEBKIT_OPTION_DEFINE(ENABLE_GRAPHICS_CONTEXT_GL ...)` inside the
+  `WEBKIT_OPTION_BEGIN/END` scope in `OptionsMac.cmake`. The prior
+  session's analysis identified only the missing DEFINE; the missing
+  `include(GStreamerDefinitions)` was a second bug stacked underneath —
+  without it, `USE_GSTREAMER_GL` was never registered as a WEBKIT_OPTION
+  on Mac at all, so the dependency check never fired even after the
+  DEFINE was added.
+
+- **Patch 22** (`patches-610/22-gstreamer-checks-expose-use-gstreamer-gl.patch`)
+  adds `SET_AND_EXPOSE_TO_BUILD(USE_GSTREAMER_GL TRUE)` in
+  `GStreamerChecks.cmake` after the GL_FOUND check. The WEBKIT_OPTION
+  framework registers the option in cache but doesn't auto-emit the
+  compile define; `SET_AND_EXPOSE_TO_BUILD` is what propagates to
+  `cmakeconfig.h`. Without this, `USE_GSTREAMER_GL:BOOL=ON` appeared in
+  `CMakeCache.txt` but `#define USE_GSTREAMER_GL 1` was absent from
+  `cmakeconfig.h` and every `#if USE(GSTREAMER_GL)` source guard still
+  evaluated false.
+
+**Verification post-fix:**
+
+```
+$ grep GSTREAMER_GL build-610/cmakeconfig.h
+#define ENABLE_GRAPHICS_CONTEXT_GL 1
+#define USE_GSTREAMER_GL 1
+#define USE_GSTREAMER_GL 1     (duplicated — cosmetic, see note)
+#define USE_GSTREAMER_MPEGTS 0
+```
+
+(Cosmetic note: `USE_GSTREAMER_GL` appears twice because
+`SET_AND_EXPOSE_TO_BUILD` is called via both the WEBKIT_OPTION framework
+and my patch 22. Harmless — redefinition warning, same value. Can be
+cleaned up later by removing the explicit call once the framework's
+emission is sufficient.)
+
+**What GL-on surfaces (the consumer-port boundary):**
+
+The rebuild now fails at `GRefPtrGStreamer.cpp:27`:
+
+```
+fatal error: 'gst/gl/egl/gsteglimage.h' file not found
+```
+
+The 1.4.5 Cocoa framework ships only **platform-agnostic** GL headers
+(20 files in `gst/gl/`). The `gst/gl/egl/` and `gst/gl/x11/` subdirs
+don't exist — Cocoa uses CGL, not EGL. WebKit 610's `#if USE(GSTREAMER_GL)`
+blocks include those platform headers *without platform sub-guards*:
+
+| File:line | Include |
+|---|---|
+| `GRefPtrGStreamer.cpp:27` | `<gst/gl/egl/gsteglimage.h>` |
+| `MediaPlayerPrivateGStreamer.cpp:149` | `<gst/gl/egl/gsteglimage.h>` |
+| `MediaPlayerPrivateGStreamer.cpp:150` | `<gst/gl/egl/gstglmemoryegl.h>` |
+| `PlatformDisplayGStreamer.cpp:27` | `<gst/gl/x11/gstgldisplay_x11.h>` |
+| `PlatformDisplayGStreamer.cpp:32` | `<gst/gl/egl/gstgldisplay_egl.h>` |
+
+And the 15 EGL/X11-platform-specific symbols these code paths reference
+(none in the 1.4.5 Cocoa export table):
+
+```
+gst_egl_image_export_dmabuf          gst_gl_color_convert_new
+gst_egl_image_from_texture           gst_gl_color_convert_perform
+gst_egl_image_ref                    gst_gl_color_convert_set_caps
+gst_egl_image_unref                  gst_gl_context_fill_info
+gst_buffer_get_gl_sync_meta          gst_gl_display_egl_new_with_egl_display
+gst_buffer_get_video_gl_texture_upload_meta   gst_gl_display_x11_new_with_display
+gst_gl_memory_get_texture_target     gst_gl_sync_meta_wait_cpu
+gst_is_gl_memory_egl
+```
+
+This is the consumer-port surface — the work scoped in
+`spikes/gstreamer-gl-investigation/README.md`. It is now reachable code,
+not preprocessed-away theory.
 
 ### How this went uncaught
 

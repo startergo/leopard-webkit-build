@@ -1,0 +1,54 @@
+From: leopard-webkit-build
+Subject: [PATCH] OptionsMac: register ENABLE_GRAPHICS_CONTEXT_GL + include GStreamerDefinitions
+
+Two related wiring bugs in OptionsMac.cmake were silently forcing
+USE_GSTREAMER_GL OFF at compile time, defeating the entire GL video sink
+build path despite find_package(GStreamer 1.4.5 ... gl) succeeding,
+PC_GSTREAMER_GL_FOUND=1, and libgstgl-1.0.dylib being located.
+
+Bug 1: ENABLE_GRAPHICS_CONTEXT_GL was registered as a WEBKIT_OPTION only
+in OptionsGTK.cmake:92 and OptionsWPE.cmake:89. OptionsMac.cmake:120
+used plain set() which is invisible to the WEBKIT_OPTION framework.
+
+Bug 2 (the deeper one): GStreamerDefinitions.cmake — which holds
+WEBKIT_OPTION_DEFINE(USE_GSTREAMER_GL ...) — was included from
+OptionsGTK.cmake:58 and OptionsWPE.cmake:40 but NOT from OptionsMac.
+So USE_GSTREAMER_GL was never registered as a WEBKIT_OPTION on Mac at
+all; the dependency check in GStreamerDependencies.cmake:2 never fired
+because the dependent option didn't exist.
+
+Consequence: every #if USE(GSTREAMER_GL) source guard evaluated false.
+GLVideoSinkGStreamer.cpp's body compiled to an empty translation unit.
+PlatformDisplayGStreamer.cpp wasn't added to the build at all. The
+patched libgstgl + libgstopengl.so deployed to the bundle had no
+WebCore consumer.
+
+Verification that the fix takes: DUSE_GSTREAMER_GL=1 must appear in
+every WebCore gstreamer TU's compile command post-rebuild. Previously
+absent.
+
+Both changes must be inside WEBKIT_OPTION_BEGIN/END scope (per
+WebKitFeatures.cmake:14 guard).
+
+See spikes/gstreamer-webkit-header-floor/README.md HEADLINE FINDING.
+
+---
+diff --git a/Source/cmake/OptionsMac.cmake b/Source/cmake/OptionsMac.cmake
+--- a/Source/cmake/OptionsMac.cmake
++++ b/Source/cmake/OptionsMac.cmake
+@@ -110,6 +110,15 @@
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WIRELESS_PLAYBACK_TARGET PRIVATE OFF) # [leopard] OFF to match ENABLE_VIDEO=OFF (avoids dangling RemotePlayback vtable)
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_XSLT PRIVATE ON)
+
++# [leopard] Register ENABLE_GRAPHICS_CONTEXT_GL as a WEBKIT_OPTION AND pull
++# in GStreamerDefinitions.cmake (which holds WEBKIT_OPTION_DEFINE(USE_GSTREAMER_GL ...)).
++# Without both, USE_GSTREAMER_GL stays unregistered on Mac and every
++# #if USE(GSTREAMER_GL) source guard evaluates false at compile time,
++# silently disabling the entire GL video sink code path.
++# Matches OptionsGTK.cmake:58 + :92 / OptionsWPE.cmake:40 patterns.
++include(GStreamerDefinitions)
++WEBKIT_OPTION_DEFINE(ENABLE_GRAPHICS_CONTEXT_GL "Whether to use OpenGL." PUBLIC ON)
++
+ WEBKIT_OPTION_END()
+
+ # [leopard] Enable GStreamer media backend for 10.6 (replaces AVFoundation which is 10.7+).
