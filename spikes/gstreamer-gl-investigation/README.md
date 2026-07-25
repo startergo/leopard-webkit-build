@@ -10,6 +10,97 @@ no unknowns.
 
 ---
 
+## Production reality (post-port) — read alongside the rest of this file
+
+The spike's predicted "consumer port will not hit the deadlock" (see
+the table at line ~95 and the gst-gl-share-probe3.m conclusion at line
+~278) was **wrong**. The consumer port did hit it, on every launch,
+from inside `HTMLMediaElement::selectMediaResource`'s CFRunLoopTimer
+callback. This file documents the spike's pre-production reasoning;
+this section is the post-production correction.
+
+### The recurring pattern: GstGL threading vs Cocoa
+
+This is the third time the `dispatch_sync` / wrapped-context /
+thread-topology cluster has produced a distinct bug. They are all one
+underlying tension:
+
+> **GstGL's threading model assumes a pumping main run loop and a native
+> context. Cocoa/WebKit in production gives it neither.**
+
+Three instances, in order:
+
+1. **Probe-time deadlock** (`gst-gl-share-probe2.m`). The probe's main
+   thread didn't run `NSApplication`'s event loop at all. The spike's
+   patch 2 ("dispatch_sync inline-on-main") fixed the caller-on-main
+   case here.
+2. **`can_share` dead-end** (`gst-gl-share-probe3.m`). Walked GstGL's
+   internal `other_context_ref` chain to test share capability;
+   returned 0 because the share relationship hadn't been established
+   via `gst_gl_context_create` yet. Circular check; not a real
+   capability query.
+3. **Caller-on-worker deadlock** (production, every launch). `gst_gl_context_create`
+   is called on main; it spawns a worker thread; the worker calls
+   `gst_gl_context_cocoa_create_context` which does
+   `dispatch_barrier_sync(main_queue)`; main is blocked in `g_cond_wait`
+   inside `__CFRunLoopRun`/`timerFired` and cannot drain the main queue.
+   Patch 2 doesn't help: its "am I on main?" check returns false on the
+   *worker*, so the dispatch fires, and main isn't pumping.
+
+The shape that distinguishes #3 from #1 is *who* the caller of
+`cocoa_create_context` is. Patch 2 covered "the caller is main → run
+inline." #3's caller is the worker that `gst_gl_context_create`
+itself spawned, so patch 2's predicate doesn't fire. Same library,
+same call, different call-site drainage.
+
+Recognize the next variant of this as "the GstGL-threading-vs-Cocoa
+mismatch again" and skip the from-scratch investigation.
+
+### Fix #1 (deployed): wrap-only, no `gst_gl_context_create`
+
+The durable fix removes the call rather than patching its timing.
+`PlatformDisplayGStreamer.cpp`'s Cocoa branch now:
+
+1. Creates an `NSOpenGLContext*` pinned to the hardware renderer
+   (`kCGLPFAAccelerated` + `kCGLPFANoRecovery`).
+2. `gst_gl_context_new_wrapped(display, (guintptr)nsCtx,
+   GST_GL_PLATFORM_CGL, GST_GL_API_OPENGL)`.
+3. **Does not call** `gst_gl_context_create` (no worker = no deadlock).
+4. **Does not call** `gst_gl_context_activate` on the wrapped context
+   (1.4.5's `gst_gl_wrapped_context_activate` is `g_assert_not_reached`,
+   so the call would abort, not return FALSE — the spike's "returns
+   FALSE" claim was wrong too).
+5. **Does not call** `gst_gl_context_fill_info` (does not exist in
+   1.4.5; the spike's non-Cocoa branch references it but that branch
+   never builds on macOS).
+
+The wrap handle **must be `NSOpenGLContext*`, not a raw `CGLContextObj`**
+(see "What does NOT work" below). `MediaPlayerPrivateGStreamerIOSurface.mm`
+is unchanged — it extracts the handle via
+`gst_gl_context_get_gl_context`, walks to `CGLContextObj` via
+`-[NSOpenGLContext CGLContextObj]`, and binds the IOSurface texture
+on that CGL handle directly. No `thread_add`, no GstGL worker thread
+participation in the IOSurface copy path.
+
+### What fix #1 does NOT solve
+
+- **Share-group visibility across the cross-context boundary** is still
+  open. Under fix #1, glupload still creates its own NSOpenGLContext
+  sharing with the wrapped one via normal GstContext propagation.
+  Whether that sharing actually works on the 9400M (renderer match)
+  is the original "Open residual risk" below — fix #1 is neutral on
+  it, but the renderer-ID log emitted by `createCocoaGstGLShareContext`
+  is now load-bearing for distinguishing a real cross-context share
+  failure from the FBO-readback false-black the spike already chased.
+- **Runtime `gst_gl_context_create` from downstream GstGL elements**
+  (e.g. glupload creating its own native context) can still deadlock
+  if main is inside a long-running timer callback at the moment the
+  worker dispatches. Between timer firings, main pumps normally and
+  the dispatch lands. Fix #1 solves the per-launch certain deadlock;
+  the runtime one is latent and intermittent.
+
+---
+
 ## TL;DR
 
 - **Hardware path is viable.** `gst-launch-1.0 videotestsrc ! glimagesink`
@@ -27,7 +118,14 @@ no unknowns.
      `#if`'d out in source build.
   2. `dispatch_sync(main_queue)` deadlock when `gst_gl_context_create` is
      called from main thread without an NSApplication run loop running.
+     **[post-port correction]** Patch 2 only covers the caller-on-main
+     case. The production hit was caller-on-worker — see "Production
+     reality" above. Fix #1 removes the call rather than patching the
+     topology.
   3. `gst_gl_context_cocoa_activate` silently returns TRUE on a nil GL context.
+     **[post-port correction]** On wrapped contexts in 1.4.5,
+     `gst_gl_wrapped_context_activate` is `g_assert_not_reached`, not
+     a FALSE return. Do not call activate on a wrapped context at all.
 - **Open residual risk:** whether GstGL's pixel format and WebKit's
   `CAOpenGLLayer`-negotiated pixel format resolve to the same CGL renderer
   (renderer-match is the actual share-group constraint, not accum size).
@@ -92,7 +190,7 @@ macmini at `/Library/Frameworks/GStreamer.framework/`).
 | `gst_gl_context_activate(wrapped, TRUE)` | Returns FALSE | Stub. `GstGLWrappedContext` doesn't override the activate vfunc; the base class returns FALSE without logging. Wrapped contexts are externally managed; the caller is expected to make the context current. |
 | `gst_gl_context_thread_add(wrapped, ...)` | REJECTED | `gst_gl_context.c` has explicit `g_return_if_fail(!GST_GL_IS_WRAPPED_CONTEXT(context))`. Wrapped contexts cannot drive GstGL's thread mechanism. |
 | `gst_gl_context_can_share(native, wrapped)` | Returns 0 | **Not a real capability check.** Walks GstGL's internal `other_context_ref` chain (a weak-ref list) to see if the contexts are already linked. Returns 0 simply because the share relationship hasn't been established via `gst_gl_context_create` yet. Circular check; ignore. |
-| `gst_gl_context_create(native, wrapped, &err)` from main thread of a non-NSApplication caller | Hangs | `gstglcontext_cocoa.m:223` does `dispatch_sync(dispatch_get_main_queue(), block)`. The GL thread spawned by `gst_gl_context_create` calls this; main thread is blocked on `g_cond_wait` waiting for that same GL thread. Deadlock. **Real consumer (WebKit) won't hit this** — main thread runs `NSApplication`'s run loop, which services the main queue and lets `dispatch_sync` return. |
+| `gst_gl_context_create(native, wrapped, &err)` from main thread of a non-NSApplication caller | Hangs | `gstglcontext_cocoa.m:223` does `dispatch_sync(dispatch_get_main_queue(), block)`. The GL thread spawned by `gst_gl_context_create` calls this; main thread is blocked on `g_cond_wait` waiting for that same GL thread. Deadlock. ~~**Real consumer (WebKit) won't hit this** — main thread runs `NSApplication`'s run loop, which services the main queue and lets `dispatch_sync` return.~~ **[post-port correction: WRONG.** The consumer port did hit this, every launch, from inside a CFRunLoopTimer callback where the main run loop is not pumping the dispatch queue. See "Production reality" at the top of this file. Fix #1 removes the call entirely.) |
 
 ### The phantom success to be aware of
 
@@ -275,7 +373,7 @@ glDeleteTextures(1, &testTex);  // safe — thread_add is synchronous in 1.4
 | `gst-gl-probe.c` | Standalone probe that answers: does `gst_gl_context_new_wrapped` work? Does `gst_gl_context_new` + `activate` + `thread_add` work? (Note the false-positive in activate — see "Phantom success" above.) |
 | `gst-gl-share-probe.c` | First attempt at share-group probe using a raw `CGLContextObj` as the wrapped handle. **Failed** because of the CGL/NSOpenGL type mismatch in `gstglcontext_cocoa.m:219`. |
 | `gst-gl-share-probe2.m` | Second attempt using `NSOpenGLContext` as the wrapped handle. **Hung** in `gst_gl_context_create` due to the `dispatch_sync(main_queue)` deadlock. |
-| `gst-gl-share-probe3.m` | Third attempt with proper `NSApplication` run loop threading. Also hung — the probe's main thread runs NSApp but the GL thread's dispatch_sync didn't land. Conclusion: standalone probe approach hit its useful limit; consumer port will not hit this because WebKit's main is already the NSApplication run loop. |
+| `gst-gl-share-probe3.m` | Third attempt with proper `NSApplication` run loop threading. Also hung — the probe's main thread runs NSApp but the GL thread's dispatch_sync didn't land. ~~Conclusion: standalone probe approach hit its useful limit; consumer port will not hit this because WebKit's main is already the NSApplication run loop.~~ **[post-port correction: that conclusion was wrong — the consumer port hits exactly this.** The probe's hang was the real topology: main is inside something that isn't pumping the dispatch queue. In the probe that was NSApp-without-drainage; in the consumer port it's `__CFRunLoopRun`/`timerFired`. Same shape. The spike had the evidence in hand and misread it. See "Production reality" at the top of this file.] |
 | `macmini-screen.png` | Screenshot of the glimagesink window when the pipeline stalled at PREROLLING (before the shim was applied). Black window, no test pattern. |
 | `macmini-gl-playing.png` | Screenshot of `videotestsrc ! glimagesink` rendering SMPTE color bars after the shim was applied. Proof of life for the GL upload path on 10.6 + 9400M. |
 
