@@ -1,0 +1,35 @@
+From: leopard-webkit-build
+Subject: [PATCH] TextureMapperGLHeaders: add PLATFORM(COCOA) branch for OpenGL framework
+
+Downstream of patch 24 (texmap include path). TextureMapperGLHeaders.h's
+default branch falls through to OpenGLShims.h, which assumes the Linux/EFL
+dlopen-based GL loading convention (<GL/gl.h>). Mac doesn't have <GL/gl.h>;
+Mac has OpenGL as a first-class framework at <OpenGL/gl.h>.
+
+OpenGLShims.h is conceptually wrong for Mac anyway -- the shim mechanism
+exists for platforms where GL symbols must be loaded at runtime. Mac's
+OpenGL.framework exports GL symbols directly, linkable with -framework OpenGL.
+
+Add a PLATFORM(COCOA) branch that includes the framework headers directly,
+bypassing OpenGLShims.h entirely. Matches the existing pattern at
+platform/graphics/opengl/GraphicsContextGLOpenGLCommon.cpp:62-72 which uses
+<OpenGL/gl.h> under PLATFORM(COCOA) && USE(OPENGL).
+
+---
+diff --git a/Source/WebCore/platform/graphics/texmap/TextureMapperGLHeaders.h b/Source/WebCore/platform/graphics/texmap/TextureMapperGLHeaders.h
+--- a/Source/WebCore/platform/graphics/texmap/TextureMapperGLHeaders.h
++++ b/Source/WebCore/platform/graphics/texmap/TextureMapperGLHeaders.h
+@@ -29,6 +29,13 @@
+ #include <epoxy/gl.h>
+ #elif USE(OPENGL_ES)
+ #include <GLES2/gl2.h>
++#elif PLATFORM(COCOA)
++// [leopard] Mac has OpenGL as a first-class framework, statically linkable.
++// Skip the OpenGLShims.h path (which is for Linux/EFL dlopen-based GL loading)
++// and include the framework headers directly. Matches the pattern at
++// platform/graphics/opengl/GraphicsContextGLOpenGLCommon.cpp:62-72.
++#include <OpenGL/gl.h>
++#include <OpenGL/glext.h>
+ #else
+ #include "OpenGLShims.h"
+ #endif
