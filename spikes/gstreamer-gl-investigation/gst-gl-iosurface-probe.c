@@ -45,7 +45,7 @@
 #include <OpenGL/OpenGL.h>
 #include <OpenGL/CGLCurrent.h>
 #include <OpenGL/CGLTypes.h>
-#include <OpenGL/Opengl.h>   /* CGLTexImageIOSurface2D */
+#include <OpenGL/CGLIOSurface.h>   /* CGLTexImageIOSurface2D */
 
 #include <IOSurface/IOSurface.h>
 #include <CoreFoundation/CoreFoundation.h>
