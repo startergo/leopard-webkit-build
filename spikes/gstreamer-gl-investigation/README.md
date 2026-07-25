@@ -279,6 +279,96 @@ six `[leopard]` commits, build, deploy.
 leopard patches; its `snowleopard-1.4.5` branch == upstream 1.4.5
 tag).
 
+### Share-group victory + render-to-IOSurface wall (probe results)
+
+**The share-group works.** Verified at three ascending levels:
+
+  1. `glIsTexture(glcolorscale_tex_id)` in wrapped context = TRUE.
+  2. Both contexts on the same renderer (0x102260e, GeForce 9400M).
+  3. `glGetTexImage` reads glcolorscale's texture in the wrapped context
+     with pixel-correct results (SMPTE75 pattern: TL=0xffc0bec0,
+     TR=0xff0100c1 — gray and blue, matching videotestsrc's output).
+
+**Two fixes were required to establish the share-group:**
+
+  1. **`other-context` property, not GstContext propagation.** On
+     GstGL 1.4.5, `gst_element_set_context` stores a GstContext on
+     the element but does NOT populate `filter->other_context`
+     (gstglfilter.c:178-180), which is what `gst_gl_context_create`
+     uses as the share parent (gstglfilter.c:893-894). Only the
+     GObject property setter populates `other_context`. The property
+     is the SAME mechanism as glimagesink's `other-context`.
+     GstContext propagation (even brute-force on all children) does
+     not reach this code path on 1.4.5.
+
+  2. **Pixel format must match GstGL's Cocoa backend exactly.**
+     GstGL's Cocoa backend uses `DoubleBuffer + AccumSize=32`
+     (gstglcontext_cocoa.m:228-231). Any deviation (ColorSize=24,
+     AlphaSize=8, Accelerated, NoRecovery) causes "invalid share
+     context" via Apple's pixel-format-compatibility sharing rules.
+     The fix #1 wrapped context (`CocoaGstGLContextHelper.mm`) must
+     be updated to use this pixel format. This loses the
+     `kCGLPFAAccelerated + kCGLPFANoRecovery` hardware pinning, but
+     on a machine with a discrete GPU (9400M), the default renderer
+     resolves to hardware anyway — verified by the renderer-ID log.
+
+**But render-to-IOSurface-texture does NOT work on the 9400M's GL 2.1
+driver.** This is the third hardware limitation the 9400M has imposed:
+
+  1. GL 3.2 context profiles (kCGLPFAOpenGLProfile is 10.7+).
+  2. IOSurface-FBO-readback quirk (FBO readback produces false-black
+     that direct IOSurface readback doesn't — commit 18456f36).
+  3. **GL_BGRA internal-format textures are not FBO-renderable.**
+     `CGLTexImageIOSurface2D` on 10.6 creates the texture with
+     GL_BGRA internal format (matching the IOSurface's BGRA pixel
+     layout). On the 9400M's GL 2.1 driver, this internal format
+     cannot be used as an FBO color attachment
+     (`GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT`). Both
+     `gst_gl_memory_copy_into_texture` (which internally uses an
+     FBO-style copy) and a manual FBO blit produce no output
+     (texture exists but rendering to it fails silently).
+
+The pattern across all three: the 9400M can SAMPLE IOSurface textures
+(read) and can BIND them (glIsTexture=TRUE), but its render-to-IOSurface
+path is broken or absent at every turn. This is starting to look like
+a hardware/driver limitation, not a fixable bug.
+
+**The fallback copy is CPU-mediated: `glGetTexImage → memcpy → IOSurface`.**
+The source texture (glcolorscale's output) is fully readable in the
+wrapped context via `glGetTexImage`. The pixels can be copied to the
+IOSurface's base address via `memcpy`. CALayer then composites the
+IOSurface. But this is a GPU→CPU→IOSurface round-trip per frame —
+NOT zero-copy.
+
+### Is the GL path worth wiring? (open — requires 720p benchmark)
+
+The zero-copy premise that justified the entire GL arc just died:
+render-to-IOSurface doesn't work on the 9400M, so the path must
+round-trip through CPU. The question is whether glcolorscale's GPU
+colorspace conversion (I420→RGBA) saves more than the per-frame
+`glGetTexImage` readback costs. On GL 2.1 hardware, GPU readback is
+the slowest path — it may be slower than doing the colorspace
+conversion on CPU in the first place.
+
+**Patch 26's existing CPU path**: GStreamer decodes (CPU) →
+videoconvert converts I420→RGBA (CPU) → ImageGStreamer uploads to
+CGImage → CALayer. No GPU involvement.
+
+**The new GL+readback path**: GStreamer decodes (CPU) → videoconvert
+I420→RGBA (CPU) → glcolorscale converts RGBA→GL texture (GPU) →
+glGetTexImage reads back (GPU→CPU) → memcpy to IOSurface → CALayer.
+
+The new path adds a GPU upload + a GPU→CPU readback on top of the
+CPU path. For it to be a win, the GPU colorspace conversion must
+outweigh the readback stall. At 720p (1280×720×4 = 3.5MB/frame),
+the readback is non-trivial.
+
+**The thirteenth probe** (not yet run): benchmark both paths at
+720p, measure sustained fps. The result decides whether the last
+fifteen turns of GL investigation wire into WebKit or become the
+proof that patch 26's CPU path was already the ceiling for this
+hardware.
+
 ### MacPorts hygiene (preventive)
 
 `/opt/local/lib/gstreamer-1.0/` and ~35 MacPorts `libgst*-1.0.0.dylib`
