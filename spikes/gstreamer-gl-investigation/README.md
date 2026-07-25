@@ -99,16 +99,24 @@ participation in the IOSurface copy path.
   the dispatch lands. Fix #1 solves the per-launch certain deadlock;
   the runtime one is latent and intermittent.
 
-### 1.4.5 cannot host the GL video sink — 1.6.4 reopens as the base
+### Sink construction failure (real), appsink handoff (proven), decoder memory type (open)
 
-**Foundational finding, post-deploy.** Fix #1 was deployed, the
-deadlock was eliminated, and the wrapped context resolved to the
-hardware renderer (`renderer=0x102260e (GEFORCE)` in the launch log).
-But video still did not play. Tracing the failure:
+This section has been corrected from a prior version that overclaimed
+"1.4.5 cannot host the GL video sink → 1.6.4 reopens as the base."
+The sink-construction failure is real. The "therefore reopen the base"
+conclusion was **disproven at the sink-construction layer** by an
+isolated probe, then **narrowed rather than closed** by recognizing
+the parallel between that reversal and the still-open decoder-memory
+question. The base decision is one boolean away from decided, not
+closed. This section records the full sequence precisely because the
+shape of the error — momentum from a "ninth reversal" burying an
+uncorroborated assumption — is itself the lesson.
 
-  - `GLVideoSinkGStreamer.cpp:73-77` (the `webkitglvideosink`
-    element's constructor) calls `gst_element_factory_make("glupload")`
-    and `gst_element_factory_make("glcolorconvert")`, then
+**What's proven (sink-construction layer, original finding):**
+
+  - `GLVideoSinkGStreamer.cpp:73-77` calls
+    `gst_element_factory_make("glupload")` and
+    `gst_element_factory_make("glcolorconvert")`, then
     `gst_bin_add_many(sink, upload, colorconvert, appSink, ...)`.
   - On GStreamer 1.4.5, both factory calls return NULL.
     `gst-inspect-1.0 glupload` → "No such element or plugin 'glupload'".
@@ -116,111 +124,154 @@ But video still did not play. Tracing the failure:
     `gleffects`, `glcolorscale`, `glvideomixer`, `glshader`,
     `gltestsrc`, `glfilter*`, `gldeinterlace` — but **not**
     `glupload`, `glcolorconvert`, or `gldownload` as discrete elements.
+  - `glupload`, `glcolorconvert`, `gldownload` are 1.6+ additions,
+    part of the 1.6 GL rework (GstGLMemory allocator + GstGLBufferPool
+    + upload-meta infrastructure). In 1.4.x the upload logic existed
+    only as an opaque internal helper inside `glimagesink`.
   - The NULL `upload` cascades through `gst_bin_add_many` (element_1
     assertion failures), the sink is constructed half-broken, and the
     pipeline never produces frames.
 
-  **`glupload`, `glcolorconvert`, and `gldownload` are 1.6+ elements.**
-  They were added as part of the 1.6 GL rework that introduced the
-  public GstGLMemory allocator + GstGLBufferPool infrastructure. In
-  1.4.x the equivalent upload logic existed only as an opaque internal
-  helper inside `glimagesink` — not exposed as a discrete element
-  factory, not usable from outside the sink.
+  **Upshot**: WebKit's stock `GLVideoSinkGStreamer` cannot construct
+  on 1.4.5. That part of the original finding stands.
 
-### Why this reopens the 1.4.5-vs-1.6.4 decision
+**What's proven (appsink handoff works on 1.4.5, the reversal):**
 
-When the base was chosen, the comparison weighed:
+  The original "therefore reopen the base" conclusion assumed that
+  `webkitglvideosink`'s construction failure implied 1.4.5 couldn't
+  host the GL path. That assumption was checked by an isolated probe
+  — and reversed.
 
-  - Cocoa backend compatibility (1.4.5 needs two 10.7+ selector
-    guards; 1.6.4 doesn't).
-  - `gst_gl_context_create` deadlock topology (1.4.5 has it; 1.6.4
-    reworks the Cocoa backend such that the dispatch_sync path is
-    different).
-  - `can_share` accepting wrapped contexts (1.6.4 better).
-  - kCGLPFAOpenGLProfile uses (1.6.4 properly `#if`-guarded).
-  - "Already built and working" — which weighed heavily in 1.4.5's
-    favor.
+  Three gst-launch -v probes against the deployed 1.4.5 framework
+  on the macmini:
 
-What that comparison did NOT weigh: **element availability**. The
-`webkitglvideosink` element in upstream WebKit (which is what the
-leopard consumer port imports) assumes GstGL 1.6+ element factories.
-The "1.4.5 is the right target" conclusion was correct for the
-factors examined and wrong for a factor not examined — the same shape
-as the "consumer port won't hit the deadlock" claim disproven by
-production. The base decision must be reopened with element
-availability as a decided factor.
+    1. `gltestsrc ! "video/x-raw(memory:GLMemory),format=RGBA" ! appsink`
+       → caps negotiation succeeds, capsfilter returns
+       `video/x-raw(memory:GLMemory), format=RGBA`, appsink accepts.
+    2. `gltestsrc → glfiltercube → appsink` with explicit GLMemory
+       caps → every pad reports `caps = video/x-raw(memory:GLMemory),
+       RGBA, 320x240, 30/1` end-to-end. GLMemory flows through
+       multiple GL elements to appsink.
+    3. `gltestsrc → fakesink` (no caps filter) → gltestsrc natively
+       outputs `(memory:GLMemory)` by default.
 
-### The three "fix on 1.4.5" options are all dead ends
+  Caps `(memory:GLMemory)` on the appsink sink pad is a binding
+  contract — GStreamer's negotiation guarantees the buffers matching
+  those caps carry that memory type, or negotiation would have
+  failed. The appsink handoff is not the blocker on 1.4.5.
 
-  - **Substitute 1.4.5 equivalents for glupload/glcolorconvert.**
-    There are none. The raw-frame path (appsink pulling CPU frames)
-    defeats the IOSurface bridge, which expects GstGLMemory textures.
-  - **Stub the sink's GL processing, let playbin autoplug upstream.**
-    The spike architecture's original assumption was that glupload
-    lives in playbin's autoplug — but it actually lives in the sink's
-    OWN bin (line 77). Stubbing the sink means GstGLMemory never gets
-    produced, so the IOSurface bridge has nothing to consume. This
-    option is honestly "disable the GL sink," same as patch 26's
-    CPU-paint fallback.
-  - **Backport glupload/glcolorconvert from 1.6 into 1.4.5.** These
-    elements depend on 1.6's GstGLMemory allocator changes,
-    GstGLBufferPool reworks, and the upload-meta infrastructure.
-    Backporting them is backporting most of the 1.6 GL memory
-    subsystem into a 1.4 tree — producing a 1.4/1.6 hybrid rather
-    than a clean base.
+  **Upshot**: WebKit's stock `GLVideoSinkGStreamer` was the wrong
+  wiring to import, not a wrong-base symptom. The IOSurface bridge's
+  premise (GstGL produces textures in its own context, WebKit owns
+  the handoff) extends cleanly to "appsink pulls GLMemory directly"
+  — no explicit glupload→appsink chain required, no base change
+  required.
 
-None of the three delivers accelerated video on 1.4.5. The base
-itself is structurally insufficient.
+**What's open, and now the load-bearing question:**
 
-### Path forward: 1.6.4 as the base
+  The probe used `gltestsrc` — a GL-native producer that emits
+  GLMemory by default. **The real pipeline's producer is the H.264
+  decoder (`avdec_h264`), and software decoders produce system
+  memory, not GLMemory.** There is no GL element between `avdec_h264`
+  and appsink in the natural playbin graph — which is exactly what
+  `glupload` exists to insert. The element whose absence we just
+  proved not-load-bearing for the appsink handoff is the element
+  that performs the system-memory→GLMemory conversion a software
+  decoder's output requires.
 
-All the leopard toolchain and patch work transfers. The current
-patched source tree lives at:
+  This is the structural twin of the premise that just reversed.
+  Last turn: "glupload is missing → 1.4.5 can't host the sink"
+  reversed because the assumption (the sink needs glupload) was
+  checked while a factor (appsink accepts GLMemory directly) wasn't.
+  This turn: the appsink handoff is proven, but whether GLMemory
+  can reach appsink **from the real decode path without glupload**
+  is unproven. If `avdec_h264`'s system-memory output can't become
+  GLMemory without the missing 1.6 `glupload`, then `glupload`'s
+  absence is load-bearing after all — just relocated from the
+  sink-construction boundary to the decode→GL boundary.
 
-  `/Users/macbookpro/gst-plugins-bad` — branch `snowleopard-1.4.5`
-  with six `[leopard]` commits on top of upstream `Release 1.4.5`
-  (`faed71d32`):
+  **The base question is neither closed nor reopened. It is one
+  boolean away from decided.**
 
-    `2a8297477` patch Cocoa GL backend for 10.6 SDK compatibility + diagnostics
-    `0487014ea` add build-snowleopard.sh for reproducible 10.6 cross-compile
-    `8b8760a20` fix K&R declaration in gstglfilterglass.c for modern clang
-    `14222aa88` guard gstgltransformation.c with HAVE_GRAPHENE
-    `f9b34e9ac` build-snowleopard.sh: add plugin build steps + all overrides
-    `9fef0c937` gitignore ORC-generated bad-video-orc.h
+### Next session's first probe — the deciding boolean
 
-  Tags `1.6.0` through `1.6.4` are present in the same repo. The
-  1.6.4 tag contains the elements the sink needs:
-  `ext/gl/gstglcolorconvertelement.c`,
-  `gst-libs/gst/gl/gstglcolorconvert.c`,
-  `gst-libs/gst/gl/gstglupload.c`.
+The remaining probe is narrow and cheap: a `gst_is_gl_memory()`
+check on a buffer from the **real decode path** (not from a GL
+producer). The shape:
 
-  **Do not confuse with** `/Users/macbookpro/gstreamer` — that's
-  the `gstreamer` CORE module clone (separate repo, no GstGL content,
-  no leopard patches; its `snowleopard-1.4.5` branch == upstream 1.4.5
-  tag).
+  ```
+  filesrc location=<small-h264-file.mp4> ! queue ! decodebin !
+    videoconvert ! appsink
+  ```
 
-Concrete port path:
+  with `gst_app_sink_set_caps(appsink, gst_caps_from_string(
+      "video/x-raw(memory:GstGLMemory)"))` to force GL negotiation,
+  and on the pulled buffer:
 
-  1. `git checkout -b snowleopard-1.6.4 1.6.4` in
-     `/Users/macbookpro/gst-plugins-bad`.
-  2. Cherry-pick the six `[leopard]` commits. Most should apply
-     cleanly; the load-bearing one (`2a8297477` Cocoa GL backend)
-     may need rework against 1.6.4's refactored Cocoa backend.
-  3. The fix #1 deadlock patch (`2a8297477`'s dispatch_sync inline-
-     when-main) is likely **unnecessary on 1.6.4** — the Cocoa
-     backend's `gst_gl_context_cocoa_create_context` was reworked
-     to avoid the dispatch_sync(main_queue) topology entirely. The
-     WebKit-side fix #1 (commit `f569a3ac90` in sources_610) is
-     still valid and harmless on 1.6.4 (it just wraps the share-
-     parent context differently), but the libgstgl patch becomes
-     a no-op.
-  4. Build via the existing `build-snowleopard.sh`, deploy the
-     resulting `libgstgl-1.0.0.dylib` + `libgstopengl.so` to the
-     framework slot, replacing the current 1.4.5 versions.
-  5. Re-test the deploy. The renderer-ID log from fix #1's
-     `createCocoaGstGLShareContext` is still load-bearing for the
-     share-group verification (cross-context visibility between the
-     wrapped context and glupload's auto-created context).
+  ```c
+  GstBuffer *buf = gst_sample_get_buffer(sample);
+  GstMemory *mem = gst_buffer_peek_memory(buf, 0);
+  gboolean is_gl = gst_is_gl_memory(mem);
+  ```
+
+  `gst_is_gl_memory(mem)` is the one boolean that decides the
+  architecture and the base.
+
+  - If TRUE: GLMemory reaches appsink from the real decode path on
+    1.4.5. `glupload`'s absence is irrelevant. 1.4.5 is fully
+    vindicated; the IOSurface bridge feeds from appsink's GL buffer
+    via the proven `CGLTexImageIOSurface2D` primitive. Everything
+    recovered this session was recovered onto the correct base.
+    Wire WebKit to use appsink (with GLMemory caps) + the IOSurface
+    bridge, drop the stock `GLVideoSinkGStreamer` wiring.
+  - If FALSE (and an explicit GLMemory caps request was rejected to
+    system memory): `glupload`'s absence is load-bearing after all.
+    The decode→GL conversion requires an upload element, and the
+    upload element is 1.6+. **This time** the 1.6.4 move would be
+    a tested requirement, not sunk-cost-avoidance.
+
+  This is the same `gst_is_gl_memory()` check that would have been
+  redundant against the gltestsrc probe (caps already proved it).
+  Against the real decode path, it is informative rather than
+  redundant — that's where the actual answer lives.
+
+  Do NOT wire anything into WebKit until this probe runs. Same
+  discipline that caught the eight prior premise reversals: test
+  the load-bearing assumption in isolation before building the
+  integration on top of it. This is the ninth, and it's the one
+  that finally decides whether the base question is closed or
+  reopened.
+
+### Repo locations (for whichever way the probe resolves)
+
+If 1.4.5 stands (probe TRUE): no port needed. The current
+`/Users/macbookpro/gst-plugins-bad` snowleopard-1.4.5 tree, the
+deployed framework, and all WebKit-side recovery work stay as-is.
+WebKit changes to drop `GLVideoSinkGStreamer` and route through
+appsink with GLMemory caps + the existing IOSurface bridge.
+
+If 1.6.4 is required (probe FALSE): the patched source tree lives
+at `/Users/macbookpro/gst-plugins-bad` on branch `snowleopard-1.4.5`
+with six `[leopard]` commits on top of upstream `Release 1.4.5`
+(`faed71d32`):
+
+  `2a8297477` patch Cocoa GL backend for 10.6 SDK compatibility + diagnostics
+  `0487014ea` add build-snowleopard.sh for reproducible 10.6 cross-compile
+  `8b8760a20` fix K&R declaration in gstglfilterglass.c for modern clang
+  `14222aa88` guard gstgltransformation.c with HAVE_GRAPHENE
+  `f9b34e9ac` build-snowleopard.sh: add plugin build steps + all overrides
+  `9fef0c937` gitignore ORC-generated bad-video-orc.h
+
+Tags `1.6.0` through `1.6.4` are present in the same repo. The
+1.6.4 tag contains `ext/gl/gstglcolorconvertelement.c`,
+`gst-libs/gst/gl/gstglcolorconvert.c`, `gst-libs/gst/gl/gstglupload.c`.
+Port path: `git checkout -b snowleopard-1.6.4 1.6.4`, cherry-pick the
+six `[leopard]` commits, build, deploy.
+
+**Do not confuse with** `/Users/macbookpro/gstreamer` — that's the
+`gstreamer` CORE module clone (separate repo, no GstGL content, no
+leopard patches; its `snowleopard-1.4.5` branch == upstream 1.4.5
+tag).
 
 ### MacPorts hygiene (preventive)
 
@@ -236,17 +287,21 @@ back to the original names.
 
 ## TL;DR
 
-**[post-deploy update]** The "1.4.5 was the right target" framing
-below is now overturned — see "1.4.5 cannot host the GL video sink"
-in the Production reality section. The choice was correct for the
-factors weighed (Cocoa backend, deadlock topology, can_share) but
-missed element availability: `webkitglvideosink` requires `glupload`
-and `glcolorconvert`, both 1.6+ additions. 1.6.4 reopens as the
-correct base. The 1.4.5 work isn't wasted — it proved the toolchain,
-the Cocoa patches, the build script, and the wrap-only fix #1 design;
-all transfer to 1.6.4. The text below is preserved as historical
-record of the 1.4.5 investigation; read it with the post-deploy
-update in mind.
+**[post-deploy update, twice-corrected]** The "1.4.5 was the right
+target" framing below was first overturned by "sink construction
+fails because glupload/glcolorconvert are 1.6+ elements," then that
+overturn was itself narrowed by an appsink-GLMemory probe (see "Sink
+construction failure (real), appsink handoff (proven), decoder memory
+type (open)" in the Production reality section). The current state:
+the appsink handoff path works on 1.4.5 (proven), the stock
+GLVideoSinkGStreamer wiring was the wrong thing to import (not a
+wrong-base symptom), and whether GLMemory can reach appsink from the
+real H.264 decode path without glupload is the **one open boolean**
+that finally decides whether the base stays at 1.4.5 or moves to
+1.6.4. Next session's first probe is `gst_is_gl_memory()` on a buffer
+from `filesrc → decodebin → appsink` with GLMemory caps forced. The
+text below is preserved as historical record of the 1.4.5
+investigation; read it with the twice-corrected state in mind.
 
 - **Hardware path is viable.** `gst-launch-1.0 videotestsrc ! glimagesink`
   renders SMPTE bars smoothly on the 9400M via `libgstgl-1.0.0.dylib`
