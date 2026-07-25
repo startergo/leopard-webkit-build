@@ -73,10 +73,11 @@ ok()    { echo -e "${GREEN}[OK]${NC}    $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 err()   { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 
-CLEAN=false; PATCHES_ONLY=false; PACKAGE_ONLY=false
+CLEAN=false; PATCHES_ONLY=false; PACKAGE_ONLY=false; FORCE_CLEAN=false
 for arg in "$@"; do
     case "$arg" in
         --clean)        CLEAN=true ;;
+        --force-clean)  FORCE_CLEAN=true ;;
         --patches)      PATCHES_ONLY=true ;;
         --package-only) PACKAGE_ONLY=true ;;
         -h|--help) sed -n '2,40p' "$0"; exit 0 ;;
@@ -210,6 +211,46 @@ phase2_patches() {
     rm -f "$stamp"
 
     info "Phase 2: Applying minimal 605 patches (NO Leopard community patch)..."
+
+    # [leopard] Guard against silent destruction of uncommitted work.
+    # The `git checkout -- . && git clean -fd -- Source/` below is how
+    # phase2 restores Source/ to a pristine state so patches apply
+    # idempotently. But it is destructive in two ways at once:
+    #
+    #   - `git checkout -- .` reverts ALL unstaged modifications to
+    #     tracked files. The diffs are gone from git's perspective
+    #     afterwards (no reflog entry; working-tree only).
+    #
+    #   - `git clean -fd -- Source/` deletes ALL untracked files under
+    #     Source/. They were never in the object store, so they cannot
+    #     be recovered via fsck/reflog/dangling-blob after deletion.
+    #
+    # Refuse to run either step if the working tree is dirty, unless
+    # the user passed --force-clean (in which case we print everything
+    # that will be destroyed and pause briefly so it can be aborted).
+    # This converts a silent footgun into a confirmation step. The
+    # guard is independent of --clean: it fires whenever phase2 reaches
+    # this point (which it does on any first run, any stamp-removed
+    # run, and any --clean run).
+    local DIRTY_COUNT
+    DIRTY_COUNT=$(cd "$SOURCE_DIR" && git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+    if [ "${DIRTY_COUNT:-0}" -gt 0 ]; then
+        if ! $FORCE_CLEAN; then
+            err "phase2: sources_610 working tree is dirty (${DIRTY_COUNT} uncommitted change(s))."
+            err "phase2 is about to run 'git checkout -- . && git clean -fd -- Source/' which DESTROYS:"
+            err "  - unstaged modifications to tracked files (reverted to HEAD, diffs lost)"
+            err "  - untracked files in Source/ (deleted; no git record survives)"
+            err ""
+            err "To proceed, either:"
+            err "  (a) commit or stash your work in sources_610 first, then re-run, or"
+            err "  (b) re-run with --force-clean (full destruction list printed before execution)"
+            exit 1
+        fi
+        warn "phase2: --force-clean passed; the following ${DIRTY_COUNT} change(s) will be DESTROYED:"
+        ( cd "$SOURCE_DIR" && git status --porcelain 2>&1 ) | sed 's/^/  /'
+        warn "phase2: proceeding in 3s (Ctrl-C to abort)..."
+        sleep 3
+    fi
 
     # Restore source to clean state so patches apply idempotently.
     ( cd "$SOURCE_DIR" && git checkout -- . 2>/dev/null && git clean -fd -- Source/ 2>/dev/null ) || true
