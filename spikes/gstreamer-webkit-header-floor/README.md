@@ -162,6 +162,12 @@ appsink, and checks whether the resulting samples reference the wrapped
 texture or allocate new ones. That probe determines path (a) vs (b)
 empirically.
 
+**Probe written (not yet run):** `spikes/gstreamer-gl-investigation/gst-gl-iosurface-probe.c`
+tests the three primitives — IOSurfaceCreate, CGLTexImageIOSurface2D,
+gst_gl_memory_wrapped_texture — on 10.6 + 9400M. Build/run instructions
+in the file header. This is the prerequisite probe; the full
+glupload-pipeline test is a follow-up once these primitives are confirmed.
+
 ### CPU-download fallback (current baseline)
 
 ### CPU-download fallback (current baseline)
