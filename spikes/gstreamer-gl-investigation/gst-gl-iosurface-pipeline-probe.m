@@ -43,6 +43,15 @@
 
 #define GST_USE_UNSTABLE_API 1
 
+// [leopard] This probe is .m (Objective-C) so main() can run an
+// NSApplication run loop. GstGL 1.4.5's gst_gl_context_create spawns
+// a GL thread that calls dispatch_sync(main_queue, ...) inside
+// gstglcontext_cocoa.m — if main is blocked on a condvar (as a plain
+// ssh-launched binary is), this deadlocks. Mirroring the consumer
+// port's environment (WebKit main thread runs NSApp's run loop) lets
+// dispatch_sync land. Pattern is from gst-gl-share-probe3.m.
+
+#import <Cocoa/Cocoa.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -581,14 +590,61 @@ static int run_probe_1(GstGLDisplay *display,
     return failures;
 }
 
+/* Probe worker state — created on main, filled by worker. */
+typedef struct {
+    /* inputs */
+    CGLContextObj cgl_ctx;
+    IOSurfaceRef surf;
+    GLuint io_tex;
+    /* outputs */
+    GstGLDisplay *display;
+    GstGLContext *gst_ctx;
+    int probe2_failures;
+    int probe1_failures;
+    gboolean setup_ok;
+} ProbeJob;
+
+static gpointer probe_worker(gpointer data) {
+    ProbeJob *job = (ProbeJob *)data;
+
+    g_print("=== Worker: building native GstGL context (this calls gst_gl_context_create) ===\n");
+    job->gst_ctx = make_native_gst_context(job->cgl_ctx, &job->display);
+    if (!job->gst_ctx) {
+        g_printerr("  FAIL: could not create native GstGL context\n");
+        job->setup_ok = FALSE;
+    } else {
+        job->setup_ok = TRUE;
+        g_print("=== Worker: native GstGL context ready — running probes ===\n");
+        run_probe_2(job->display, job->gst_ctx, job->io_tex);
+        job->probe2_failures = 0;  /* probe 2 is informational only */
+        job->probe1_failures = run_probe_1(job->display, job->gst_ctx, job->surf, job->io_tex);
+    }
+
+    /* Drain main_queue so dispatch_sync in GstGL can return — this is
+     * what unblocked gst_gl_context_create in the first place. */
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [NSApp stop:nil];
+    });
+    return NULL;
+}
+
 int main(int argc, char **argv) {
     gst_init(&argc, &argv);
 
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+
+    /* NSApplication setup — required so dispatch_sync(main_queue, ...)
+     * inside gst_gl_context_cocoa_create_context can land. Without this,
+     * the probe hangs at gst_gl_context_create (the documented 1.4.5
+     * deadlock from spikes/gstreamer-gl-investigation/README.md). */
+    [NSApplication sharedApplication];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+
     int total_failures = 0;
 
-    g_print("=== Setup: CGL context + IOSurface + native GstGL context ===\n");
+    g_print("=== Setup: CGL context + IOSurface ===\n");
     CGLContextObj cgl_ctx = make_cgl_context();
-    if (!cgl_ctx) { return 1; }
+    if (!cgl_ctx) { [pool release]; return 1; }
     GLint rid = 0;
     CGLGetParameter(cgl_ctx, kCGLCPCurrentRendererID, &rid);
     g_print("  CGL context: %p renderer=0x%x (%s)\n",
@@ -600,6 +656,7 @@ int main(int argc, char **argv) {
     if (!surf) {
         g_printerr("  FAIL: IOSurfaceCreate returned NULL\n");
         CGLDestroyContext(cgl_ctx);
+        [pool release];
         return 1;
     }
     g_print("  IOSurface: %p id=%u\n", (void*)surf, IOSurfaceGetID(surf));
@@ -608,25 +665,29 @@ int main(int argc, char **argv) {
     if (!io_tex) {
         CFRelease(surf);
         CGLDestroyContext(cgl_ctx);
+        [pool release];
         return 1;
     }
     g_print("  IOSurface texture: tex_id=%u (RECTANGLE)\n", io_tex);
 
-    GstGLDisplay *display = NULL;
-    GstGLContext *gst_ctx = make_native_gst_context(cgl_ctx, &display);
-    if (!gst_ctx) {
-        g_printerr("  FAIL: could not create native GstGL context\n");
-        glDeleteTextures(1, &io_tex);
-        CFRelease(surf);
-        CGLDestroyContext(cgl_ctx);
-        return 1;
+    /* Probe runs on a worker thread; main runs NSApp.run to service
+     * the main queue (so GstGL's internal dispatch_sync lands). */
+    ProbeJob job = {0};
+    job.cgl_ctx = cgl_ctx;
+    job.surf = surf;
+    job.io_tex = io_tex;
+
+    g_thread_new("probe-worker", probe_worker, &job);
+
+    g_print("=== Main: running NSApp.run — waiting for probe worker ===\n");
+    [NSApp run];
+    g_print("=== Main: probe worker signaled stop ===\n");
+
+    if (!job.setup_ok) {
+        total_failures = 1;
+    } else {
+        total_failures = job.probe1_failures + job.probe2_failures;
     }
-
-    /* Run probe 2 first (zero-blit). */
-    run_probe_2(display, gst_ctx, io_tex);
-
-    /* Run probe 1 (copy_into_texture). */
-    total_failures += run_probe_1(display, gst_ctx, surf, io_tex);
 
     g_print("\n=== Summary ===\n");
     if (total_failures == 0) {
@@ -637,12 +698,13 @@ int main(int argc, char **argv) {
         g_print("%d failure(s) — see above.\n", total_failures);
     }
 
-    g_object_unref(gst_ctx);
-    g_object_unref(display);
+    if (job.gst_ctx) g_object_unref(job.gst_ctx);
+    if (job.display) g_object_unref(job.display);
     glDeleteTextures(1, &io_tex);
     CFRelease(surf);
     CGLSetCurrentContext(NULL);
     CGLDestroyContext(cgl_ctx);
 
+    [pool release];
     return total_failures ? 1 : 0;
 }
