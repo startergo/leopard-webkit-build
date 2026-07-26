@@ -741,3 +741,59 @@ runtime, but the cleaner path is a single consistent version.
 3. **Write the Cocoa GL consumer in `MediaPlayerPrivateGStreamer`** — `copyVideoTextureToPlatformTexture` for Cocoa behind a new `USE_GSTREAMER_GL_COCOA` CMake flag (since `USE(GSTREAMER_GL)` is EGL/GTK/WPE-only). The architecture diagram above is the shape.
 4. **Wire up GstContext propagation** through `playbin` so the wrapped context reaches `glupload`/`gldownload`.
 5. **Run the three diagnostic hooks** at first launch. If renderer IDs differ, that's the open risk surfacing; align pixel formats or patch GstGL to use a WebKit-provided pixel format.
+
+---
+
+## YouTube / MSE Assessment — July 2026
+
+### What works (banked milestone)
+
+- **Progressive web video over HTTPS** — proven end-to-end (Big Buck Bunny
+  from test-videos.co.uk, H.264, played through the IOSurface/CALayer
+  accelerated render path)
+- **GStreamer 1.4.5 fully integrated** — deadlock fixed (wrap-only Cocoa
+  GstGL context), all codecs available (H.264, VP8, VP9, AAC, Opus, Vorbis)
+- **IOSurface/CALayer render path** — CPU fallback sink → ImageGStreamer →
+  CGImageRef → IOSurface → CALayer.contents → Core Animation GPU compositing
+- **MSE compiles and initializes** — `window.MediaSource` is defined,
+  `isTypeSupported` returns correct values for all codecs (H.265=false,
+  H.264 all profiles=true, VP9=true, AAC=true)
+
+### What YouTube needs (scoped out — requires base change)
+
+YouTube requires MSE append-pipeline behavior that is stacked across ≥3
+pipeline layers, one of which is not patchable WebKit-side on 1.4.5:
+
+1. **EOS-instead-of-updateend signaling** (WebKit append-glue) — the
+   AppendPipeline signals stream-end after the init segment instead of
+   "segment complete, ready for next append." YouTube's JS never receives
+   `updateend`, waits ~10s, gives up, clears tracks. Patchable in WebKit.
+
+2. **`gst_base_sink_set_drop_out_of_segment` is a 1.6 API** (GStreamer
+   base-library gap) — MSE needs the appsink to keep out-of-segment
+   buffers (media fragments arrive with new segment boundaries). On 1.4.5,
+   the base sink hardcodes dropping them with no override. Not patchable
+   WebKit-side — would require forking `gstbasesink.c` in libgstbase.
+
+3. **Video appends entirely unproven** — trace showed only audio (mp4a)
+   qtdemux instances in the MSE path. Zero video qtdemux instances.
+   May be explained by #1/#2 or may be a separate issue.
+
+### Why 1.6.4 (not 1.4.5-forked) is the path to YouTube
+
+The MSE walls are precisely the things GStreamer 1.6 fixed:
+- `gst_base_sink_set_drop_out_of_segment` (native in 1.6)
+- `gst_app_sink_try_pull_sample` (native in 1.6)
+- `gst_flow_combiner_update_pad_flow` (native in 1.6)
+- Better fMP4 append-mode handling in qtdemux
+
+Moving to 1.6.4 would require re-porting the entire proven stack:
+Cocoa GL backend, deadlock fix, share-group pixel-format matching,
+IOSurface bridge, all version gates. That's a deliberate separate project.
+
+### Decision
+
+Progressive accelerated web video is the deliverable. YouTube is scoped
+out with a precise map of what it would take, so the work can be picked
+up from the map rather than rediscovered.
+
