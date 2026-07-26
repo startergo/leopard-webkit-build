@@ -779,6 +779,24 @@ pipeline layers, one of which is not patchable WebKit-side on 1.4.5:
    qtdemux instances in the MSE path. Zero video qtdemux instances.
    May be explained by #1/#2 or may be a separate issue.
 
+4. **WebKitMediaSrc dynamic-pad READY→PAUSED stall** — playbin can't
+   transition from READY to PAUSED with WebKitMediaSrc as source.
+   WebKitMediaSrc starts with no pads; pads are added dynamically when
+   tracks are attached (`attachTrack`). On 1.4.5, playbin doesn't
+   re-negotiate after dynamic pad addition from a custom source.
+   Confirmed: need-data callback fires 0 times (ordering deadlock, not
+   negotiation failure). The appsrc elements in WebKitMediaSrc are never
+   fed, decodebin never activates, pipeline never prerolls. YouTube
+   retries 3× (creating new MediaSource each time), same stall each cycle.
+   91 append completions confirmed — the AppendPipeline works. The wall
+   is in the PlaybackPipeline's playbin interaction.
+
+5. **YouTube serves VP9+Opus** — tracks attached as `video/x-vp9` and
+   `audio/x-opus`. VP9 decoder (vp9dec) IS available in the GStreamer
+   1.4.5 framework, so the codec isn't the wall — the pipeline stall (#4)
+   is. But YouTube's codec selection is worth noting for the 1.6.4
+   project: verify VP9 and Opus decoders are included in the new build.
+
 ### Why 1.6.4 (not 1.4.5-forked) is the path to YouTube
 
 The MSE walls are precisely the things GStreamer 1.6 fixed:
