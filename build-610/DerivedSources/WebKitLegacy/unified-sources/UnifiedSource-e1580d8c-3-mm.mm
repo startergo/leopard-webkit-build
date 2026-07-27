@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMCSSStyleSheet.mm"
+#include "mac/DOM/DOMCSSUnknownRule.mm"
+#include "mac/DOM/DOMCSSValue.mm"
+#include "mac/DOM/DOMCSSValueList.mm"
+#include "mac/DOM/DOMCharacterData.mm"
+#include "mac/DOM/DOMComment.mm"
+#include "mac/DOM/DOMCounter.mm"
+#include "mac/DOM/DOMCustomXPathNSResolver.mm"

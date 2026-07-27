@@ -1,0 +1,12 @@
+diff --git a/Source/WebKitLegacy/PlatformMac.cmake b/Source/WebKitLegacy/PlatformMac.cmake
+index 81950e3053..0940ae212f 100644
+--- a/Source/WebKitLegacy/PlatformMac.cmake
++++ b/Source/WebKitLegacy/PlatformMac.cmake
+@@ -680,7 +680,6 @@ WEBKIT_MAKE_FORWARDING_HEADERS(WebKitLegacy
+     FILES ${WebKitLegacy_FORWARDING_HEADERS_FILES}
+     FLATTENED
+ )
+-add_dependencies(WebKitLegacyFrameworkHeaders WebCorePrivateFrameworkHeaders)
+ 
+ set(WebKitLegacy_OUTPUT_NAME WebKitLegacy)
+ 

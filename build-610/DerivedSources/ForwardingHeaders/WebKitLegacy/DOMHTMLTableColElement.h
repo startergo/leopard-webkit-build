@@ -1,0 +1,1 @@
+#import "mac/DOM/DOMHTMLTableColElement.h"

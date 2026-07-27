@@ -1,0 +1,6 @@
+#include "history/BackForwardCache.cpp"
+#include "history/BackForwardController.cpp"
+#include "history/BackForwardItemIdentifier.cpp"
+#include "history/CachedFrame.cpp"
+#include "history/CachedPage.cpp"
+#include "history/HistoryItem.cpp"

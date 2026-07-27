@@ -1,0 +1,8 @@
+#include "bindings/js/JSWindowProxy.cpp"
+#include "bindings/js/JSWorkerGlobalScopeBase.cpp"
+#include "bindings/js/JSWorkerGlobalScopeCustom.cpp"
+#include "bindings/js/JSWorkerNavigatorCustom.cpp"
+#include "bindings/js/JSWorkletGlobalScopeBase.cpp"
+#include "bindings/js/JSXMLDocumentCustom.cpp"
+#include "bindings/js/JSXMLHttpRequestCustom.cpp"
+#include "bindings/js/JSXPathNSResolverCustom.cpp"

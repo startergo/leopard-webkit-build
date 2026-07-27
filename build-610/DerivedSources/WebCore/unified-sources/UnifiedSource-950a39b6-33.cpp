@@ -1,0 +1,8 @@
+#include "html/shadow/ProgressShadowElement.cpp"
+#include "html/shadow/SliderThumbElement.cpp"
+#include "html/shadow/SpinButtonElement.cpp"
+#include "html/shadow/TextControlInnerElements.cpp"
+#include "html/shadow/TextPlaceholderElement.cpp"
+#include "html/shadow/ImageControlsRootElement.cpp"
+#include "html/shadow/YouTubeEmbedShadowElement.cpp"
+#include "html/shadow/mac/ImageControlsButtonElementMac.cpp"

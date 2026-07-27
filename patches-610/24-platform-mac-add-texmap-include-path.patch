@@ -1,0 +1,40 @@
+From: leopard-webkit-build
+Subject: [PATCH] PlatformMac: add platform/graphics/texmap to WebCore include path
+
+With USE_GSTREAMER_GL now genuinely on (patches 21+22), VideoTextureCopierGStreamer.h
+gets compiled. It does `#include "TextureMapperGLHeaders.h"` (quoted, not angle-bracket),
+which on non-Mac platforms resolves via the ForwardingHeaders mechanism that
+platform/TextureMapper.cmake populates (line 19-36 lists TextureMapperGLHeaders.h
+in WebCore_PRIVATE_FRAMEWORK_HEADERS).
+
+PlatformMac.cmake does NOT include(platform/TextureMapper.cmake) — Mac doesn't use
+the upstream TextureMapper compositor (Mac uses CALayer directly). So none of the
+texmap/ headers are forwarded into WebCore's ForwardingHeaders dir, and the quoted
+include fails:
+
+  VideoTextureCopierGStreamer.h:26:10: fatal error: 'TextureMapperGLHeaders.h' file not found
+
+The minimal mechanical fix: add the texmap source directory to WebCore_PRIVATE_INCLUDE_DIRECTORIES
+on Mac. Quoted includes then resolve directly against the source tree. This matches
+the existing pattern at PlatformMac.cmake:95-138 which already lists 30+ platform/
+subdirectories.
+
+Larger question (out of scope for this patch): the gstreamer GL code path assumes
+a TextureMapper-based compositor. On Mac, bridging GstGLMemory to CAOpenGLLayer
+either requires adopting TextureMapper on Mac (significant platform change) or
+writing a Cocoa-specific compositor bridge (the multi-day consumer port scoped
+in spikes/gstreamer-gl-investigation/). Either is multi-session work; this patch
+just unblocks the compile.
+
+---
+diff --git a/Source/WebCore/PlatformMac.cmake b/Source/WebCore/PlatformMac.cmake
+--- a/Source/WebCore/PlatformMac.cmake
++++ b/Source/WebCore/PlatformMac.cmake
+@@ -132,6 +132,7 @@ list(APPEND WebCore_PRIVATE_INCLUDE_DIRECTORIES
+     "${WEBCORE_DIR}/platform/graphics/opentype"
+     "${WEBCORE_DIR}/platform/graphics/opengl"
+     "${WEBCORE_DIR}/platform/graphics/mac"
++    "${WEBCORE_DIR}/platform/graphics/texmap"
+     "${WEBCORE_DIR}/platform/mac"
+     "${WEBCORE_DIR}/platform/mediacapabilities"
+     "${WEBCORE_DIR}/platform/mediarecorder/cocoa"

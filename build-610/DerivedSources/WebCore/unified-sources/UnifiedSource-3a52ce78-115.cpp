@@ -1,0 +1,8 @@
+#include "JSWebGPURenderPipelineDescriptor.cpp"
+#include "JSWebGPUSampler.cpp"
+#include "JSWebGPUShaderModule.cpp"
+#include "JSWebGPUShaderModuleDescriptor.cpp"
+#include "JSWebGPUSwapChain.cpp"
+#include "JSWebGPUTexture.cpp"
+#include "JSWebGPUTextureView.cpp"
+#include "JSWebKitAnimationEvent.cpp"

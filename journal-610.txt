@@ -1,0 +1,85 @@
+WebKit 610.1.15 — Snow Leopard 10.6 (x86_64) cross-compile — SESSION JOURNAL
+Project: sources_610/ (git, branch sl-port-610, baseline Safari-610.1.15.5) + build-610/ + build_610.sh
+NOTE: AGENTS.md in this dir documents the OLDER 604.5.6 project (build/, source/webkit/, stamps) — not this 610 work.
+
+============================================================================
+SESSION: GitHub renders STYLED on WebKit 610 / Snow Leopard 10.6
+============================================================================
+
+MILESTONE: github.com went from raw unstyled HTML (every CDN asset transferred
+0 bytes) to FULLY STYLED and rendering. JS engine runs. The only thing blocking
+full React interactivity now is ES2022 private class fields (see LIMITATION).
+
+--- ROOT CAUSE (the decisive fix): phantom synthetic redirects ---
+synthesizeRedirectResponseIfNecessary (Source/WebCore/platform/network/mac/
+WebCoreURLResponse.mm) fabricated a 302 redirect for EVERY initial subresource
+load. On 10.6, [connection currentRequest] is nil on the first load of a
+subresource; [[nil URL] scheme] is nil; -[NSString isEqualToString:nil] is NO,
+so the same-scheme short-circuit failed and a synthetic redirect was built.
+Diagnostic logging showed "cur=(null)" 129 times per page load. Each phantom
+redirect was then rejected by checkRedirectionCrossOriginAccessControl ->
+every github.githubassets.com CSS/JS asset denied -> unstyled page.
+FIX: `if (!currentRequest) return nil;` at the top of the function (commit 9e0f9186e1).
+
+--- SUPPORTING FIXES (36 commits total from baseline; newest first) ---
+caa5df97d5  Enable UserTiming so performance.mark/measure exist. GitHub calls
+            performance.mark at every module's js-parse-end; with the UserTiming
+            runtime flag off, performance.mark was undefined -> ~40 module TypeErrors.
+            (WebPreferences default YES + RuntimeEnabledFeatures in-class true.)
+3a28e7d485  Guard -[NSScrollView setScrollerKnobStyle:] (ScrollViewMac.mm), a 10.7+
+            overlay-scrollbar SPI. Fires only AFTER CSS loads and sets a background
+            color (recalculateScrollbarOverlayStyle) -> crash. respondsToSelector: guard.
+9e0f9186e1  THE FIX — nil currentRequest phantom-redirect guard (see ROOT CAUSE).
+61d45dedbd  checkRedirectionCrossOriginAccessControl: validate newRequest.url()
+            (resolved https) instead of URL(redirectResponse.url(), Location). The
+            synthetic redirect has no Location on 10.6 -> empty scheme -> "non CORS scheme".
+5043036381  Guard -[NSURLRequest _schemeWasUpgradedDueToDynamicHSTS] (10.7+ SPI),
+            matching WebKit's own guard at NetworkSessionCocoa.mm:490.
+e2e6910224  Brotli: force Accept-Encoding: gzip,deflate (10.6 cannot decode br; CDNs
+            served br -> empty body). Placed AFTER the header re-apply loop in
+            doUpdatePlatformRequest so it is not overwritten.
+0c76797d9d  ThemeMac toggle-button SPIs (_stateAnimationRunning,
+            _renderCurrentAnimationFrameInContext:) guarded; Layers3D WebGL guard
+            (blank-Inspector fix on software-GPU VM).
+5bbd3e8900  RenderThemeMac setCenteredLook: guard; Layers3D layout() null-scene guard.
+d0aa222a41  ResourceResponseCocoa requestTime SPI fallback + ACAO on synthetic redirect.
+(plus earlier scroller/form-field/window SPI guards from prior sessions.)
+
+--- WEB INSPECTOR ---
+Now fully functional: WebGL guard for the software-GPU VM (Layers3DContentView) +
+control-paint SPI guards (toggle buttons, search field). It was the diagnostic tool
+that cracked the asset-loading mystery: Network tab showed 0-byte githubassets.com
+assets; Console showed the CORS "non CORS scheme" / ACAO errors.
+
+--- LIMITATION / NEXT MAJOR ITEM: ES2022 private class fields (#field / #method) ---
+610.1.15's JSC has NO private-fields support. The lexer rejects '#'
+(parser/Lexer.cpp:525, "Invalid character: '#'"); there is no #name tokenization,
+no parser support for private declarations/access, and no PrivateName/PrivateBrand
+runtime infrastructure. usePublicClassFields exists (runtime/OptionsList.h:509) but
+there is NO usePrivateClassFields option. GitHub's react-core uses #private syntax ->
+SyntaxError -> "ChunkLoadError: Loading chunk failed after 3 retries" -> React does
+not boot. GitHub renders STYLED but React-driven interactivity won't run until this lands.
+
+Implementing it is a full feature backport, NOT a flag:
+  Phase 1: Lexer — tokenize #identifier into a PRIVATENAME token.
+  Phase 2: Parser — private field/method/accessor declarations; private access
+           expressions (this.#x, obj.#m()); per-class private-name scope; #x in obj brand check.
+  Phase 3: Bytecode + interpreter — op_get_private_name / op_put_private_name /
+           op_check_private_brand / op_set_private_brand; PrivateSymbol slots.
+  Phase 4: Brand checks for private methods/accessors.
+  (Defer DFG/FTL JIT — let the new ops run in the interpreter (LLInt) first.)
+RECOMMENDED: validate in a jsc-shell harness on a minimal
+  `class C { #x = 1; get() { return this.#x; } }` BEFORE re-testing in-browser.
+  Never debug a new language feature through a full GitHub load. Multi-session effort.
+
+--- HOUSEKEEPING ---
+- Patch package regenerated: patches-610/snowleopard-610/webkit-610-snowleopard-source.patch
+  (5374 lines) + series/ (36 patches).
+- Stray commit "decebcb686 TEMP diagnostic" remains in history; its logging was removed
+  by 9e0f9186e1, so net source is correct. Squash on next interactive rebase.
+- Deployed VM app (sl@slqemu.local) == sl-port-610 HEAD (UserTiming build).
+
+--- KEY METHODOLOGICAL NOTE ---
+605/604 are useful as DIFF SOURCES to spot where 610 diverged, but NOT correctness
+oracles: 610 already renders GitHub better than 605. Judge each fix on 610's own merits.
+The private-fields gap is precisely where 610 can surpass anything 605 could do.

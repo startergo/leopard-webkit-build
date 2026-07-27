@@ -1,0 +1,1 @@
+/* [leopard] empty stub */

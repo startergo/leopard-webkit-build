@@ -1,0 +1,10 @@
+partial interface PaintWorkletGlobalScope {
+    [Conditional=CSS_PAINTING_API, EnabledAtRuntime=CSSPaintingAPI] attribute CSSPaintSizeConstructor CSSPaintSize;
+    [Conditional=CSS_TYPED_OM, EnabledAtRuntime=CSSTypedOM] attribute StylePropertyMapReadOnlyConstructor StylePropertyMapReadOnly;
+    [Conditional=CSS_TYPED_OM, EnabledAtRuntime=CSSTypedOM] attribute TypedOMCSSImageValueConstructor CSSImageValue;
+    [Conditional=CSS_TYPED_OM, EnabledAtRuntime=CSSTypedOM] attribute TypedOMCSSNumericValueConstructor CSSNumericValue;
+    [Conditional=CSS_TYPED_OM, EnabledAtRuntime=CSSTypedOM] attribute TypedOMCSSStyleValueConstructor CSSStyleValue;
+    [Conditional=CSS_TYPED_OM, EnabledAtRuntime=CSSTypedOM] attribute TypedOMCSSUnitValueConstructor CSSUnitValue;
+    [Conditional=CSS_TYPED_OM, EnabledAtRuntime=CSSTypedOM] attribute TypedOMCSSUnparsedValueConstructor CSSUnparsedValue;
+    [Conditional=CSS_PAINTING_API, EnabledAtRuntime=CSSPaintingAPI] attribute PaintWorkletGlobalScopeConstructor PaintWorkletGlobalScope;
+};

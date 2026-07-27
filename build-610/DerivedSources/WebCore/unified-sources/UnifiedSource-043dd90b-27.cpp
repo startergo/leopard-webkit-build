@@ -1,0 +1,8 @@
+#include "rendering/svg/RenderSVGRect.cpp"
+#include "rendering/svg/RenderSVGResource.cpp"
+#include "rendering/svg/RenderSVGResourceClipper.cpp"
+#include "rendering/svg/RenderSVGResourceContainer.cpp"
+#include "rendering/svg/RenderSVGResourceFilter.cpp"
+#include "rendering/svg/RenderSVGResourceFilterPrimitive.cpp"
+#include "rendering/svg/RenderSVGResourceGradient.cpp"
+#include "rendering/svg/RenderSVGResourceLinearGradient.cpp"

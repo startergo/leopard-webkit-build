@@ -1,0 +1,8 @@
+#include "JSUserVerificationRequirement.cpp"
+#include "JSVTTCue.cpp"
+#include "JSVTTRegion.cpp"
+#include "JSVTTRegionList.cpp"
+#include "JSValidityState.cpp"
+#include "JSVideoConfiguration.cpp"
+#include "JSVideoPlaybackQuality.cpp"
+#include "JSVideoTrack.cpp"

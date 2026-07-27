@@ -1,0 +1,310 @@
+/*
+ * THIS FILE WAS AUTOMATICALLY GENERATED, DO NOT EDIT.
+ *
+ * Copyright (C) 2017 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+[
+    NoInterfaceObject,
+    ExportMacro=WEBCORE_TESTSUPPORT_EXPORT,
+] interface InternalSettingsGenerated {
+    void setCSSOMViewScrollingAPIEnabled(boolean CSSOMViewScrollingAPIEnabled);
+    void setCSSOMViewSmoothScrollingEnabled(boolean CSSOMViewSmoothScrollingEnabled);
+    void setDOMPasteAllowed(boolean DOMPasteAllowed);
+    void setHTTPSUpgradeEnabled(boolean HTTPSUpgradeEnabled);
+    void setNeedsInAppBrowserPrivacyQuirks(boolean NeedsInAppBrowserPrivacyQuirks);
+    void setAccelerated2dCanvasEnabled(boolean accelerated2dCanvasEnabled);
+    void setAcceleratedCompositedAnimationsEnabled(boolean acceleratedCompositedAnimationsEnabled);
+    void setAcceleratedCompositingEnabled(boolean acceleratedCompositingEnabled);
+    void setAcceleratedCompositingForFixedPositionEnabled(boolean acceleratedCompositingForFixedPositionEnabled);
+    void setAcceleratedDrawingEnabled(boolean acceleratedDrawingEnabled);
+    void setAcceleratedFiltersEnabled(boolean acceleratedFiltersEnabled);
+    void setAdClickAttributionEnabled(boolean adClickAttributionEnabled);
+    void setAggressiveTileRetentionEnabled(boolean aggressiveTileRetentionEnabled);
+    void setAllowContentSecurityPolicySourceStarToMatchAnyProtocol(boolean allowContentSecurityPolicySourceStarToMatchAnyProtocol);
+    void setAllowCrossOriginSubresourcesToAskForCredentials(boolean allowCrossOriginSubresourcesToAskForCredentials);
+    void setAllowDisplayOfInsecureContent(boolean allowDisplayOfInsecureContent);
+    void setAllowFileAccessFromFileURLs(boolean allowFileAccessFromFileURLs);
+    void setAllowMediaContentTypesRequiringHardwareSupportAsFallback(boolean allowMediaContentTypesRequiringHardwareSupportAsFallback);
+    void setAllowMultiElementImplicitSubmission(boolean allowMultiElementImplicitSubmission);
+    void setAllowRunningOfInsecureContent(boolean allowRunningOfInsecureContent);
+    void setAllowSettingAnyXHRHeaderFromFileURLs(boolean allowSettingAnyXHRHeaderFromFileURLs);
+    void setAllowTopNavigationToDataURLs(boolean allowTopNavigationToDataURLs);
+    void setAllowUniversalAccessFromFileURLs(boolean allowUniversalAccessFromFileURLs);
+    void setAllowViewportShrinkToFitContent(boolean allowViewportShrinkToFitContent);
+    void setAllowsAirPlayForMediaPlayback(boolean allowsAirPlayForMediaPlayback);
+    void setAllowsInlineMediaPlayback(boolean allowsInlineMediaPlayback);
+    void setAllowsInlineMediaPlaybackAfterFullscreen(boolean allowsInlineMediaPlaybackAfterFullscreen);
+    void setAllowsPictureInPictureMediaPlayback(boolean allowsPictureInPictureMediaPlayback);
+    void setAlwaysUseAcceleratedOverflowScroll(boolean alwaysUseAcceleratedOverflowScroll);
+    void setAnimatedImageAsyncDecodingEnabled(boolean animatedImageAsyncDecodingEnabled);
+    void setAnimatedImageDebugCanvasDrawingEnabled(boolean animatedImageDebugCanvasDrawingEnabled);
+    void setAppleMailPaginationQuirkEnabled(boolean appleMailPaginationQuirkEnabled);
+    void setApplePayCapabilityDisclosureAllowed(boolean applePayCapabilityDisclosureAllowed);
+    void setApplePayEnabled(boolean applePayEnabled);
+    void setApplePayRemoteUIEnabled(boolean applePayRemoteUIEnabled);
+    void setAspectRatioOfImgFromWidthAndHeightEnabled(boolean aspectRatioOfImgFromWidthAndHeightEnabled);
+    void setAsyncClipboardAPIEnabled(boolean asyncClipboardAPIEnabled);
+    void setAsyncFrameScrollingEnabled(boolean asyncFrameScrollingEnabled);
+    void setAsyncOverflowScrollingEnabled(boolean asyncOverflowScrollingEnabled);
+    void setAsynchronousSpellCheckingEnabled(boolean asynchronousSpellCheckingEnabled);
+    void setAudioPlaybackRequiresUserGesture(boolean audioPlaybackRequiresUserGesture);
+    void setAuthorAndUserStylesEnabled(boolean authorAndUserStylesEnabled);
+    void setAutoscrollForDragAndDropEnabled(boolean autoscrollForDragAndDropEnabled);
+    void setAutostartOriginPlugInSnapshottingEnabled(boolean autostartOriginPlugInSnapshottingEnabled);
+    void setBackForwardCacheSupportsPlugins(boolean backForwardCacheSupportsPlugins);
+    void setBackgroundShouldExtendBeyondPage(boolean backgroundShouldExtendBeyondPage);
+    void setBackspaceKeyNavigationEnabled(boolean backspaceKeyNavigationEnabled);
+    void setBeaconAPIEnabled(boolean beaconAPIEnabled);
+    void setBlockingOfSmallPluginsEnabled(boolean blockingOfSmallPluginsEnabled);
+    void setCanvasUsesAcceleratedDrawing(boolean canvasUsesAcceleratedDrawing);
+    void setCaretBrowsingEnabled(boolean caretBrowsingEnabled);
+    void setClientCoordinatesRelativeToLayoutViewport(boolean clientCoordinatesRelativeToLayoutViewport);
+    void setColorFilterEnabled(boolean colorFilterEnabled);
+    void setConstantPropertiesEnabled(boolean constantPropertiesEnabled);
+    void setContentChangeObserverEnabled(boolean contentChangeObserverEnabled);
+    void setContentDispositionAttachmentSandboxEnabled(boolean contentDispositionAttachmentSandboxEnabled);
+    void setCookieEnabled(boolean cookieEnabled);
+    void setCoreMathMLEnabled(boolean coreMathMLEnabled);
+    void setCrossOriginCheckInGetMatchedCSSRulesDisabled(boolean crossOriginCheckInGetMatchedCSSRulesDisabled);
+    void setDefaultFixedFontSize(long defaultFixedFontSize);
+    void setDefaultFontSize(long defaultFontSize);
+    void setDefaultTextEncodingName(DOMString defaultTextEncodingName);
+    void setDefaultVideoPosterURL(DOMString defaultVideoPosterURL);
+    void setDeferredCSSParserEnabled(boolean deferredCSSParserEnabled);
+    void setDeveloperExtrasEnabled(boolean developerExtrasEnabled);
+    void setDeviceHeight(long deviceHeight);
+    void setDeviceOrientationEventEnabled(boolean deviceOrientationEventEnabled);
+    void setDeviceOrientationPermissionAPIEnabled(boolean deviceOrientationPermissionAPIEnabled);
+    void setDeviceWidth(long deviceWidth);
+    void setDiagnosticLoggingEnabled(boolean diagnosticLoggingEnabled);
+    void setDisableScreenSizeOverride(boolean disableScreenSizeOverride);
+    void setDisallowSyncXHRDuringPageDismissalEnabled(boolean disallowSyncXHRDuringPageDismissalEnabled);
+    void setDisplayListDrawingEnabled(boolean displayListDrawingEnabled);
+    void setDNSPrefetchingEnabled(boolean dnsPrefetchingEnabled);
+    void setDOMPasteAccessRequestsEnabled(boolean domPasteAccessRequestsEnabled);
+    void setDOMTimersThrottlingEnabled(boolean domTimersThrottlingEnabled);
+    void setDownloadableBinaryFontsEnabled(boolean downloadableBinaryFontsEnabled);
+    void setEditableImagesEnabled(boolean editableImagesEnabled);
+    void setEnableInheritURIQueryComponent(boolean enableInheritURIQueryComponent);
+    void setEnforceCSSMIMETypeInNoQuirksMode(boolean enforceCSSMIMETypeInNoQuirksMode);
+    void setEnterKeyHintEnabled(boolean enterKeyHintEnabled);
+    void setExperimentalNotificationsEnabled(boolean experimentalNotificationsEnabled);
+    void setFixedBackgroundsPaintRelativeToDocument(boolean fixedBackgroundsPaintRelativeToDocument);
+    void setFixedElementsLayoutRelativeToFrame(boolean fixedElementsLayoutRelativeToFrame);
+    void setFontFallbackPrefersPictographs(boolean fontFallbackPrefersPictographs);
+    void setForceCompositingMode(boolean forceCompositingMode);
+    void setForceFTPDirectoryListings(boolean forceFTPDirectoryListings);
+    void setForcePendingWebGLPolicy(boolean forcePendingWebGLPolicy);
+    void setForceUpdateScrollbarsOnMainThreadForPerformanceTesting(boolean forceUpdateScrollbarsOnMainThreadForPerformanceTesting);
+    void setForceWebGLUsesLowPower(boolean forceWebGLUsesLowPower);
+    void setFTPDirectoryTemplatePath(DOMString ftpDirectoryTemplatePath);
+    void setFullScreenEnabled(boolean fullScreenEnabled);
+    void setGenericCueAPIEnabled(boolean genericCueAPIEnabled);
+    void setGeolocationFloorLevelEnabled(boolean geolocationFloorLevelEnabled);
+    void setGoogleAntiFlickerOptimizationQuirkEnabled(boolean googleAntiFlickerOptimizationQuirkEnabled);
+    void setHDRMediaCapabilitiesEnabled(boolean hdrMediaCapabilitiesEnabled);
+    void setHiddenPageCSSAnimationSuspensionEnabled(boolean hiddenPageCSSAnimationSuspensionEnabled);
+    void setHiddenPageDOMTimerThrottlingAutoIncreases(boolean hiddenPageDOMTimerThrottlingAutoIncreases);
+    void setHiddenPageDOMTimerThrottlingEnabled(boolean hiddenPageDOMTimerThrottlingEnabled);
+    void setHttpEquivEnabled(boolean httpEquivEnabled);
+    void setHyperlinkAuditingEnabled(boolean hyperlinkAuditingEnabled);
+    void setICECandidateFilteringEnabled(boolean iceCandidateFilteringEnabled);
+    void setIdempotentModeAutosizingOnlyHonorsPercentages(boolean idempotentModeAutosizingOnlyHonorsPercentages);
+    void setImageControlsEnabled(boolean imageControlsEnabled);
+    void setImageSubsamplingEnabled(boolean imageSubsamplingEnabled);
+    void setImagesEnabled(boolean imagesEnabled);
+    void setInProcessCookieCacheEnabled(boolean inProcessCookieCacheEnabled);
+    void setIncompleteImageBorderEnabled(boolean incompleteImageBorderEnabled);
+    void setIncrementalRenderingSuppressionTimeoutInSeconds(double incrementalRenderingSuppressionTimeoutInSeconds);
+    void setInlineMediaPlaybackRequiresPlaysInlineAttribute(boolean inlineMediaPlaybackRequiresPlaysInlineAttribute);
+    void setInputEventsEnabled(boolean inputEventsEnabled);
+    void setInteractiveFormValidationEnabled(boolean interactiveFormValidationEnabled);
+    void setInvisibleAutoplayNotPermitted(boolean invisibleAutoplayNotPermitted);
+    void setIsAccessibilityIsolatedTreeEnabled(boolean isAccessibilityIsolatedTreeEnabled);
+    void setIsFirstPartyWebsiteDataRemovalDisabled(boolean isFirstPartyWebsiteDataRemovalDisabled);
+    void setIsFirstPartyWebsiteDataRemovalLiveOnTestingEnabled(boolean isFirstPartyWebsiteDataRemovalLiveOnTestingEnabled);
+    void setIsFirstPartyWebsiteDataRemovalReproTestingEnabled(boolean isFirstPartyWebsiteDataRemovalReproTestingEnabled);
+    void setIsInAppBrowserPrivacyEnabled(boolean isInAppBrowserPrivacyEnabled);
+    void setIsLoggedInAPIEnabled(boolean isLoggedInAPIEnabled);
+    void setIsSameSiteStrictEnforcementEnabled(boolean isSameSiteStrictEnforcementEnabled);
+    void setIsThirdPartyCookieBlockingDisabled(boolean isThirdPartyCookieBlockingDisabled);
+    void setJavaEnabled(boolean javaEnabled);
+    void setJavaEnabledForLocalFiles(boolean javaEnabledForLocalFiles);
+    void setJavaScriptCanAccessClipboard(boolean javaScriptCanAccessClipboard);
+    void setJavaScriptCanOpenWindowsAutomatically(boolean javaScriptCanOpenWindowsAutomatically);
+    void setLangAttributeAwareFormControlUIEnabled(boolean langAttributeAwareFormControlUIEnabled);
+    void setLargeImageAsyncDecodingEnabled(boolean largeImageAsyncDecodingEnabled);
+    void setLayoutFallbackWidth(long layoutFallbackWidth);
+    void setLayoutViewportHeightExpansionFactor(double layoutViewportHeightExpansionFactor);
+    void setLegacyGetUserMediaEnabled(boolean legacyGetUserMediaEnabled);
+    void setLegacyOverflowScrollingTouchEnabled(boolean legacyOverflowScrollingTouchEnabled);
+    void setLinkPreconnectEnabled(boolean linkPreconnectEnabled);
+    void setLoadDeferringEnabled(boolean loadDeferringEnabled);
+    void setLoadsImagesAutomatically(boolean loadsImagesAutomatically);
+    void setLoadsSiteIconsIgnoringImageLoadingSetting(boolean loadsSiteIconsIgnoringImageLoadingSetting);
+    void setLocalFileContentSniffingEnabled(boolean localFileContentSniffingEnabled);
+    void setLocalStorageDatabasePath(DOMString localStorageDatabasePath);
+    void setLocalStorageEnabled(boolean localStorageEnabled);
+    void setLogsPageMessagesToSystemConsoleEnabled(boolean logsPageMessagesToSystemConsoleEnabled);
+    void setMainContentUserGestureOverrideEnabled(boolean mainContentUserGestureOverrideEnabled);
+    void setMaxParseDuration(double maxParseDuration);
+    void setMaximumAccelerated2dCanvasSize(unsigned long maximumAccelerated2dCanvasSize);
+    void setMaximumHTMLParserDOMTreeDepth(unsigned long maximumHTMLParserDOMTreeDepth);
+    void setMaximumPlugInSnapshotAttempts(unsigned long maximumPlugInSnapshotAttempts);
+    void setMaximumSourceBufferSize(long maximumSourceBufferSize);
+    void setMediaCapabilitiesEnabled(boolean mediaCapabilitiesEnabled);
+    void setMediaCapabilitiesExtensionsEnabled(boolean mediaCapabilitiesExtensionsEnabled);
+    void setMediaCaptureRequiresSecureConnection(boolean mediaCaptureRequiresSecureConnection);
+    void setMediaControlsScaleWithPageZoom(boolean mediaControlsScaleWithPageZoom);
+    void setMediaDataLoadsAutomatically(boolean mediaDataLoadsAutomatically);
+    void setMediaDeviceIdentifierStorageDirectory(DOMString mediaDeviceIdentifierStorageDirectory);
+    void setMediaEnabled(boolean mediaEnabled);
+    void setMediaKeysStorageDirectory(DOMString mediaKeysStorageDirectory);
+    void setMediaPreloadingEnabled(boolean mediaPreloadingEnabled);
+    void setMediaSourceEnabled(boolean mediaSourceEnabled);
+    void setMediaTypeOverride(DOMString mediaTypeOverride);
+    void setMediaUserGestureInheritsFromDocument(boolean mediaUserGestureInheritsFromDocument);
+    void setMinimumAccelerated2dCanvasSize(long minimumAccelerated2dCanvasSize);
+    void setMinimumFontSize(long minimumFontSize);
+    void setMinimumLogicalFontSize(long minimumLogicalFontSize);
+    void setMinimumZoomFontSize(float minimumZoomFontSize);
+    void setMockCaptureDevicesEnabled(boolean mockCaptureDevicesEnabled);
+    void setNeedsAdobeFrameReloadingQuirk(boolean needsAdobeFrameReloadingQuirk);
+    void setNeedsDeferKeyDownAndKeyPressTimersUntilNextEditingCommandQuirk(boolean needsDeferKeyDownAndKeyPressTimersUntilNextEditingCommandQuirk);
+    void setNeedsFrameNameFallbackToIdQuirk(boolean needsFrameNameFallbackToIdQuirk);
+    void setNeedsIsLoadingInAPISenseQuirk(boolean needsIsLoadingInAPISenseQuirk);
+    void setNeedsKeyboardEventDisambiguationQuirks(boolean needsKeyboardEventDisambiguationQuirks);
+    void setNeedsSiteSpecificQuirks(boolean needsSiteSpecificQuirks);
+    void setNeedsStorageAccessFromFileURLsQuirk(boolean needsStorageAccessFromFileURLsQuirk);
+    void setNotificationsEnabled(boolean notificationsEnabled);
+    void setOfflineWebApplicationCacheEnabled(boolean offlineWebApplicationCacheEnabled);
+    void setPaginateDuringLayoutEnabled(boolean paginateDuringLayoutEnabled);
+    void setPassiveTouchListenersAsDefaultOnDocument(boolean passiveTouchListenersAsDefaultOnDocument);
+    void setPasswordEchoDurationInSeconds(double passwordEchoDurationInSeconds);
+    void setPasswordEchoEnabled(boolean passwordEchoEnabled);
+    void setPaymentRequestEnabled(boolean paymentRequestEnabled);
+    void setPictureInPictureAPIEnabled(boolean pictureInPictureAPIEnabled);
+    void setPlugInSnapshottingEnabled(boolean plugInSnapshottingEnabled);
+    void setPluginsEnabled(boolean pluginsEnabled);
+    void setPreferMIMETypeForImages(boolean preferMIMETypeForImages);
+    void setPreventKeyboardDOMEventDispatch(boolean preventKeyboardDOMEventDispatch);
+    void setPrimaryPlugInSnapshotDetectionEnabled(boolean primaryPlugInSnapshotDetectionEnabled);
+    void setPunchOutWhiteBackgroundsInDarkMode(boolean punchOutWhiteBackgroundsInDarkMode);
+    void setQuickTimePluginReplacementEnabled(boolean quickTimePluginReplacementEnabled);
+    void setRemotePlaybackEnabled(boolean remotePlaybackEnabled);
+    void setRepaintOutsideLayoutEnabled(boolean repaintOutsideLayoutEnabled);
+    void setRequestAnimationFrameEnabled(boolean requestAnimationFrameEnabled);
+    void setRequestIdleCallbackEnabled(boolean requestIdleCallbackEnabled);
+    void setRequiresUserGestureToLoadVideo(boolean requiresUserGestureToLoadVideo);
+    void setResizeObserverEnabled(boolean resizeObserverEnabled);
+    void setResourceUsageOverlayVisible(boolean resourceUsageOverlayVisible);
+    void setRubberBandingForSubScrollableRegionsEnabled(boolean rubberBandingForSubScrollableRegionsEnabled);
+    void setScriptEnabled(boolean scriptEnabled);
+    void setScriptMarkupEnabled(boolean scriptMarkupEnabled);
+    void setScrollAnimatorEnabled(boolean scrollAnimatorEnabled);
+    void setScrollingCoordinatorEnabled(boolean scrollingCoordinatorEnabled);
+    void setScrollingPerformanceLoggingEnabled(boolean scrollingPerformanceLoggingEnabled);
+    void setScrollingTreeIncludesFrames(boolean scrollingTreeIncludesFrames);
+    void setSelectTrailingWhitespaceEnabled(boolean selectTrailingWhitespaceEnabled);
+    void setSelectionAcrossShadowBoundariesEnabled(boolean selectionAcrossShadowBoundariesEnabled);
+    void setSelectionPaintingWithoutSelectionGapsEnabled(boolean selectionPaintingWithoutSelectionGapsEnabled);
+    void setServiceControlsEnabled(boolean serviceControlsEnabled);
+    void setSessionStorageQuota(unsigned long sessionStorageQuota);
+    void setShouldAllowUserInstalledFonts(boolean shouldAllowUserInstalledFonts);
+    void setShouldConvertInvalidURLsToBlank(boolean shouldConvertInvalidURLsToBlank);
+    void setShouldConvertPositionStyleOnCopy(boolean shouldConvertPositionStyleOnCopy);
+    void setShouldDecidePolicyBeforeLoadingQuickLookPreview(boolean shouldDecidePolicyBeforeLoadingQuickLookPreview);
+    void setShouldDeferAsynchronousScriptsUntilAfterDocumentLoadOrFirstPaint(boolean shouldDeferAsynchronousScriptsUntilAfterDocumentLoadOrFirstPaint);
+    void setShouldDispatchSyntheticMouseEventsWhenModifyingSelection(boolean shouldDispatchSyntheticMouseEventsWhenModifyingSelection);
+    void setShouldDispatchSyntheticMouseOutAfterSyntheticClick(boolean shouldDispatchSyntheticMouseOutAfterSyntheticClick);
+    void setShouldDisplayCaptions(boolean shouldDisplayCaptions);
+    void setShouldDisplaySubtitles(boolean shouldDisplaySubtitles);
+    void setShouldDisplayTextDescriptions(boolean shouldDisplayTextDescriptions);
+    void setShouldEnableTextAutosizingBoost(boolean shouldEnableTextAutosizingBoost);
+    void setShouldIgnoreFontLoadCompletions(boolean shouldIgnoreFontLoadCompletions);
+    void setShouldIgnoreMetaViewport(boolean shouldIgnoreMetaViewport);
+    void setShouldInjectUserScriptsInInitialEmptyDocument(boolean shouldInjectUserScriptsInInitialEmptyDocument);
+    void setShouldPrintBackgrounds(boolean shouldPrintBackgrounds);
+    void setShouldRespectImageOrientation(boolean shouldRespectImageOrientation);
+    void setShouldRestrictBaseURLSchemes(boolean shouldRestrictBaseURLSchemes);
+    void setShouldSuppressTextInputFromEditingDuringProvisionalNavigation(boolean shouldSuppressTextInputFromEditingDuringProvisionalNavigation);
+    void setShouldUseServiceWorkerShortTimeout(boolean shouldUseServiceWorkerShortTimeout);
+    void setShowDebugBorders(boolean showDebugBorders);
+    void setShowRepaintCounter(boolean showRepaintCounter);
+    void setShowTiledScrollingIndicator(boolean showTiledScrollingIndicator);
+    void setShowsToolTipOverTruncatedText(boolean showsToolTipOverTruncatedText);
+    void setShowsURLsInToolTips(boolean showsURLsInToolTips);
+    void setShrinksStandaloneImagesToFit(boolean shrinksStandaloneImagesToFit);
+    void setSimpleLineLayoutDebugBordersEnabled(boolean simpleLineLayoutDebugBordersEnabled);
+    void setSimpleLineLayoutEnabled(boolean simpleLineLayoutEnabled);
+    void setSmartInsertDeleteEnabled(boolean smartInsertDeleteEnabled);
+    void setSnapshotAllPlugIns(boolean snapshotAllPlugIns);
+    void setSourceBufferChangeTypeEnabled(boolean sourceBufferChangeTypeEnabled);
+    void setSpatialNavigationEnabled(boolean spatialNavigationEnabled);
+    void setSpringTimingFunctionEnabled(boolean springTimingFunctionEnabled);
+    void setStandalone(boolean standalone);
+    void setStorageAccessAPIEnabled(boolean storageAccessAPIEnabled);
+    void setSubpixelAntialiasedLayerTextEnabled(boolean subpixelAntialiasedLayerTextEnabled);
+    void setSubpixelCSSOMElementMetricsEnabled(boolean subpixelCSSOMElementMetricsEnabled);
+    void setSubresourceIntegrityEnabled(boolean subresourceIntegrityEnabled);
+    void setSuppressesIncrementalRendering(boolean suppressesIncrementalRendering);
+    void setSyntheticEditingCommandsEnabled(boolean syntheticEditingCommandsEnabled);
+    void setTelephoneNumberParsingEnabled(boolean telephoneNumberParsingEnabled);
+    void setTemporaryTileCohortRetentionEnabled(boolean temporaryTileCohortRetentionEnabled);
+    void setTextAreasAreResizable(boolean textAreasAreResizable);
+    void setTextAutosizingEnabled(boolean textAutosizingEnabled);
+    void setTextAutosizingUsesIdempotentMode(boolean textAutosizingUsesIdempotentMode);
+    void setThirdPartyIframeRedirectBlockingEnabled(boolean thirdPartyIframeRedirectBlockingEnabled);
+    void setTouchEventEmulationEnabled(boolean touchEventEmulationEnabled);
+    void setTreatIPAddressAsDomain(boolean treatIPAddressAsDomain);
+    void setTreatsAnyTextCSSLinkAsStylesheet(boolean treatsAnyTextCSSLinkAsStylesheet);
+    void setUnhandledPromiseRejectionToConsoleEnabled(boolean unhandledPromiseRejectionToConsoleEnabled);
+    void setUnifiedTextCheckerEnabled(boolean unifiedTextCheckerEnabled);
+    void setUseAnonymousModeWhenFetchingMaskImages(boolean useAnonymousModeWhenFetchingMaskImages);
+    void setUseGPUProcessForMedia(boolean useGPUProcessForMedia);
+    void setUseGiantTiles(boolean useGiantTiles);
+    void setUseImageDocumentForSubframePDF(boolean useImageDocumentForSubframePDF);
+    void setUseLegacyBackgroundSizeShorthandBehavior(boolean useLegacyBackgroundSizeShorthandBehavior);
+    void setUseLegacyTextAlignPositionedElementBehavior(boolean useLegacyTextAlignPositionedElementBehavior);
+    void setUsePreHTML5ParserQuirks(boolean usePreHTML5ParserQuirks);
+    void setUsesEncodingDetector(boolean usesEncodingDetector);
+    void setValidationMessageTimerMagnification(long validationMessageTimerMagnification);
+    void setVideoPlaybackRequiresUserGesture(boolean videoPlaybackRequiresUserGesture);
+    void setVideoQualityIncludesDisplayCompositingEnabled(boolean videoQualityIncludesDisplayCompositingEnabled);
+    void setViewportFitEnabled(boolean viewportFitEnabled);
+    void setVisualViewportAPIEnabled(boolean visualViewportAPIEnabled);
+    void setVisualViewportEnabled(boolean visualViewportEnabled);
+    void setWantsBalancedSetDefersLoadingBehavior(boolean wantsBalancedSetDefersLoadingBehavior);
+    void setWebArchiveDebugModeEnabled(boolean webArchiveDebugModeEnabled);
+    void setWebAudioEnabled(boolean webAudioEnabled);
+    void setWebGLEnabled(boolean webGLEnabled);
+    void setWebGLErrorsToConsoleEnabled(boolean webGLErrorsToConsoleEnabled);
+    void setWebRTCEncryptionEnabled(boolean webRTCEncryptionEnabled);
+    void setWebSecurityEnabled(boolean webSecurityEnabled);
+    void setWebkitImageReadyEventEnabled(boolean webkitImageReadyEventEnabled);
+    void setWindowFocusRestricted(boolean windowFocusRestricted);
+    void setXSSAuditorEnabled(boolean xssAuditorEnabled);
+    void setYouTubeFlashPluginReplacementEnabled(boolean youTubeFlashPluginReplacementEnabled);
+};

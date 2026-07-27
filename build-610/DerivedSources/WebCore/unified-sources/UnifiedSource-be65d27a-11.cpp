@@ -1,0 +1,8 @@
+#include "dom/InlineStyleSheetOwner.cpp"
+#include "dom/InputEvent.cpp"
+#include "dom/KeyboardEvent.cpp"
+#include "dom/LiveNodeList.cpp"
+#include "dom/LoadableClassicScript.cpp"
+#include "dom/LoadableModuleScript.cpp"
+#include "dom/LoadableScript.cpp"
+#include "dom/MessageChannel.cpp"

@@ -1,0 +1,2583 @@
+Index: Source/JavaScriptGlue/Configurations/Base.xcconfig
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/Configurations/Base.xcconfig b/trunk/Source/JavaScriptGlue/Configurations/Base.xcconfig
+--- a/trunk/Source/JavaScriptGlue/Configurations/Base.xcconfig	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/Configurations/Base.xcconfig	(Arbeitskopie)
+@@ -39,7 +39,11 @@
+ GCC_FAST_OBJC_DISPATCH = YES;
+ GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+ GCC_INLINES_ARE_PRIVATE_EXTERN = YES;
+-GCC_MODEL_TUNING = G5;
++GCC_MODEL_TUNING = $(GCC_MODEL_TUNING_$(CURRENT_ARCH));
++GCC_MODEL_TUNING_ppc64 = G5;
++GCC_MODEL_TUNING_ppc = G5;
++GCC_MODEL_TUNING_ppc970 = 970;
++GCC_MODEL_TUNING_ppc7400 = 7450;
+ GCC_PRECOMPILE_PREFIX_HEADER = YES;
+ GCC_STRICT_ALIASING = YES;
+ GCC_THREADSAFE_STATICS = NO;
+@@ -50,16 +54,18 @@
+ GCC_WARN_NON_VIRTUAL_DESTRUCTOR = YES;
+ LINKER_DISPLAYS_MANGLED_NAMES = YES;
+ PREBINDING = NO;
+-VALID_ARCHS = i386 ppc x86_64 ppc64;
++VALID_ARCHS = i386 ppc x86_64 ppc64 ppc970 ppc7400;
+ WARNING_CFLAGS = $(WARNING_CFLAGS_$(CURRENT_ARCH)) $(COMPILER_SPECIFIC_WARNING_CFLAGS);
+ WARNING_CFLAGS_BASE = -Wall -W -Wchar-subscripts -Wformat-security -Wmissing-format-attribute -Wpointer-arith -Wwrite-strings -Wno-format-y2k -Wno-unused-parameter -Wundef -Wno-strict-aliasing;
+ WARNING_CFLAGS_ = $(WARNING_CFLAGS_BASE) -Wshorten-64-to-32;
+ WARNING_CFLAGS_i386 = $(WARNING_CFLAGS_BASE) -Wshorten-64-to-32;
+ WARNING_CFLAGS_ppc = $(WARNING_CFLAGS_BASE) -Wshorten-64-to-32;
++WARNING_CFLAGS_ppc970 = $(WARNING_CFLAGS_BASE) -Wshorten-64-to-32;
++WARNING_CFLAGS_ppc7400 = $(WARNING_CFLAGS_BASE) -Wshorten-64-to-32;
+ // FIXME: JavaScriptGlue 64-bit builds should build with -Wshorten-64-to-32
+ WARNING_CFLAGS_ppc64 = $(WARNING_CFLAGS_BASE);
+ WARNING_CFLAGS_x86_64 = $(WARNING_CFLAGS_BASE);
+-HEADER_SEARCH_PATHS = . icu $(HEADER_SEARCH_PATHS);
++HEADER_SEARCH_PATHS = . icu "${BUILT_PRODUCTS_DIR}/usr/local/include" $(HEADER_SEARCH_PATHS);
+ 
+ 
+ REAL_PLATFORM_NAME = $(REAL_PLATFORM_NAME_$(PLATFORM_NAME));
+Index: Source/JavaScriptGlue/Configurations/JavaScriptGlue.xcconfig
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/Configurations/JavaScriptGlue.xcconfig b/trunk/Source/JavaScriptGlue/Configurations/JavaScriptGlue.xcconfig
+--- a/trunk/Source/JavaScriptGlue/Configurations/JavaScriptGlue.xcconfig	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/Configurations/JavaScriptGlue.xcconfig	(Arbeitskopie)
+@@ -28,4 +28,6 @@
+ INFOPLIST_FILE = Info.plist;
+ INSTALL_PATH = $(SYSTEM_LIBRARY_DIR)/PrivateFrameworks;
+ OTHER_CFLAGS = -Wno-deprecated-declarations;
++OTHER_LDFLAGS = -Wl,-alias_list -Wl,$(SRCROOT)/SymbolAliases.list
+ PRODUCT_NAME = JavaScriptGlue;
++DYLIB_INSTALL_NAME_BASE = $(SYSTEM_LIBRARY_DIR)/PrivateFrameworks;
+Index: Source/JavaScriptGlue/Configurations/Version.xcconfig
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/Configurations/Version.xcconfig b/trunk/Source/JavaScriptGlue/Configurations/Version.xcconfig
+--- a/trunk/Source/JavaScriptGlue/Configurations/Version.xcconfig	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/Configurations/Version.xcconfig	(Arbeitskopie)
+@@ -21,9 +21,9 @@
+ // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ 
+-MAJOR_VERSION = 535;
+-MINOR_VERSION = 19;
+-TINY_VERSION = 0;
++MAJOR_VERSION = 537;
++MINOR_VERSION = 43;
++TINY_VERSION = 2;
+ FULL_VERSION = $(MAJOR_VERSION).$(MINOR_VERSION);
+ 
+ // The bundle version and short version string are set based on the current build configuration, see below.
+Index: Source/JavaScriptGlue/ForwardingHeaders/debugger/Debugger.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/debugger/Debugger.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/debugger/Debugger.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/debugger/Debugger.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Debugger_h
++#define WebCore_FWD_Debugger_h
++#include <JavaScriptCore/Debugger.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/debugger/DebuggerActivation.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/debugger/DebuggerActivation.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/debugger/DebuggerActivation.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/debugger/DebuggerActivation.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_DebuggerActivation_h
++#define WebCore_FWD_DebuggerActivation_h
++#include <JavaScriptCore/DebuggerActivation.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/debugger/DebuggerCallFrame.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/debugger/DebuggerCallFrame.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/debugger/DebuggerCallFrame.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/debugger/DebuggerCallFrame.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_DebuggerCallFrame_h
++#define WebCore_FWD_DebuggerCallFrame_h
++#include <JavaScriptCore/DebuggerCallFrame.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/heap/AllocationSpace.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/AllocationSpace.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/AllocationSpace.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/AllocationSpace.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_AllocationSpace_h
++#define WebCore_FWD_AllocationSpace_h
++#include <JavaScriptCore/AllocationSpace.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/heap/CardSet.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/CardSet.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/CardSet.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/CardSet.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_CardSet_h
++#define WebCore_FWD_CardSet_h
++#include <JavaScriptCore/CardSet.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/heap/Heap.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/Heap.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/Heap.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/Heap.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Heap_h
++#define WebCore_FWD_Heap_h
++#include <JavaScriptCore/Heap.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/heap/Strong.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/Strong.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/Strong.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/Strong.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Strong_h
++#define WebCore_FWD_Strong_h
++#include <JavaScriptCore/Strong.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/heap/StrongInlines.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/StrongInlines.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/StrongInlines.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/StrongInlines.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_StrongInlines_h
++#define WebCore_FWD_StrongInlines_h
++#include <JavaScriptCore/StrongInlines.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/heap/Weak.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/Weak.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/Weak.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/Weak.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Weak_h
++#define WebCore_FWD_Weak_h
++#include <JavaScriptCore/Weak.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/heap/WeakInlines.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/WeakInlines.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/WeakInlines.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/heap/WeakInlines.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_WeakInlines_h
++#define WebCore_FWD_WeakInlines_h
++#include <JavaScriptCore/WeakInlines.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/interpreter/CallFrame.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/interpreter/CallFrame.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/interpreter/CallFrame.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/interpreter/CallFrame.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_CallFrame_h
++#define WebCore_FWD_CallFrame_h
++#include <JavaScriptCore/CallFrame.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/interpreter/Interpreter.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/interpreter/Interpreter.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/interpreter/Interpreter.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/interpreter/Interpreter.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Interpreter_h
++#define WebCore_FWD_Interpreter_h
++#include <JavaScriptCore/Interpreter.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/jit/JITCode.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/jit/JITCode.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/jit/JITCode.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/jit/JITCode.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JITCode_h
++#define WebCore_FWD_JITCode_h
++#include <JavaScriptCore/JITCode.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/masm/X86Assembler.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/masm/X86Assembler.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/masm/X86Assembler.h
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/masm/X86Assembler.h	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/masm/X86Assembler.h	(Arbeitskopie)
+@@ -1 +1,4 @@
++#ifndef WebCore_FWD_X86Assembler_h
++#define WebCore_FWD_X86Assembler_h
+ #include <JavaScriptCore/X86Assembler.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/parser/SourceCode.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/parser/SourceCode.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/parser/SourceCode.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/parser/SourceCode.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_SourceCode_h
++#define WebCore_FWD_SourceCode_h
++#include <JavaScriptCore/SourceCode.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/parser/SourceProvider.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/parser/SourceProvider.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/parser/SourceProvider.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/parser/SourceProvider.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_SourceProvider_h
++#define WebCore_FWD_SourceProvider_h
++#include <JavaScriptCore/SourceProvider.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/profiler/Profile.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/Profile.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/Profile.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/Profile.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_Profile_h
++#define WebCore_FWD_Profile_h
++#include <JavaScriptCore/Profile.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/profiler/ProfileNode.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/ProfileNode.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/ProfileNode.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/ProfileNode.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_ProfileNode_h
++#define WebCore_FWD_ProfileNode_h
++#include <JavaScriptCore/ProfileNode.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/profiler/Profiler.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/Profiler.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/Profiler.h
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/Profiler.h	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/profiler/Profiler.h	(Arbeitskopie)
+@@ -1 +1,5 @@
++#ifndef WebCore_FWD_Profiler_h
++#define WebCore_FWD_Profiler_h
+ #include <JavaScriptCore/Profiler.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/ArgList.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ArgList.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ArgList.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ArgList.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_ArgList_h
++#define WebCore_FWD_ArgList_h
++#include <JavaScriptCore/ArgList.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/ArrayPrototype.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ArrayPrototype.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ArrayPrototype.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ArrayPrototype.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_ArrayPrototype_h
++#define WebCore_FWD_ArrayPrototype_h
++#include <JavaScriptCore/ArrayPrototype.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/BooleanObject.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/BooleanObject.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/BooleanObject.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/BooleanObject.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_BooleanObject_h
++#define WebCore_FWD_BooleanObject_h
++#include <JavaScriptCore/BooleanObject.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/CallData.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/CallData.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/CallData.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/CallData.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_CallData_h
++#define WebCore_FWD_CallData_h
++#include <JavaScriptCore/CallData.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/CallFrame.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/CallFrame.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/CallFrame.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/CallFrame.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/CallFrame.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/Completion.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Completion.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Completion.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Completion.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Completion_h
++#define WebCore_FWD_Completion_h
++#include <JavaScriptCore/Completion.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/ConstructData.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ConstructData.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ConstructData.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ConstructData.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_ConstructData_h
++#define WebCore_FWD_ConstructData_h
++#include <JavaScriptCore/ConstructData.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/DateInstance.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/DateInstance.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/DateInstance.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/DateInstance.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_DateInstance_h
++#define WebCore_FWD_DateInstance_h
++#include <JavaScriptCore/DateInstance.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/Error.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Error.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Error.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Error.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Error_h
++#define WebCore_FWD_Error_h
++#include <JavaScriptCore/Error.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/ErrorPrototype.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ErrorPrototype.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ErrorPrototype.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ErrorPrototype.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_ErrorPrototype_h
++#define WebCore_FWD_ErrorPrototype_h
++#include <JavaScriptCore/ErrorPrototype.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/ExceptionHelpers.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ExceptionHelpers.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ExceptionHelpers.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ExceptionHelpers.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_ExceptionHelpers_h
++#define WebCore_FWD_ExceptionHelpers_h
++#include <JavaScriptCore/ExceptionHelpers.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/Executable.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Executable.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Executable.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Executable.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Executable_h
++#define WebCore_FWD_Executable_h
++#include <JavaScriptCore/Executable.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/FunctionConstructor.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/FunctionConstructor.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/FunctionConstructor.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/FunctionConstructor.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_FunctionConstructor_h
++#define WebCore_FWD_FunctionConstructor_h
++#include <JavaScriptCore/FunctionConstructor.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/FunctionPrototype.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/FunctionPrototype.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/FunctionPrototype.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/FunctionPrototype.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_FunctionPrototype_h
++#define WebCore_FWD_FunctionPrototype_h
++#include <JavaScriptCore/FunctionPrototype.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/Identifier.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Identifier.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Identifier.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Identifier.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Identifier_h
++#define WebCore_FWD_Identifier_h
++#include <JavaScriptCore/Identifier.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/InitializeThreading.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/InitializeThreading.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/InitializeThreading.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/InitializeThreading.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_InitializeThreading_h
++#define WebCore_FWD_InitializeThreading_h
++#include <JavaScriptCore/InitializeThreading.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/InternalFunction.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/InternalFunction.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/InternalFunction.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/InternalFunction.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_InternalFunction_h
++#define WebCore_FWD_InternalFunction_h
++#include <JavaScriptCore/InternalFunction.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSAPIValueWrapper.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSAPIValueWrapper.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSAPIValueWrapper.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSAPIValueWrapper.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSAPIValueWrapper_h
++#define WebCore_FWD_JSAPIValueWrapper_h
++#include <JavaScriptCore/JSAPIValueWrapper.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSArray.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSArray.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSArray.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSArray.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSArray_h
++#define WebCore_FWD_JSArray_h
++#include <JavaScriptCore/JSArray.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSCJSValue.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSCJSValue.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSCJSValue.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSCJSValue.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSValue_h
++#define WebCore_FWD_JSValue_h
++#include <JavaScriptCore/JSCJSValue.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSCell.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSCell.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSCell.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSCell.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSCell_h
++#define WebCore_FWD_JSCell_h
++#include <JavaScriptCore/JSCell.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSExportMacros.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSExportMacros.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSExportMacros.h
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSExportMacros.h	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSExportMacros.h	(Arbeitskopie)
+@@ -1 +1,4 @@
++#ifndef WebCore_FWD_JSExportMacros_h
++#define WebCore_FWD_JSExportMacros_h
+ #include <JavaScriptCore/JSExportMacros.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSFunction.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSFunction.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSFunction.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSFunction.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSFunction_h
++#define WebCore_FWD_JSFunction_h
++#include <JavaScriptCore/JSFunction.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSGlobalObject.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSGlobalObject.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSGlobalObject.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSGlobalObject.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSGlobalObject_h
++#define WebCore_FWD_JSGlobalObject_h
++#include <JavaScriptCore/JSGlobalObject.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSGlobalThis.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSGlobalThis.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSGlobalThis.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSGlobalThis.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSGlobalThis_h
++#define WebCore_FWD_JSGlobalThis_h
++#include <JavaScriptCore/JSGlobalThis.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSLock.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSLock.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSLock.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSLock.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSLock_h
++#define WebCore_FWD_JSLock_h
++#include <JavaScriptCore/JSLock.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSObject.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSObject.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSObject.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSObject.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSObject_h
++#define WebCore_FWD_JSObject_h
++#include <JavaScriptCore/JSObject.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSString.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSString.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSString.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSString.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSString_h
++#define WebCore_FWD_JSString_h
++#include <JavaScriptCore/JSString.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/JSWithScope.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSWithScope.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSWithScope.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/JSWithScope.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_JSWithScope_h
++#define WebCore_FWD_JSWithScope_h
++#include <JavaScriptCore/JSWithScope.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/Lookup.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Lookup.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Lookup.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Lookup.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Lookup_h
++#define WebCore_FWD_Lookup_h
++#include <JavaScriptCore/Lookup.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/MatchResult.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/MatchResult.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/MatchResult.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/MatchResult.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_MatchResult_h
++#define WebCore_FWD_MatchResult_h
++#include <JavaScriptCore/MatchResult.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/ObjectPrototype.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ObjectPrototype.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ObjectPrototype.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/ObjectPrototype.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_ObjectPrototype_h
++#define WebCore_FWD_ObjectPrototype_h
++#include <JavaScriptCore/ObjectPrototype.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/Operations.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Operations.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Operations.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Operations.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Operations_h
++#define WebCore_FWD_Operations_h
++#include <JavaScriptCore/Operations.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/PropertyNameArray.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/PropertyNameArray.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/PropertyNameArray.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/PropertyNameArray.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_PropertyNameArray_h
++#define WebCore_FWD_PropertyNameArray_h
++#include <JavaScriptCore/PropertyNameArray.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/Protect.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Protect.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Protect.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Protect.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_Protect_h
++#define WebCore_FWD_Protect_h
++#include <JavaScriptCore/Protect.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/PrototypeFunction.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/PrototypeFunction.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/PrototypeFunction.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/PrototypeFunction.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_PrototypeFunction_h
++#define WebCore_FWD_PrototypeFunction_h
++#include <JavaScriptCore/PrototypeFunction.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/RegExp.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/RegExp.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/RegExp.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/RegExp.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_RegExp_h
++#define WebCore_FWD_RegExp_h
++#include <JavaScriptCore/RegExp.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/RegExpObject.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/RegExpObject.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/RegExpObject.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/RegExpObject.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_RegExpObject_h
++#define WebCore_FWD_RegExpObject_h
++#include <JavaScriptCore/RegExpObject.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/StorageBarrier.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StorageBarrier.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StorageBarrier.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StorageBarrier.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_StorageBarrier_h
++#define WebCore_FWD_StorageBarrier_h
++#include <JavaScriptCore/StorageBarrier.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/StringObject.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StringObject.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StringObject.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StringObject.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_StringObject_h
++#define WebCore_FWD_StringObject_h
++#include <JavaScriptCore/StringObject.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/StringPrototype.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StringPrototype.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StringPrototype.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StringPrototype.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_StringPrototype_h
++#define WebCore_FWD_StringPrototype_h
++#include <JavaScriptCore/StringPrototype.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/Structure.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Structure.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Structure.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/Structure.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_Structure_h
++#define WebCore_FWD_Structure_h
++#include <JavaScriptCore/Structure.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/StructureChain.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StructureChain.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StructureChain.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/StructureChain.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_StructureChain_h
++#define WebCore_FWD_StructureChain_h
++#include <JavaScriptCore/StructureChain.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/SymbolTable.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/SymbolTable.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/SymbolTable.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/SymbolTable.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_SymbolTable_h
++#define WebCore_FWD_SymbolTable_h
++#include <JavaScriptCore/SymbolTable.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/VM.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/VM.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/VM.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/VM.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_VM_h
++#define WebCore_FWD_VM_h
++#include <JavaScriptCore/VM.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/WeakGCMap.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/WeakGCMap.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/WeakGCMap.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/WeakGCMap.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_WeakGCMap_h
++#define WebCore_FWD_WeakGCMap_h
++#include <JavaScriptCore/WeakGCMap.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/runtime/WriteBarrier.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/WriteBarrier.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/WriteBarrier.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/runtime/WriteBarrier.h	(Arbeitskopie)
+@@ -0,0 +1,4 @@
++#ifndef WebCore_FWD_WriteBarrier_h
++#define WebCore_FWD_WriteBarrier_h
++#include <JavaScriptCore/WriteBarrier.h>
++#endif
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/ASCIICType.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ASCIICType.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ASCIICType.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ASCIICType.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ASCIICType.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Alignment.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Alignment.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Alignment.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Alignment.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Alignment.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/AlwaysInline.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/AlwaysInline.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/AlwaysInline.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/AlwaysInline.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/AlwaysInline.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Assertions.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Assertions.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Assertions.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Assertions.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Assertions.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Atomics.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Atomics.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Atomics.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Atomics.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Atomics.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Bitmap.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Bitmap.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Bitmap.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Bitmap.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Bitmap.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/BumpPointerAllocator.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/BumpPointerAllocator.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/BumpPointerAllocator.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/BumpPointerAllocator.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/BumpPointerAllocator.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/CheckedBoolean.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/CheckedBoolean.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/CheckedBoolean.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/CheckedBoolean.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/CheckedBoolean.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Compiler.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Compiler.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Compiler.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Compiler.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Compiler.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/CurrentTime.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/CurrentTime.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/CurrentTime.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/CurrentTime.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/CurrentTime.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/DateInstanceCache.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DateInstanceCache.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DateInstanceCache.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DateInstanceCache.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/DateInstanceCache.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/DateMath.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DateMath.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DateMath.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DateMath.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/DateMath.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/DoublyLinkedList.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DoublyLinkedList.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DoublyLinkedList.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DoublyLinkedList.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/DoublyLinkedList.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/DynamicAnnotations.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DynamicAnnotations.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DynamicAnnotations.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/DynamicAnnotations.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/DynamicAnnotations.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/ExportMacros.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ExportMacros.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ExportMacros.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ExportMacros.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ExportMacros.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/FastAllocBase.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/FastAllocBase.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/FastAllocBase.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/FastAllocBase.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/FastAllocBase.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/FastMalloc.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/FastMalloc.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/FastMalloc.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/FastMalloc.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/FastMalloc.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/FixedArray.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/FixedArray.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/FixedArray.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/FixedArray.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/FixedArray.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Forward.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Forward.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Forward.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Forward.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Forward.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/HashCountedSet.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashCountedSet.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashCountedSet.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashCountedSet.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/HashCountedSet.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/HashFunctions.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashFunctions.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashFunctions.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashFunctions.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/HashFunctions.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/HashMap.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashMap.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashMap.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashMap.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/HashMap.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/HashSet.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashSet.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashSet.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashSet.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/HashSet.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/HashTable.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashTable.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashTable.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashTable.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/HashTable.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/HashTraits.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashTraits.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashTraits.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/HashTraits.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/HashTraits.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/ListHashSet.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ListHashSet.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ListHashSet.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ListHashSet.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ListHashSet.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/ListRefPtr.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ListRefPtr.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ListRefPtr.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ListRefPtr.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ListRefPtr.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Locker.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Locker.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Locker.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Locker.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Locker.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/MainThread.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/MainThread.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/MainThread.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/MainThread.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/MainThread.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/MathExtras.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/MathExtras.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/MathExtras.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/MathExtras.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/MathExtras.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/MetaAllocatorHandle.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/MetaAllocatorHandle.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/MetaAllocatorHandle.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/MetaAllocatorHandle.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/MetaAllocatorHandle.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Noncopyable.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Noncopyable.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Noncopyable.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Noncopyable.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Noncopyable.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/NotFound.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/NotFound.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/NotFound.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/NotFound.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/NotFound.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/OSAllocator.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OSAllocator.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OSAllocator.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OSAllocator.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/OSAllocator.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnArrayPtr.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnArrayPtr.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnArrayPtr.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnArrayPtr.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/OwnArrayPtr.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnPtr.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnPtr.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnPtr.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnPtr.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/OwnPtr.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnPtrCommon.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnPtrCommon.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnPtrCommon.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/OwnPtrCommon.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/OwnPtrCommon.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/PageAllocation.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageAllocation.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageAllocation.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageAllocation.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/PageAllocation.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/PageAllocationAligned.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageAllocationAligned.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageAllocationAligned.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageAllocationAligned.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/PageAllocationAligned.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/PageBlock.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageBlock.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageBlock.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageBlock.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/PageBlock.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/PageReservation.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageReservation.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageReservation.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PageReservation.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/PageReservation.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/PassOwnArrayPtr.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PassOwnArrayPtr.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PassOwnArrayPtr.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PassOwnArrayPtr.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/PassOwnArrayPtr.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/PassOwnPtr.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PassOwnPtr.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PassOwnPtr.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PassOwnPtr.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/PassOwnPtr.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/PassRefPtr.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PassRefPtr.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PassRefPtr.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PassRefPtr.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/PassRefPtr.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Platform.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Platform.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Platform.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Platform.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Platform.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/PossiblyNull.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PossiblyNull.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PossiblyNull.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PossiblyNull.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/PossiblyNull.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/PtrAndFlags.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PtrAndFlags.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PtrAndFlags.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/PtrAndFlags.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/PtrAndFlags.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/RandomNumber.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/RandomNumber.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/RandomNumber.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/RandomNumber.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/RandomNumber.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/RefCounted.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/RefCounted.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/RefCounted.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/RefCounted.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/RefCounted.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/RefPtr.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/RefPtr.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/RefPtr.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/RefPtr.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/RefPtr.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Spectrum.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Spectrum.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Spectrum.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Spectrum.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Spectrum.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/StackBounds.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/StackBounds.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/StackBounds.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/StackBounds.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/StackBounds.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/StdLibExtras.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/StdLibExtras.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/StdLibExtras.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/StdLibExtras.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/StdLibExtras.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/StringHasher.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/StringHasher.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/StringHasher.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/StringHasher.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/StringHasher.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/TemporaryChange.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/TemporaryChange.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/TemporaryChange.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/TemporaryChange.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/TemporaryChange.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadRestrictionVerifier.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadRestrictionVerifier.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadRestrictionVerifier.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadRestrictionVerifier.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ThreadRestrictionVerifier.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadSafeRefCounted.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadSafeRefCounted.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadSafeRefCounted.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadSafeRefCounted.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ThreadSafeRefCounted.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadSpecific.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadSpecific.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadSpecific.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadSpecific.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ThreadSpecific.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Threading.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Threading.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Threading.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Threading.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Threading.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadingPrimitives.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadingPrimitives.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadingPrimitives.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ThreadingPrimitives.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ThreadingPrimitives.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/UnusedParam.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/UnusedParam.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/UnusedParam.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/UnusedParam.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/UnusedParam.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/VMTags.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/VMTags.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/VMTags.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/VMTags.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/VMTags.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/ValueCheck.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ValueCheck.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ValueCheck.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/ValueCheck.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ValueCheck.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/Vector.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Vector.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Vector.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/Vector.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Vector.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/VectorTraits.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/VectorTraits.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/VectorTraits.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/VectorTraits.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/VectorTraits.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/WTFThreadData.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/WTFThreadData.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/WTFThreadData.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/WTFThreadData.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/WTFThreadData.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/text/ASCIIFastPath.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/ASCIIFastPath.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/ASCIIFastPath.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/ASCIIFastPath.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/ASCIIFastPath.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/text/CString.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/CString.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/CString.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/CString.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/CString.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/text/StringHash.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/StringHash.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/StringHash.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/StringHash.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/StringHash.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/text/StringImpl.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/StringImpl.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/StringImpl.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/StringImpl.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/StringImpl.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/text/TextPosition.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/TextPosition.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/TextPosition.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/TextPosition.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/TextPosition.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/text/WTFString.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/WTFString.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/WTFString.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/text/WTFString.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/WTFString.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/unicode/Unicode.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/unicode/Unicode.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/unicode/Unicode.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/unicode/Unicode.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/Unicode.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/wtf/unicode/icu/UnicodeIcu.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/unicode/icu/UnicodeIcu.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/unicode/icu/UnicodeIcu.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/ForwardingHeaders/wtf/unicode/icu/UnicodeIcu.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1 +0,0 @@
+-#include <JavaScriptCore/UnicodeIcu.h>
+Index: Source/JavaScriptGlue/ForwardingHeaders/yarr/Yarr.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/Yarr.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/Yarr.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/Yarr.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_Yarr_h
++#define WebCore_FWD_Yarr_h
++#include <JavaScriptCore/Yarr.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrInterpreter.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrInterpreter.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrInterpreter.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrInterpreter.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_YarrInterpreter_h
++#define WebCore_FWD_YarrInterpreter_h
++#include <JavaScriptCore/YarrInterpreter.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrJIT.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrJIT.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrJIT.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrJIT.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_YarrJIT_h
++#define WebCore_FWD_YarrJIT_h
++#include <JavaScriptCore/YarrJIT.h>
++#endif
++
+Index: Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrPattern.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrPattern.h b/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrPattern.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/ForwardingHeaders/yarr/YarrPattern.h	(Arbeitskopie)
+@@ -0,0 +1,5 @@
++#ifndef WebCore_FWD_YarrPattern_h
++#define WebCore_FWD_YarrPattern_h
++#include <JavaScriptCore/YarrPattern.h>
++#endif
++
+Index: Source/JavaScriptGlue/Info.plist
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/Info.plist b/trunk/Source/JavaScriptGlue/Info.plist
+--- a/trunk/Source/JavaScriptGlue/Info.plist	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/Info.plist	(Arbeitskopie)
+@@ -7,7 +7,7 @@
+ 	<key>CFBundleExecutable</key>
+ 	<string>${PRODUCT_NAME}</string>
+ 	<key>CFBundleGetInfoString</key>
+-	<string>${BUNDLE_VERSION}, Copyright 2003-2012 Apple Inc.</string>
++	<string>${BUNDLE_VERSION}, Copyright 2003-2013 Apple Inc.</string>
+ 	<key>CFBundleIdentifier</key>
+ 	<string>com.apple.${PRODUCT_NAME}</string>
+ 	<key>CFBundleInfoDictionaryVersion</key>
+Index: Source/JavaScriptGlue/JSBase.cpp
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSBase.cpp b/trunk/Source/JavaScriptGlue/JSBase.cpp
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/JSBase.cpp	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1,78 +0,0 @@
+-/*
+- * Copyright (C) 2005 Apple Computer, Inc.  All rights reserved.
+- *
+- * Redistribution and use in source and binary forms, with or without
+- * modification, are permitted provided that the following conditions
+- * are met:
+- *
+- * 1.  Redistributions of source code must retain the above copyright
+- *     notice, this list of conditions and the following disclaimer. 
+- * 2.  Redistributions in binary form must reproduce the above copyright
+- *     notice, this list of conditions and the following disclaimer in the
+- *     documentation and/or other materials provided with the distribution. 
+- * 3.  Neither the name of Apple Computer, Inc. ("Apple") nor the names of
+- *     its contributors may be used to endorse or promote products derived
+- *     from this software without specific prior written permission. 
+- *
+- * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
+- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+- * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-
+-#include "config.h"
+-#include "JSBase.h"
+-
+-JSBase::JSBase(JSTypeID type) : fTypeID(type), fRetainCount(1)
+-{
+-}
+-
+-JSBase::~JSBase()
+-{
+-}
+-
+-JSBase* JSBase::Retain()
+-{
+-    fRetainCount++; return this;
+-}
+-
+-void JSBase::Release()
+-{
+-    if (--fRetainCount == 0)
+-    {
+-        JSGlueAPIEntry entry;
+-        delete this;
+-    }
+-}
+-
+-CFIndex JSBase::RetainCount() const
+-{
+-    return fRetainCount;
+-}
+-
+-JSTypeID JSBase::GetTypeID() const
+-{
+-    return fTypeID;
+-}
+-
+-CFStringRef JSBase::CopyDescription()
+-{
+-    return CFStringCreateWithFormat(
+-                0,
+-                0,
+-                CFSTR("<JSTypeRef- ptr:0x%lx type: %d, retaincount: %ld>"),
+-                (long)this,
+-                (int)fTypeID,
+-                (long)fRetainCount);
+-}
+-
+-UInt8 JSBase::Equal(JSBase* other)
+-{
+-    return this == other;
+-}
+Index: Source/JavaScriptGlue/JSBase.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSBase.h b/trunk/Source/JavaScriptGlue/JSBase.h
+deleted file mode 10644
+--- a/trunk/Source/JavaScriptGlue/JSBase.h	(Revision 105839)
++++ /dev/null	(Arbeitskopie)
+@@ -1,52 +0,0 @@
+-/*
+- * Copyright (C) 2005 Apple Computer, Inc.  All rights reserved.
+- *
+- * Redistribution and use in source and binary forms, with or without
+- * modification, are permitted provided that the following conditions
+- * are met:
+- *
+- * 1.  Redistributions of source code must retain the above copyright
+- *     notice, this list of conditions and the following disclaimer. 
+- * 2.  Redistributions in binary form must reproduce the above copyright
+- *     notice, this list of conditions and the following disclaimer in the
+- *     documentation and/or other materials provided with the distribution. 
+- * 3.  Neither the name of Apple Computer, Inc. ("Apple") nor the names of
+- *     its contributors may be used to endorse or promote products derived
+- *     from this software without specific prior written permission. 
+- *
+- * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
+- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+- * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-
+-#ifndef JSBase_h
+-#define JSBase_h
+-
+-#include "JSUtils.h"
+-
+-class JSBase {
+-    public:
+-        JSBase(JSTypeID type);
+-        virtual ~JSBase();
+-
+-        JSBase* Retain();
+-        void Release();
+-        CFIndex RetainCount() const;
+-        JSTypeID GetTypeID() const;
+-
+-        virtual CFStringRef CopyDescription();
+-        virtual UInt8 Equal(JSBase* other);
+-
+-    private:
+-        JSTypeID fTypeID;
+-        CFIndex fRetainCount;
+-};
+-
+-#endif
+Index: Source/JavaScriptGlue/JSGlueBase.cpp
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSGlueBase.cpp b/trunk/Source/JavaScriptGlue/JSGlueBase.cpp
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/JSGlueBase.cpp	(Arbeitskopie)
+@@ -0,0 +1,78 @@
++/*
++ * Copyright (C) 2005 Apple Computer, Inc.  All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ *
++ * 1.  Redistributions of source code must retain the above copyright
++ *     notice, this list of conditions and the following disclaimer. 
++ * 2.  Redistributions in binary form must reproduce the above copyright
++ *     notice, this list of conditions and the following disclaimer in the
++ *     documentation and/or other materials provided with the distribution. 
++ * 3.  Neither the name of Apple Computer, Inc. ("Apple") nor the names of
++ *     its contributors may be used to endorse or promote products derived
++ *     from this software without specific prior written permission. 
++ *
++ * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
++ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
++ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
++ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
++ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
++ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#include "config.h"
++#include "JSGlueBase.h"
++
++JSGlueBase::JSGlueBase(JSTypeID type) : fTypeID(type), fRetainCount(1)
++{
++}
++
++JSGlueBase::~JSGlueBase()
++{
++}
++
++JSGlueBase* JSGlueBase::Retain()
++{
++    fRetainCount++; return this;
++}
++
++void JSGlueBase::Release()
++{
++    if (--fRetainCount == 0)
++    {
++        JSGlueAPIEntry entry;
++        delete this;
++    }
++}
++
++CFIndex JSGlueBase::RetainCount() const
++{
++    return fRetainCount;
++}
++
++JSTypeID JSGlueBase::GetTypeID() const
++{
++    return fTypeID;
++}
++
++CFStringRef JSGlueBase::CopyDescription()
++{
++    return CFStringCreateWithFormat(
++                0,
++                0,
++                CFSTR("<JSTypeRef- ptr:0x%lx type: %d, retaincount: %ld>"),
++                (long)this,
++                (int)fTypeID,
++                (long)fRetainCount);
++}
++
++UInt8 JSGlueBase::Equal(JSGlueBase* other)
++{
++    return this == other;
++}
+Index: Source/JavaScriptGlue/JSGlueBase.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSGlueBase.h b/trunk/Source/JavaScriptGlue/JSGlueBase.h
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/JSGlueBase.h	(Arbeitskopie)
+@@ -0,0 +1,52 @@
++/*
++ * Copyright (C) 2005 Apple Computer, Inc.  All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ *
++ * 1.  Redistributions of source code must retain the above copyright
++ *     notice, this list of conditions and the following disclaimer. 
++ * 2.  Redistributions in binary form must reproduce the above copyright
++ *     notice, this list of conditions and the following disclaimer in the
++ *     documentation and/or other materials provided with the distribution. 
++ * 3.  Neither the name of Apple Computer, Inc. ("Apple") nor the names of
++ *     its contributors may be used to endorse or promote products derived
++ *     from this software without specific prior written permission. 
++ *
++ * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
++ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
++ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++ * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
++ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
++ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
++ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#ifndef JSGlueBase_h
++#define JSGlueBase_h
++
++#include "JSUtils.h"
++
++class JSGlueBase {
++    public:
++        JSGlueBase(JSTypeID type);
++        virtual ~JSGlueBase();
++
++        JSGlueBase* Retain();
++        void Release();
++        CFIndex RetainCount() const;
++        JSTypeID GetTypeID() const;
++
++        virtual CFStringRef CopyDescription();
++        virtual UInt8 Equal(JSGlueBase* other);
++
++    private:
++        JSTypeID fTypeID;
++        CFIndex fRetainCount;
++};
++
++#endif
+Index: Source/JavaScriptGlue/JSObject.cpp
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSObject.cpp b/trunk/Source/JavaScriptGlue/JSObject.cpp
+--- a/trunk/Source/JavaScriptGlue/JSObject.cpp	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JSObject.cpp	(Arbeitskopie)
+@@ -32,7 +32,7 @@
+ #include "UserObjectImp.h"
+ 
+ JSUserObject::JSUserObject(JSObjectCallBacksPtr callBacks, JSObjectMarkProcPtr markProc, void *data, int dataType)
+-    : JSBase(kJSObjectTypeID), fCallBacks(*callBacks), fMarkProc(markProc), fData(data), fDataType(dataType)
++    : JSGlueBase(kJSObjectTypeID), fCallBacks(*callBacks), fMarkProc(markProc), fData(data), fDataType(dataType)
+ {
+ }
+ 
+@@ -109,7 +109,7 @@
+     return result;
+ }
+ 
+-UInt8 JSUserObject::Equal(JSBase* other)
++UInt8 JSUserObject::Equal(JSGlueBase* other)
+ {
+     UInt8 result = false;
+     JSUserObject* obj = (JSUserObject*)other;
+Index: Source/JavaScriptGlue/JSObject.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSObject.h b/trunk/Source/JavaScriptGlue/JSObject.h
+--- a/trunk/Source/JavaScriptGlue/JSObject.h	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JSObject.h	(Arbeitskopie)
+@@ -29,13 +29,13 @@
+ #ifndef JSGlue_JSObject_h
+ #define JSGlue_JSObject_h
+ 
+-#include "JSBase.h"
++#include "JSGlueBase.h"
+ #include "JSUtils.h"
+ 
+ typedef void (*JSObjectMarkProcPtr)(void *data);
+ JSObjectRef JSObjectCreateInternal(void *data, JSObjectCallBacksPtr callBacks, JSObjectMarkProcPtr markProc, int dataType);
+ 
+-class JSUserObject : public JSBase {
++class JSUserObject : public JSGlueBase {
+     public:
+         JSUserObject(JSObjectCallBacksPtr callBacks, JSObjectMarkProcPtr markProc, void *data, int dataType);
+         virtual ~JSUserObject();
+@@ -46,7 +46,7 @@
+         CallType getCallData(CallData&);
+         JSUserObject* CallFunction(JSUserObject* thisObj, CFArrayRef args);
+         CFTypeRef CopyCFValue() const;
+-        virtual UInt8 Equal(JSBase* other);
++        virtual UInt8 Equal(JSGlueBase* other);
+         void *GetData();
+         void Mark();
+ 
+Index: Source/JavaScriptGlue/JSRun.cpp
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSRun.cpp b/trunk/Source/JavaScriptGlue/JSRun.cpp
+--- a/trunk/Source/JavaScriptGlue/JSRun.cpp	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JSRun.cpp	(Arbeitskopie)
+@@ -34,17 +34,17 @@
+ #include <JavaScriptCore/SourceCode.h>
+ #include <JavaScriptCore/StrongInlines.h>
+ 
+-JSGlueGlobalObject::JSGlueGlobalObject(JSGlobalData& globalData, Structure* structure, Structure* userObjectStructure, JSFlags flags)
+-    : JSGlobalObject(globalData, structure)
++JSGlueGlobalObject::JSGlueGlobalObject(VM& vm, Structure* structure, Structure* userObjectStructure, JSFlags flags)
++    : JSGlobalObject(vm, structure)
+     , m_flags(flags)
+-    , m_userObjectStructure(globalData, userObjectStructure)
++    , m_userObjectStructure(vm, userObjectStructure)
+ {
+ }
+ 
+ JSRun::JSRun(CFStringRef source, JSFlags inFlags)
+-    :   JSBase(kJSRunTypeID),
+-        fSource(CFStringToUString(source)),
+-        fGlobalObject(getThreadGlobalExecState()->globalData(), JSGlueGlobalObject::create(getThreadGlobalExecState()->globalData(), JSGlueGlobalObject::createStructure(getThreadGlobalExecState()->globalData(), jsNull()), inFlags)),
++    :   JSGlueBase(kJSRunTypeID),
++        fSource(CFStringToString(source)),
++        fGlobalObject(getThreadGlobalExecState()->vm(), JSGlueGlobalObject::create(getThreadGlobalExecState()->vm(), JSGlueGlobalObject::createStructure(getThreadGlobalExecState()->vm(), jsNull()), inFlags)),
+         fFlags(inFlags)
+ {
+ }
+@@ -58,7 +58,7 @@
+     return fFlags;
+ }
+ 
+-UString JSRun::GetSource() const
++String JSRun::GetSource() const
+ {
+     return fSource;
+ }
+@@ -68,9 +68,9 @@
+     return fGlobalObject.get();
+ }
+ 
+-JSValue JSRun::Evaluate(JSValue* expception)
++JSValue JSRun::Evaluate(JSValue* exception)
+ {
+-    return JSC::evaluate(fGlobalObject->globalExec(), fGlobalObject->globalScopeChain(), makeSource(fSource), JSValue(), expception);
++    return JSC::evaluate(fGlobalObject->globalExec(), makeSource(fSource), JSValue(), exception);
+ }
+ 
+ bool JSRun::CheckSyntax()
+Index: Source/JavaScriptGlue/JSRun.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSRun.h b/trunk/Source/JavaScriptGlue/JSRun.h
+--- a/trunk/Source/JavaScriptGlue/JSRun.h	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JSRun.h	(Arbeitskopie)
+@@ -30,7 +30,7 @@
+ #define JSRun_h
+ 
+ #include <JavaScriptCore/Strong.h>
+-#include "JSBase.h"
++#include "JSGlueBase.h"
+ #include "JSUtils.h"
+ #include "UserObjectImp.h"
+ 
+@@ -38,11 +38,12 @@
+     public:
+         typedef JSGlobalObject Base;
+ 
+-        static JSGlueGlobalObject* create(JSGlobalData& globalData, Structure* structure, JSFlags flags = kJSFlagNone)
++        static JSGlueGlobalObject* create(VM& vm, Structure* structure, JSFlags flags = kJSFlagNone)
+         {
+-            Structure* userObjectStructure = UserObjectImp::createStructure(globalData, 0, jsNull());
+-            JSGlueGlobalObject* object = new (allocateCell<JSGlueGlobalObject>(globalData.heap)) JSGlueGlobalObject(globalData, structure, userObjectStructure, flags);
+-            object->finishCreation(globalData);
++            Structure* userObjectStructure = UserObjectImp::createStructure(vm, 0, jsNull());
++            JSGlueGlobalObject* object = new (allocateCell<JSGlueGlobalObject>(vm.heap)) JSGlueGlobalObject(vm, structure, userObjectStructure, flags);
++            object->finishCreation(vm);
++            vm.heap.addFinalizer(object, destroy);
+             return object;
+         }
+ 
+@@ -50,24 +51,24 @@
+         Structure* userObjectStructure() const { return m_userObjectStructure.get(); }
+ 
+     private:
+-        JSGlueGlobalObject(JSGlobalData&, Structure*, Structure*, JSFlags = kJSFlagNone);
++        JSGlueGlobalObject(VM&, Structure*, Structure*, JSFlags = kJSFlagNone);
+         
+         JSFlags m_flags;
+         Strong<Structure> m_userObjectStructure;
+ };
+ 
+-class JSRun : public JSBase {
++class JSRun : public JSGlueBase {
+     public:
+         JSRun(CFStringRef source, JSFlags inFlags);
+         virtual ~JSRun();
+ 
+-        UString GetSource() const;
++        String GetSource() const;
+         JSGlobalObject* GlobalObject() const;
+         JSValue Evaluate(JSValue* exception);
+         bool CheckSyntax();
+         JSFlags Flags() const;
+     private:
+-        UString fSource;
++        String fSource;
+         Strong<JSGlobalObject> fGlobalObject;
+         JSFlags fFlags;
+ };
+Index: Source/JavaScriptGlue/JSUtils.cpp
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSUtils.cpp b/trunk/Source/JavaScriptGlue/JSUtils.cpp
+--- a/trunk/Source/JavaScriptGlue/JSUtils.cpp	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JSUtils.cpp	(Arbeitskopie)
+@@ -29,7 +29,7 @@
+ #include "config.h"
+ #include "JSUtils.h"
+ 
+-#include "JSBase.h"
++#include "JSGlueBase.h"
+ #include "JSObject.h"
+ #include "JSRun.h"
+ #include "JSValueWrapper.h"
+@@ -36,7 +36,7 @@
+ #include "UserObjectImp.h"
+ #include <JavaScriptCore/JSString.h>
+ #include <JavaScriptCore/PropertyNameArray.h>
+-#include <JavaScriptCore/WTFThreadData.h>
++#include <JavaScriptCore/APICast.h>
+ 
+ struct ObjectImpList {
+     JSObject* imp;
+@@ -48,12 +48,12 @@
+ static JSGlueGlobalObject* getThreadGlobalObject();
+ 
+ //--------------------------------------------------------------------------
+-// CFStringToUString
++// CFStringToString
+ //--------------------------------------------------------------------------
+ 
+-UString CFStringToUString(CFStringRef inCFString)
++String CFStringToString(CFStringRef inCFString)
+ {
+-    UString result;
++    String result;
+     if (inCFString) {
+         CFIndex len = CFStringGetLength(inCFString);
+         UniChar* buffer = (UniChar*)malloc(sizeof(UniChar) * len);
+@@ -60,7 +60,7 @@
+         if (buffer)
+         {
+             CFStringGetCharacters(inCFString, CFRangeMake(0, len), buffer);
+-            result = UString((const UChar *)buffer, len);
++            result = String((const UChar *)buffer, len);
+             free(buffer);
+         }
+     }
+@@ -69,12 +69,12 @@
+ 
+ 
+ //--------------------------------------------------------------------------
+-// UStringToCFString
++// StringToCFString
+ //--------------------------------------------------------------------------
+ // Caller is responsible for releasing the returned CFStringRef
+-CFStringRef UStringToCFString(const UString& inUString)
++CFStringRef StringToCFString(const String& inString)
+ {
+-    return CFStringCreateWithCharacters(0, (const UniChar*)inUString.characters(), inUString.length());
++    return CFStringCreateWithCharacters(0, (const UniChar*)inString.characters(), inString.length());
+ }
+ 
+ 
+@@ -84,7 +84,7 @@
+ 
+ Identifier CFStringToIdentifier(CFStringRef inCFString, ExecState* exec)
+ {
+-    return Identifier(exec, CFStringToUString(inCFString));
++    return Identifier(exec, CFStringToString(inCFString));
+ }
+ 
+ 
+@@ -92,9 +92,9 @@
+ // IdentifierToCFString
+ //--------------------------------------------------------------------------
+ // Caller is responsible for releasing the returned CFStringRef
+-CFStringRef IdentifierToCFString(const Identifier& inIdentifier)
++CFStringRef IdentifierToCFString(PropertyName inIdentifier)
+ {
+-    return UStringToCFString(inIdentifier.ustring());
++    return StringToCFString(inIdentifier.publicName());
+ }
+ 
+ 
+@@ -157,7 +157,7 @@
+                     CFTypeID typeID = CFGetTypeID(cfType);
+                     if (typeID == CFStringGetTypeID())
+                     {
+-                        result = jsString(getThreadGlobalExecState(), CFStringToUString((CFStringRef)cfType));
++                        result = jsString(getThreadGlobalExecState(), CFStringToString((CFStringRef)cfType));
+                         handled = true;
+                     }
+                     else if (typeID == CFNumberGetTypeID())
+@@ -177,6 +177,23 @@
+                         result = jsNull();
+                         handled = true;
+                     }
++/*
++                    else if (typeID == CFArrayGetTypeID())
++                    {
++                        ExecState* exec = getThreadGlobalExecState();
++                        size_t argumentCount = CFArrayGetCount((CFArrayRef)cfType);
++
++                        if (argumentCount) {
++                            MarkedArgumentBuffer argList;
++                            for (size_t i = 0; i < argumentCount; ++i)
++                                argList.append(UserObjectImp::create(exec->vm(), getThreadGlobalObject()->userObjectStructure(), (JSUserObject*)JSObjectCreateWithCFType(CFArrayGetValueAtIndex((CFArrayRef)cfType, i))));
++
++                            result = constructArray(exec, static_cast<ArrayAllocationProfile*>(0), argList);
++                        } else
++                            result = constructEmptyArray(exec, 0);
++                        handled = true;
++                    }
++*/
+                 }
+                 break;
+             }
+@@ -184,7 +201,7 @@
+         if (!handled)
+         {
+             ExecState* exec = getThreadGlobalExecState();
+-            result = UserObjectImp::create(exec->globalData(), getThreadGlobalObject()->userObjectStructure(), ptr);
++            result = UserObjectImp::create(exec->vm(), getThreadGlobalObject()->userObjectStructure(), ptr);
+         }
+     }
+     return result;
+@@ -215,8 +232,8 @@
+ 
+         if (inValue.isString())
+             {
+-                UString uString = inValue.toString(exec)->value(exec);
+-                result = UStringToCFString(uString);
++                String string = inValue.toString(exec)->value(exec);
++                result = StringToCFString(string);
+                 return result;
+             }
+ 
+@@ -267,8 +284,8 @@
+ 
+ 
+ //[...] HACK since we do not have access to the class info we use class name instead
+-#if 0
+-                    if (object->inherits(&ArrayInstanceImp::s_info))
++#if 1
++                    if (object->inherits(&JSArray::s_info))
+ #else
+                     if (object->methodTable()->className(object) == "Array")
+ #endif
+@@ -283,9 +300,9 @@
+                             while(iter != end && isArray)
+                             {
+                                 Identifier propName = *iter;
+-                                UString ustr = propName.ustring();
+-                                const UniChar* uniChars = (const UniChar*)ustr.characters();
+-                                int size = ustr.length();
++                                String str = propName.string();
++                                const UniChar* uniChars = (const UniChar*)str.characters();
++                                int size = str.length();
+                                 while (size--) {
+                                     if (uniChars[size] < '0' || uniChars[size] > '9') {
+                                         isArray = false;
+@@ -395,7 +412,7 @@
+ 
+ static void unprotectGlobalObject(void* data) 
+ {
+-    JSGlueAPIEntry entry;
++//    JSGlueAPIEntry entry;
+     gcUnprotect(static_cast<JSGlueGlobalObject*>(data));
+ }
+ 
+@@ -404,9 +421,9 @@
+     pthread_key_create(&globalObjectKey, unprotectGlobalObject);
+ }
+ 
+-static JSGlobalData* getThreadGlobalData()
++static VM* getThreadVM()
+ {
+-    return &JSGlobalData::sharedInstance();
++    return &VM::sharedInstance();
+ }
+ 
+ static JSGlueGlobalObject* getThreadGlobalObject()
+@@ -414,7 +431,8 @@
+     pthread_once(&globalObjectKeyOnce, initializeGlobalObjectKey);
+     JSGlueGlobalObject* globalObject = static_cast<JSGlueGlobalObject*>(pthread_getspecific(globalObjectKey));
+     if (!globalObject) {
+-        globalObject = JSGlueGlobalObject::create(*getThreadGlobalData(), JSGlueGlobalObject::createStructure(*getThreadGlobalData(), jsNull()));
++        JSGlueAPIEntry entry;
++        globalObject = JSGlueGlobalObject::create(*getThreadVM(), JSGlueGlobalObject::createStructure(*getThreadVM(), jsNull()));
+         gcProtect(globalObject);
+         pthread_setspecific(globalObjectKey, globalObject);
+     }
+@@ -432,24 +450,6 @@
+ }
+ 
+ JSGlueAPIEntry::JSGlueAPIEntry()
+-    : m_lock(LockForReal)
+-    , m_storedIdentifierTable(wtfThreadData().currentIdentifierTable())
++    : APIEntryShim(getThreadVM())
+ {
+-    wtfThreadData().setCurrentIdentifierTable(getThreadGlobalData()->identifierTable);
+ }
+-
+-JSGlueAPIEntry::~JSGlueAPIEntry()
+-{
+-    wtfThreadData().setCurrentIdentifierTable(m_storedIdentifierTable);
+-}
+-
+-JSGlueAPICallback::JSGlueAPICallback(ExecState* exec)
+-    : m_dropLocks(exec)
+-{
+-    wtfThreadData().resetCurrentIdentifierTable();
+-}
+-
+-JSGlueAPICallback::~JSGlueAPICallback()
+-{
+-    wtfThreadData().setCurrentIdentifierTable(getThreadGlobalData()->identifierTable);
+-}
+Index: Source/JavaScriptGlue/JSUtils.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSUtils.h b/trunk/Source/JavaScriptGlue/JSUtils.h
+--- a/trunk/Source/JavaScriptGlue/JSUtils.h	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JSUtils.h	(Arbeitskopie)
+@@ -31,8 +31,12 @@
+ 
+ #include "JavaScriptGlue.h"
+ 
++#include <wtf/Assertions.h>
++
++#include <JavaScriptCore/APIShims.h>
+ #include <JavaScriptCore/Heap.h>
+-#include <JavaScriptCore/JSValue.h>
++#include <JavaScriptCore/JSCJSValue.h>
++#include <JavaScriptCore/JSCJSValueInlines.h>
+ #include <JavaScriptCore/Completion.h>
+ #include <JavaScriptCore/Identifier.h>
+ #include <JavaScriptCore/JSLock.h>
+@@ -39,22 +43,24 @@
+ #include <JavaScriptCore/JSObject.h>
+ #include <JavaScriptCore/JSGlobalObject.h>
+ #include <JavaScriptCore/Protect.h>
+-#include <JavaScriptCore/UString.h>
++#include <JavaScriptCore/StructureInlines.h>
+ 
++#include <wtf/text/WTFString.h>
++#include <wtf/RetainPtr.h>
+ #include <wtf/RefPtr.h>
+ 
+ using namespace JSC;
+ 
+-class JSBase;
++class JSGlueBase;
+ class JSUserObject;
+ class JSRun;
+ class JSValueWrapper;
+ class JSUserObjectImp;
+ 
+-UString CFStringToUString(CFStringRef inCFString);
+-CFStringRef UStringToCFString(const UString& inUString);
++String CFStringToString(CFStringRef inCFString);
++CFStringRef StringToCFString(const String& inString);
+ Identifier CFStringToIdentifier(CFStringRef inCFString, ExecState*);
+-CFStringRef IdentifierToCFString(const Identifier& inIdentifier);
++CFStringRef IdentifierToCFString(PropertyName inIdentifier);
+ JSUserObject *KJSValueToJSObject(JSValue inValue, ExecState *exec);
+ CFTypeRef KJSValueToCFType(JSValue inValue, ExecState *exec);
+ JSValue JSObjectKJSValue(JSUserObject* ptr);
+@@ -77,24 +83,10 @@
+     kJSUserObjectDataTypeCFType
+ };
+ 
+-class JSGlueAPIEntry {
++class JSGlueAPIEntry : APIEntryShim {
+ public:
+     JSGlueAPIEntry();
+     JSGlueAPIEntry(JSGlobalObject*); // For use when it's not safe for JSGlueAPIEntry() to call getThreadGlobalObject() -- for example, from a thread-specific data destructor.
+-    ~JSGlueAPIEntry();
+-
+-private:
+-    JSLock m_lock;
+-    IdentifierTable* m_storedIdentifierTable;
+ };
+ 
+-class JSGlueAPICallback {
+-public:
+-    JSGlueAPICallback(ExecState*);
+-    ~JSGlueAPICallback();
+-
+-private:
+-    JSLock::DropAllLocks m_dropLocks;
+-};
+-
+ #endif
+Index: Source/JavaScriptGlue/JSValueWrapper.cpp
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSValueWrapper.cpp b/trunk/Source/JavaScriptGlue/JSValueWrapper.cpp
+--- a/trunk/Source/JavaScriptGlue/JSValueWrapper.cpp	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JSValueWrapper.cpp	(Arbeitskopie)
+@@ -35,7 +35,7 @@
+ #include <pthread.h>
+ 
+ JSValueWrapper::JSValueWrapper(JSValue inValue)
+-    : fValue(getThreadGlobalExecState()->globalData(), inValue)
++    : fValue(getThreadGlobalExecState()->vm(), inValue)
+ {
+ }
+ 
+Index: Source/JavaScriptGlue/JSValueWrapper.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JSValueWrapper.h b/trunk/Source/JavaScriptGlue/JSValueWrapper.h
+--- a/trunk/Source/JavaScriptGlue/JSValueWrapper.h	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JSValueWrapper.h	(Arbeitskopie)
+@@ -31,7 +31,7 @@
+ 
+ #include <JavaScriptCore/Strong.h>
+ #include "JSUtils.h"
+-#include "JSBase.h"
++#include "JSGlueBase.h"
+ #include "JSObject.h"
+ 
+ class JSValueWrapper {
+Index: Source/JavaScriptGlue/JavaScriptGlue.cpp
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JavaScriptGlue.cpp b/trunk/Source/JavaScriptGlue/JavaScriptGlue.cpp
+--- a/trunk/Source/JavaScriptGlue/JavaScriptGlue.cpp	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JavaScriptGlue.cpp	(Arbeitskopie)
+@@ -29,7 +29,7 @@
+ #include "config.h"
+ #include "JavaScriptGlue.h"
+ #include "JSUtils.h"
+-#include "JSBase.h"
++#include "JSGlueBase.h"
+ #include "JSObject.h"
+ #include "JSRun.h"
+ #include <JavaScriptCore/Completion.h>
+@@ -66,7 +66,7 @@
+ {
+     if (ref)
+     {
+-        JSBase* ptr = (JSBase*)ref;
++        JSGlueBase* ptr = (JSGlueBase*)ref;
+         ptr->Retain();
+     }
+     return ref;
+@@ -79,7 +79,7 @@
+ {
+     if (ref)
+     {
+-        JSBase* ptr = (JSBase*)ref;
++        JSGlueBase* ptr = (JSGlueBase*)ref;
+         ptr->Release();
+     }
+ }
+@@ -92,7 +92,7 @@
+     CFStringRef result = 0;
+     if (ref)
+     {
+-        JSBase* ptr = (JSBase*)ref;
++        JSGlueBase* ptr = (JSGlueBase*)ref;
+         ptr->CopyDescription();
+     }
+     return result;
+@@ -106,8 +106,8 @@
+     UInt8 result = false;
+     if (ref1 && ref2)
+     {
+-        JSBase* ptr = (JSBase*)ref1;
+-        result = ptr->Equal((JSBase*)ref2);
++        JSGlueBase* ptr = (JSGlueBase*)ref1;
++        result = ptr->Equal((JSGlueBase*)ref2);
+     }
+     return result;
+ }
+@@ -121,7 +121,7 @@
+     JSTypeID result = kJSInvalidTypeID;
+     if (ref)
+     {
+-        JSBase* ptr = (JSBase*)ref;
++        JSGlueBase* ptr = (JSGlueBase*)ref;
+         result = ptr->GetTypeID();
+     }
+     return result;
+@@ -136,7 +136,7 @@
+     CFIndex result = -1;
+     if (ref)
+     {
+-        JSBase* ptr = (JSBase*)ref;
++        JSGlueBase* ptr = (JSGlueBase*)ref;
+         result = ptr->RetainCount();
+     }
+     return result;
+@@ -211,7 +211,7 @@
+ /*
+     JSObjectSetProperty
+ */
+-void JSObjectSetProperty(JSObjectRef ref, CFStringRef propertyName, JSObjectRef value)
++void JSGlueObjectSetProperty(JSObjectRef ref, CFStringRef propertyName, JSObjectRef value)
+ {
+     JSUserObject* ptr = (JSUserObject*)ref;
+     if (ptr && (ptr->GetTypeID() == kJSObjectTypeID))
+@@ -261,7 +261,7 @@
+     JSRun* ptr = (JSRun*)ref;
+     if (ptr)
+     {
+-        result = UStringToCFString(ptr->GetSource());
++        result = StringToCFString(ptr->GetSource());
+     }
+     return result;
+ }
+@@ -414,7 +414,7 @@
+     }
+ }
+ 
+-CFArrayRef JSObjectCopyPropertyNames(JSObjectRef ref)
++CFArrayRef JSGlueObjectCopyPropertyNames(JSObjectRef ref)
+ {
+     CFArrayRef result = 0;
+     JSUserObject* ptr = (JSUserObject*)ref;
+@@ -655,11 +655,11 @@
+ void JSLockInterpreter()
+ {
+     initializeThreading();
+-    JSLock::lock(LockForReal);
++    getThreadGlobalExecState()->vm().apiLock().lock();
+ }
+ 
+ 
+ void JSUnlockInterpreter()
+ {
+-    JSLock::unlock(LockForReal);
++    getThreadGlobalExecState()->vm().apiLock().unlock();
+ }
+Index: Source/JavaScriptGlue/JavaScriptGlue.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JavaScriptGlue.h b/trunk/Source/JavaScriptGlue/JavaScriptGlue.h
+--- a/trunk/Source/JavaScriptGlue/JavaScriptGlue.h	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JavaScriptGlue.h	(Arbeitskopie)
+@@ -48,7 +48,7 @@
+     kJSFlagConvertAssociativeArray = 1 << 1 /* associative arrays will be converted to dictionaries */
+ } JSFlags;
+ 
+-typedef struct OpaqueJSTypeRef *JSTypeRef DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
++typedef struct OpaqueJSValue *JSTypeRef DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+ typedef JSTypeRef JSObjectRef DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+ typedef JSTypeRef JSRunRef DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+ typedef CFTypeID JSTypeID DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+@@ -88,9 +88,9 @@
+ CFTypeRef JSObjectCopyCFValue(JSObjectRef ref) DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+ void *JSObjectGetData(JSObjectRef ref) DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+ 
+-CFArrayRef JSObjectCopyPropertyNames(JSObjectRef ref) DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
++CFArrayRef JSGlueObjectCopyPropertyNames(JSObjectRef ref) DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+ JSObjectRef JSObjectCopyProperty(JSObjectRef ref, CFStringRef propertyName) DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+-void JSObjectSetProperty(JSObjectRef ref, CFStringRef propertyName, JSObjectRef value) DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
++void JSGlueObjectSetProperty(JSObjectRef ref, CFStringRef propertyName, JSObjectRef value) DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+ JSObjectRef JSObjectCallFunction(JSObjectRef ref, JSObjectRef thisObj, CFArrayRef args) DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+ 
+ JSRunRef JSRunCreate(CFStringRef jsSource, JSFlags inFlags) DEPRECATED_IN_MAC_OS_X_VERSION_10_5_AND_LATER;
+Index: Source/JavaScriptGlue/JavaScriptGlue.xcodeproj/project.pbxproj
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/JavaScriptGlue.xcodeproj/project.pbxproj b/trunk/Source/JavaScriptGlue/JavaScriptGlue.xcodeproj/project.pbxproj
+--- a/trunk/Source/JavaScriptGlue/JavaScriptGlue.xcodeproj/project.pbxproj	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/JavaScriptGlue.xcodeproj/project.pbxproj	(Arbeitskopie)
+@@ -25,7 +25,7 @@
+ 		1422E87B09DE3BF000749B87 /* testjsglue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1422E86709DE3BCE00749B87 /* testjsglue.cpp */; };
+ 		1422E88209DE3C0400749B87 /* JavaScriptGlue.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD66F3D608F73ED700C75FD7 /* JavaScriptGlue.framework */; };
+ 		DD66F3BB08F73ED700C75FD7 /* JavaScriptGlue.h in Headers */ = {isa = PBXBuildFile; fileRef = F11798B30262465703CA149D /* JavaScriptGlue.h */; settings = {ATTRIBUTES = (Public, ); }; };
+-		DD66F3BC08F73ED700C75FD7 /* JSBase.h in Headers */ = {isa = PBXBuildFile; fileRef = F11798B9026246FD03CA149D /* JSBase.h */; };
++		DD66F3BC08F73ED700C75FD7 /* JSGlueBase.h in Headers */ = {isa = PBXBuildFile; fileRef = F11798B9026246FD03CA149D /* JSGlueBase.h */; };
+ 		DD66F3BD08F73ED700C75FD7 /* JSUtils.h in Headers */ = {isa = PBXBuildFile; fileRef = F11798B7026246FD03CA149D /* JSUtils.h */; };
+ 		DD66F3BE08F73ED700C75FD7 /* JSObject.h in Headers */ = {isa = PBXBuildFile; fileRef = F11798BB026246FD03CA149D /* JSObject.h */; };
+ 		DD66F3BF08F73ED700C75FD7 /* JSRun.h in Headers */ = {isa = PBXBuildFile; fileRef = F11798BD026246FD03CA149D /* JSRun.h */; };
+@@ -35,7 +35,7 @@
+ 		DD66F3C608F73ED700C75FD7 /* JavaScriptGlue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F11798B20262465703CA149D /* JavaScriptGlue.cpp */; };
+ 		DD66F3C708F73ED700C75FD7 /* JSRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F11798BC026246FD03CA149D /* JSRun.cpp */; };
+ 		DD66F3C808F73ED700C75FD7 /* JSUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F11798B6026246FD03CA149D /* JSUtils.cpp */; };
+-		DD66F3C908F73ED700C75FD7 /* JSBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F11798B8026246FD03CA149D /* JSBase.cpp */; };
++		DD66F3C908F73ED700C75FD7 /* JSGlueBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F11798B8026246FD03CA149D /* JSGlueBase.cpp */; };
+ 		DD66F3CA08F73ED700C75FD7 /* JSObject.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F11798BA026246FD03CA149D /* JSObject.cpp */; };
+ 		DD66F3CB08F73ED700C75FD7 /* JSValueWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F11798C80262545403CA149D /* JSValueWrapper.cpp */; };
+ 		DD66F3CC08F73ED700C75FD7 /* UserObjectImp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F11798CE0262579C03CA149D /* UserObjectImp.cpp */; };
+@@ -84,8 +84,8 @@
+ 		F11798B30262465703CA149D /* JavaScriptGlue.h */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = JavaScriptGlue.h; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
+ 		F11798B6026246FD03CA149D /* JSUtils.cpp */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSUtils.cpp; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
+ 		F11798B7026246FD03CA149D /* JSUtils.h */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = JSUtils.h; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
+-		F11798B8026246FD03CA149D /* JSBase.cpp */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSBase.cpp; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
+-		F11798B9026246FD03CA149D /* JSBase.h */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = JSBase.h; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
++		F11798B8026246FD03CA149D /* JSGlueBase.cpp */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSGlueBase.cpp; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
++		F11798B9026246FD03CA149D /* JSGlueBase.h */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = JSGlueBase.h; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
+ 		F11798BA026246FD03CA149D /* JSObject.cpp */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSObject.cpp; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
+ 		F11798BB026246FD03CA149D /* JSObject.h */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = JSObject.h; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
+ 		F11798BC026246FD03CA149D /* JSRun.cpp */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSRun.cpp; sourceTree = "<group>"; tabWidth = 8; usesTabs = 0; };
+@@ -171,8 +171,8 @@
+ 				F11798B20262465703CA149D /* JavaScriptGlue.cpp */,
+ 				F1EB7EAB02621EAF03CA149D /* JavaScriptGlue.exp */,
+ 				F11798B30262465703CA149D /* JavaScriptGlue.h */,
+-				F11798B8026246FD03CA149D /* JSBase.cpp */,
+-				F11798B9026246FD03CA149D /* JSBase.h */,
++				F11798B8026246FD03CA149D /* JSGlueBase.cpp */,
++				F11798B9026246FD03CA149D /* JSGlueBase.h */,
+ 				F11798BA026246FD03CA149D /* JSObject.cpp */,
+ 				F11798BB026246FD03CA149D /* JSObject.h */,
+ 				F11798BC026246FD03CA149D /* JSRun.cpp */,
+@@ -228,7 +228,7 @@
+ 			buildActionMask = 2147483647;
+ 			files = (
+ 				DD66F3BB08F73ED700C75FD7 /* JavaScriptGlue.h in Headers */,
+-				DD66F3BC08F73ED700C75FD7 /* JSBase.h in Headers */,
++				DD66F3BC08F73ED700C75FD7 /* JSGlueBase.h in Headers */,
+ 				DD66F3BE08F73ED700C75FD7 /* JSObject.h in Headers */,
+ 				DD66F3BF08F73ED700C75FD7 /* JSRun.h in Headers */,
+ 				DD66F3BD08F73ED700C75FD7 /* JSUtils.h in Headers */,
+@@ -287,7 +287,6 @@
+ 			isa = PBXProject;
+ 			buildConfigurationList = 14AC662B08CE7791006915A8 /* Build configuration list for PBXProject "JavaScriptGlue" */;
+ 			compatibilityVersion = "Xcode 2.4";
+-			developmentRegion = English;
+ 			hasScannedForEncodings = 1;
+ 			knownRegions = (
+ 				English,
+@@ -395,7 +394,7 @@
+ 			buildActionMask = 2147483647;
+ 			files = (
+ 				DD66F3C608F73ED700C75FD7 /* JavaScriptGlue.cpp in Sources */,
+-				DD66F3C908F73ED700C75FD7 /* JSBase.cpp in Sources */,
++				DD66F3C908F73ED700C75FD7 /* JSGlueBase.cpp in Sources */,
+ 				DD66F3CA08F73ED700C75FD7 /* JSObject.cpp in Sources */,
+ 				DD66F3C708F73ED700C75FD7 /* JSRun.cpp in Sources */,
+ 				DD66F3C808F73ED700C75FD7 /* JSUtils.cpp in Sources */,
+Index: Source/JavaScriptGlue/SymbolAliases.list
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/SymbolAliases.list b/trunk/Source/JavaScriptGlue/SymbolAliases.list
+new file mode 10644
+--- /dev/null	(Revision 0)
++++ b/trunk/Source/JavaScriptGlue/SymbolAliases.list	(Arbeitskopie)
+@@ -0,0 +1,2 @@
++_JSGlueObjectCopyPropertyNames _JSObjectCopyPropertyNames
++_JSGlueObjectSetProperty _JSObjectSetProperty
+Index: Source/JavaScriptGlue/UserObjectImp.cpp
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/UserObjectImp.cpp b/trunk/Source/JavaScriptGlue/UserObjectImp.cpp
+--- a/trunk/Source/JavaScriptGlue/UserObjectImp.cpp	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/UserObjectImp.cpp	(Arbeitskopie)
+@@ -29,13 +29,14 @@
+ #include "config.h"
+ #include "UserObjectImp.h"
+ 
++#include <JavaScriptCore/APIShims.h>
+ #include <JavaScriptCore/JSString.h>
+ #include <JavaScriptCore/PropertyNameArray.h>
+ 
+ const ClassInfo UserObjectImp::s_info = { "UserObject", &JSNonFinalObject::s_info, 0, 0, CREATE_METHOD_TABLE(UserObjectImp) };
+ 
+-UserObjectImp::UserObjectImp(JSGlobalData& globalData, Structure* structure, JSUserObject* userObject)
+-    : JSNonFinalObject(globalData, structure)
++UserObjectImp::UserObjectImp(VM& vm, Structure* structure, JSUserObject* userObject)
++    : JSNonFinalObject(vm, structure)
+     , fJSUserObject((JSUserObject*)userObject->Retain())
+ {
+ }
+@@ -76,10 +77,10 @@
+ 
+         JSUserObject* jsResult;
+         { // scope
+-            JSGlueAPICallback apiCallback(exec);
++            APICallbackShim apiCallback(exec);
+ 
+             // getCallData should have guarded against a NULL fJSUserObject.
+-            assert(fJSUserObject);
++            RELEASE_ASSERT(fJSUserObject);
+             jsResult = fJSUserObject->CallFunction(jsThisObj, jsArgs);
+         }
+ 
+@@ -114,11 +115,11 @@
+     JSObject::getOwnPropertyNames(thisObject, exec, propertyNames, mode);
+ }
+ 
+-JSValue UserObjectImp::userObjectGetter(ExecState*, JSValue slotBase, const Identifier& propertyName)
++JSValue UserObjectImp::userObjectGetter(ExecState*, JSValue slotBase, PropertyName propertyName)
+ {
+     UserObjectImp *thisObj = static_cast<UserObjectImp *>(asObject(slotBase));
+     // getOwnPropertySlot should have guarded against a null fJSUserObject.
+-    assert(thisObj->fJSUserObject);
++    RELEASE_ASSERT(thisObj->fJSUserObject);
+     
+     CFStringRef cfPropName = IdentifierToCFString(propertyName);
+     JSUserObject *jsResult = thisObj->fJSUserObject->CopyProperty(cfPropName);
+@@ -129,7 +130,7 @@
+     return result;
+ }
+ 
+-bool UserObjectImp::getOwnPropertySlot(JSCell* cell, ExecState *exec, const Identifier& propertyName, PropertySlot& slot)
++bool UserObjectImp::getOwnPropertySlot(JSCell* cell, ExecState *exec, PropertyName propertyName, PropertySlot& slot)
+ {
+     UserObjectImp* thisObject = jsCast<UserObjectImp*>(cell);
+     if (!thisObject->fJSUserObject)
+@@ -153,7 +154,7 @@
+     return JSObject::getOwnPropertySlot(thisObject, exec, propertyName, slot);
+ }
+ 
+-void UserObjectImp::put(JSCell* cell, ExecState *exec, const Identifier &propertyName, JSValue value, PutPropertySlot&)
++void UserObjectImp::put(JSCell* cell, ExecState *exec, PropertyName propertyName, JSValue value, PutPropertySlot&)
+ {
+     UserObjectImp* thisObject = jsCast<UserObjectImp*>(cell);
+     if (!thisObject->fJSUserObject)
+@@ -190,7 +191,7 @@
+                 result = jsBoolean(false);
+             }
+         } else if (cfType == CFStringGetTypeID()) {
+-            result = jsString(exec, CFStringToUString((CFStringRef)cfValue));
++            result = jsString(exec, CFStringToString((CFStringRef)cfValue));
+         } else if (cfType == CFNumberGetTypeID()) {
+             double d = 0.0;
+             CFNumberGetValue((CFNumberRef)cfValue, kCFNumberDoubleType, &d);
+@@ -198,7 +199,7 @@
+         } else if (cfType == CFURLGetTypeID()) {
+             CFURLRef absURL = CFURLCopyAbsoluteURL((CFURLRef)cfValue);
+             if (absURL) {
+-                result = jsString(exec, CFStringToUString(CFURLGetString(absURL)));
++                result = jsString(exec, CFStringToString(CFURLGetString(absURL)));
+                 ReleaseCFType(absURL);
+             }
+         }
+Index: Source/JavaScriptGlue/UserObjectImp.h
+===================================================================
+diff --git a/trunk/Source/JavaScriptGlue/UserObjectImp.h b/trunk/Source/JavaScriptGlue/UserObjectImp.h
+--- a/trunk/Source/JavaScriptGlue/UserObjectImp.h	(Revision 105839)
++++ b/trunk/Source/JavaScriptGlue/UserObjectImp.h	(Arbeitskopie)
+@@ -30,7 +30,7 @@
+ #define UserObjectImp_h
+ 
+ #include "JSUtils.h"
+-#include "JSBase.h"
++#include "JSGlueBase.h"
+ #include "JSObject.h"
+ #include <JavaScriptCore/JSType.h>
+ 
+@@ -38,10 +38,10 @@
+ public:
+     typedef JSNonFinalObject Base;
+ 
+-    static UserObjectImp* create(JSGlobalData& globalData, Structure* structure, JSUserObject* userObject)
++    static UserObjectImp* create(VM& vm, Structure* structure, JSUserObject* userObject)
+     {
+-        UserObjectImp* object = new (allocateCell<UserObjectImp>(globalData.heap)) UserObjectImp(globalData, structure, userObject);
+-        object->finishCreation(globalData);
++        UserObjectImp* object = new (allocateCell<UserObjectImp>(vm.heap)) UserObjectImp(vm, structure, userObject);
++        object->finishCreation(vm);
+         return object;
+     }
+     
+@@ -55,8 +55,8 @@
+     static void getOwnPropertyNames(JSObject*, ExecState*, PropertyNameArray&, EnumerationMode);
+ 
+     JSValue callAsFunction(ExecState*); // TODO: Figure out how to re-virtualize this without breaking the fact that we don't allow vptrs in the JSCell hierarchy.
+-    static bool getOwnPropertySlot(JSCell*, ExecState *, const Identifier&, PropertySlot&);
+-    static void put(JSCell*, ExecState*, const Identifier& propertyName, JSValue, PutPropertySlot&);
++    static bool getOwnPropertySlot(JSCell*, ExecState *, PropertyName, PropertySlot&);
++    static void put(JSCell*, ExecState*, PropertyName propertyName, JSValue, PutPropertySlot&);
+ 
+     JSValue toPrimitive(ExecState*, PreferredPrimitiveType preferredType = NoPreference) const;
+     bool toBoolean(ExecState*) const; // TODO: Figure out how to re-virtualize this without breaking the fact that we don't allow vptrs in the JSCell hierarchy.
+@@ -65,14 +65,14 @@
+ 
+     JSUserObject *GetJSUserObject() const;
+ 
+-    static Structure* createStructure(JSGlobalData& globalData, JSGlobalObject* globalObject, JSValue prototype)
++    static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
+     {
+-        return Structure::create(globalData, globalObject, prototype, TypeInfo(ObjectType, OverridesGetOwnPropertySlot | OverridesVisitChildren | OverridesGetPropertyNames), &s_info);
++        return Structure::create(vm, globalObject, prototype, TypeInfo(ObjectType, OverridesGetOwnPropertySlot | OverridesVisitChildren | OverridesGetPropertyNames), &s_info);
+     }
+ 
+ private:
+-    UserObjectImp(JSGlobalData&, Structure*, JSUserObject*);
+-    static JSValue userObjectGetter(ExecState*, JSValue, const Identifier& propertyName);
++    UserObjectImp(VM&, Structure*, JSUserObject*);
++    static JSValue userObjectGetter(ExecState*, JSValue, PropertyName propertyName);
+ 
+     JSUserObject* fJSUserObject;
+ };

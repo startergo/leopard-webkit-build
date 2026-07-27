@@ -1,0 +1,8 @@
+#include "platform/audio/ReverbInputBuffer.cpp"
+#include "platform/audio/SincResampler.cpp"
+#include "platform/audio/UpSampler.cpp"
+#include "platform/audio/VectorMath.cpp"
+#include "platform/audio/ZeroPole.cpp"
+#include "platform/audio/AudioSession.cpp"
+#include "platform/audio/cocoa/AudioDestinationCocoa.cpp"
+#include "platform/audio/mac/AudioDestinationMac.cpp"

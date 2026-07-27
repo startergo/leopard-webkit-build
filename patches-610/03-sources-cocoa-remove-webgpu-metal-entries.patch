@@ -1,0 +1,37 @@
+diff --git a/Source/WebCore/SourcesCocoa.txt b/Source/WebCore/SourcesCocoa.txt
+index b85ad66e7e..7531ada135 100644
+--- a/Source/WebCore/SourcesCocoa.txt
++++ b/Source/WebCore/SourcesCocoa.txt
+@@ -332,7 +332,6 @@ platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm
+ platform/graphics/cocoa/WebCoreCALayerExtras.mm
+ platform/graphics/cocoa/WebCoreDecompressionSession.mm
+ platform/graphics/cocoa/WebGLLayer.mm
+-platform/graphics/cocoa/WebGPULayer.mm
+ platform/graphics/cocoa/TextTrackRepresentationCocoa.mm
+ 
+ platform/graphics/cv/ImageTransferSessionVT.mm
+@@ -340,24 +339,6 @@ platform/graphics/cv/PixelBufferConformerCV.cpp
+ platform/graphics/cv/TextureCacheCV.mm
+ platform/graphics/cv/VideoTextureCopierCV.cpp
+ 
+-platform/graphics/gpu/cocoa/GPUBindGroupAllocatorMetal.mm
+-platform/graphics/gpu/cocoa/GPUBindGroupMetal.mm
+-platform/graphics/gpu/cocoa/GPUBindGroupLayoutMetal.mm
+-platform/graphics/gpu/cocoa/GPUBufferMetal.mm
+-platform/graphics/gpu/cocoa/GPUCommandBufferMetal.mm
+-platform/graphics/gpu/cocoa/GPUComputePassEncoderMetal.mm
+-platform/graphics/gpu/cocoa/GPUComputePipelineMetal.mm
+-platform/graphics/gpu/cocoa/GPUDeviceMetal.mm
+-platform/graphics/gpu/cocoa/GPUPipelineMetalConvertLayout.cpp
+-platform/graphics/gpu/cocoa/GPUProgrammablePassEncoderMetal.mm
+-platform/graphics/gpu/cocoa/GPUQueueMetal.mm
+-platform/graphics/gpu/cocoa/GPURenderPassEncoderMetal.mm
+-platform/graphics/gpu/cocoa/GPURenderPipelineMetal.mm
+-platform/graphics/gpu/cocoa/GPUSamplerMetal.mm
+-platform/graphics/gpu/cocoa/GPUShaderModuleMetal.mm
+-platform/graphics/gpu/cocoa/GPUSwapChainMetal.mm
+-platform/graphics/gpu/cocoa/GPUTextureMetal.mm
+-platform/graphics/gpu/cocoa/GPUUtilsMetal.mm
+ platform/graphics/gpu/Texture.cpp
+ platform/graphics/gpu/TilingData.cpp
+ 

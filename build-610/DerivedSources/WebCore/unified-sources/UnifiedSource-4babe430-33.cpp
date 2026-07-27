@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WebGPU.cpp"
+#include "Modules/webgpu/WebGPUAdapter.cpp"
+#include "Modules/webgpu/WebGPUBindGroup.cpp"
+#include "Modules/webgpu/WebGPUBindGroupDescriptor.cpp"
+#include "Modules/webgpu/WebGPUBindGroupLayout.cpp"
+#include "Modules/webgpu/WebGPUBuffer.cpp"
+#include "Modules/webgpu/WebGPUCommandBuffer.cpp"
+#include "Modules/webgpu/WebGPUCommandEncoder.cpp"

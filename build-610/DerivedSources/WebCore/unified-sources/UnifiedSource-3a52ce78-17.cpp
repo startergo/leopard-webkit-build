@@ -1,0 +1,8 @@
+#include "JSCryptoRsaHashedKeyAlgorithm.cpp"
+#include "JSCryptoRsaKeyAlgorithm.cpp"
+#include "JSCustomElementRegistry.cpp"
+#include "JSCustomEvent.cpp"
+#include "JSDOMApplicationCache.cpp"
+#include "JSDOMCSSCustomPropertyDescriptor.cpp"
+#include "JSDOMCSSNamespace.cpp"
+#include "JSDOMCSSPaintWorklet.cpp"

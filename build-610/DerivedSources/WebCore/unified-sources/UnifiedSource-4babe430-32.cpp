@@ -1,0 +1,8 @@
+#include "Modules/webdatabase/SQLTransaction.cpp"
+#include "Modules/webdatabase/SQLTransactionBackend.cpp"
+#include "Modules/webdatabase/SQLTransactionCoordinator.cpp"
+#include "Modules/webdatabase/SQLTransactionStateMachine.cpp"
+#include "Modules/webdriver/NavigatorWebDriver.cpp"
+#include "Modules/webgpu/GPUCanvasContext.cpp"
+#include "Modules/webgpu/GPUUncapturedErrorEvent.cpp"
+#include "Modules/webgpu/NavigatorGPU.cpp"

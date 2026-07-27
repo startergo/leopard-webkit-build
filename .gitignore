@@ -1,0 +1,48 @@
+# Build outputs
+build/
+build-605/
+dist/
+bin/
+
+# Downloads — archives and extracted dirs (NOT submodules)
+downloads/*.tar.xz
+downloads/*.tgz
+downloads/*.tar.bz2
+downloads/*.dmg
+downloads/icu-release-*/
+downloads/libcxx*.src/
+downloads/libcxxabi*.src/
+downloads/MacOSX*/
+downloads/patches-602/
+# Keep: downloads/patches-604/ (patches), downloads/icu/ (submodule), downloads/llvm-project/ (submodule)
+
+# SDKs — submodule tracked, symlinks ignored
+sdk/MacOSX10.6.sdk
+
+# IDE / tooling
+.claude/
+.agora-code/
+.agents/skills/
+agents/skills/test-skill2/
+.vscode/
+*.swp
+.mcp.json
+.DS_Store
+AGENTS.md
+.threadbridge/
+
+# Compiled objects
+*.o
+
+# Scratch / backups / other-project files (not WebKit-610 build inputs)
+*.bak-*
+*.o.d
+WebKit-610-deployed-vm.tar
+/-O2
+/Show
+/CommonCryptoError.h
+/CommonRandom.h
+/patches/
+/security/
+/archive/
+patches-610/overlay/leopard_missing_symbols.cpp

@@ -1,0 +1,3 @@
+partial interface WorkletGlobalScope {
+    [Conditional=CSS_PAINTING_API, EnabledAtRuntime=CSSPaintingAPI] attribute WorkletGlobalScopeConstructor WorkletGlobalScope;
+};

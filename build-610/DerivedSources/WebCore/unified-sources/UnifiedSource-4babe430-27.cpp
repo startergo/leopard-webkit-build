@@ -1,0 +1,8 @@
+#include "Modules/webaudio/RealtimeAnalyser.cpp"
+#include "Modules/webaudio/ScriptProcessorNode.cpp"
+#include "Modules/webaudio/WaveShaperDSPKernel.cpp"
+#include "Modules/webaudio/WaveShaperNode.cpp"
+#include "Modules/webaudio/WaveShaperProcessor.cpp"
+#include "Modules/webauthn/AuthenticatorAssertionResponse.cpp"
+#include "Modules/webauthn/AuthenticatorAttestationResponse.cpp"
+#include "Modules/webauthn/AuthenticatorCoordinator.cpp"

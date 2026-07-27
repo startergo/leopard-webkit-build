@@ -1,0 +1,8 @@
+#include "JSWebGPUAdapter.cpp"
+#include "JSWebGPUBindGroup.cpp"
+#include "JSWebGPUBindGroupBinding.cpp"
+#include "JSWebGPUBindGroupDescriptor.cpp"
+#include "JSWebGPUBindGroupLayout.cpp"
+#include "JSWebGPUBuffer.cpp"
+#include "JSWebGPUBufferBinding.cpp"
+#include "JSWebGPUCommandBuffer.cpp"

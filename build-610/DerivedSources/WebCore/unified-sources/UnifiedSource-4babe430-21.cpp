@@ -1,0 +1,8 @@
+#include "Modules/plugins/YouTubePluginReplacement.cpp"
+#include "Modules/remoteplayback/RemotePlayback.cpp"
+#include "Modules/speech/DOMWindowSpeechSynthesis.cpp"
+#include "Modules/speech/SpeechSynthesis.cpp"
+#include "Modules/speech/SpeechSynthesisEvent.cpp"
+#include "Modules/speech/SpeechSynthesisUtterance.cpp"
+#include "Modules/speech/SpeechSynthesisVoice.cpp"
+#include "Modules/streams/ReadableStreamSink.cpp"

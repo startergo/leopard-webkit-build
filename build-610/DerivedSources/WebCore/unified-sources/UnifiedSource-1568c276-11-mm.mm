@@ -1,0 +1,8 @@
+#include "platform/mac/WebCoreFullScreenWarningView.mm"
+#include "platform/mac/WebCoreFullScreenWindow.mm"
+#include "platform/mac/WebCoreNSFontManagerExtras.mm"
+#include "platform/mac/WebCoreNSURLExtras.mm"
+#include "platform/mac/WebCoreObjCExtras.mm"
+#include "platform/mac/WebGLBlacklist.mm"
+#include "platform/mac/WebNSAttributedStringExtras.mm"
+#include "platform/mac/WebPlaybackControlsManager.mm"

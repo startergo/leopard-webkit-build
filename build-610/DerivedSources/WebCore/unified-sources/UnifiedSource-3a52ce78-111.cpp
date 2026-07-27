@@ -1,0 +1,8 @@
+#include "JSWebGLShaderPrecisionFormat.cpp"
+#include "JSWebGLSync.cpp"
+#include "JSWebGLTexture.cpp"
+#include "JSWebGLTransformFeedback.cpp"
+#include "JSWebGLUniformLocation.cpp"
+#include "JSWebGLVertexArrayObject.cpp"
+#include "JSWebGLVertexArrayObjectOES.cpp"
+#include "JSWebGPU.cpp"

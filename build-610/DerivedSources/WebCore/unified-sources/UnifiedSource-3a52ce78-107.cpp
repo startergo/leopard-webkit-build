@@ -1,0 +1,8 @@
+#include "JSVideoTrackList.cpp"
+#include "JSVideoTrackMediaSource.cpp"
+#include "JSVisibilityState.cpp"
+#include "JSVisualViewport.cpp"
+#include "JSVoidCallback.cpp"
+#include "JSWaveShaperNode.cpp"
+#include "JSWebAnimation.cpp"
+#include "JSWebGL2RenderingContext.cpp"

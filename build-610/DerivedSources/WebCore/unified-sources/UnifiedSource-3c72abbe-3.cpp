@@ -1,0 +1,8 @@
+#include "platform/LegacySchemeRegistry.cpp"
+#include "platform/Length.cpp"
+#include "platform/LengthBox.cpp"
+#include "platform/LengthPoint.cpp"
+#include "platform/LengthSize.cpp"
+#include "platform/LocalizedStrings.cpp"
+#include "platform/Logging.cpp"
+#include "platform/LowPowerModeNotifier.cpp"

@@ -1,0 +1,8 @@
+#include "loader/archive/ArchiveResource.cpp"
+#include "loader/archive/ArchiveResourceCollection.cpp"
+#include "loader/archive/cf/LegacyWebArchive.cpp"
+#include "loader/archive/mhtml/MHTMLArchive.cpp"
+#include "loader/archive/mhtml/MHTMLParser.cpp"
+#include "loader/cache/CachedApplicationManifest.cpp"
+#include "loader/cache/CachedCSSStyleSheet.cpp"
+#include "loader/cache/CachedFont.cpp"

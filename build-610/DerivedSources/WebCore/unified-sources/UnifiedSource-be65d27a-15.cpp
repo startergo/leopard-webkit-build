@@ -1,0 +1,8 @@
+#include "dom/Position.cpp"
+#include "dom/PositionIterator.cpp"
+#include "dom/ProcessingInstruction.cpp"
+#include "dom/ProgressEvent.cpp"
+#include "dom/PromiseRejectionEvent.cpp"
+#include "dom/PseudoElement.cpp"
+#include "dom/QualifiedName.cpp"
+#include "dom/QualifiedNameCache.cpp"

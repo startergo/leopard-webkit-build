@@ -1,0 +1,70 @@
+-- The CMake build type is: Release
+CMake Warning (dev) at Source/cmake/WebKitCommon.cmake:21 (find_package):
+  Policy CMP0148 is not set: The FindPythonInterp and FindPythonLibs modules
+  are removed.  Run "cmake --help-policy CMP0148" for policy details.  Use
+  the cmake_policy command to set the policy and suppress this warning.
+
+Call Stack (most recent call first):
+  CMakeLists.txt:182 (include)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Enabling ccache: Couldn't find ccache program. Not enabling it.
+-- Performing Test C_COMPILER_SUPPORTS_-fdiagnostics-color=always
+-- Performing Test C_COMPILER_SUPPORTS_-fdiagnostics-color=always - Success
+-- Performing Test CXX_COMPILER_SUPPORTS_-fdiagnostics-color=always
+-- Performing Test CXX_COMPILER_SUPPORTS_-fdiagnostics-color=always - Success
+usage:  ar -d [-TLsv] archive file ...
+	ar -m [-TLsv] archive file ...
+	ar -m [-abiTLsv] position archive file ...
+	ar -p [-TLsv] archive [file ...]
+	ar -q [-cTLsv] archive file ...
+	ar -r [-cuTLsv] archive file ...
+	ar -r [-abciuTLsv] position archive file ...
+	ar -t [-TLsv] archive [file ...]
+	ar -x [-ouTLsv] archive [file ...]
+-- Disabling ENABLE_APPLE_PAY_SESSION_V3 since ENABLE_APPLE_PAY is disabled.
+-- Disabling ENABLE_APPLE_PAY_SESSION_V4 since ENABLE_APPLE_PAY is disabled.
+-- Disabling ENABLE_INSPECTOR_ALTERNATE_DISPATCHERS since ENABLE_REMOTE_INSPECTOR is disabled.
+-- Checking for module 'gstreamer-codecparsers-1.0 >= 1.4.5'
+--   No package 'gstreamer-codecparsers-1.0' found
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/bmalloc/PlatformMac.cmake
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WTF/wtf/PlatformMac.cmake
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/JavaScriptCore/PlatformMac.cmake
+-- Performing Test CXX_COMPILER_SUPPORTS_-ffp-contract=off
+-- Performing Test CXX_COMPILER_SUPPORTS_-ffp-contract=off - Success
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/JavaScriptCore/shell/PlatformMac.cmake
+-- Using source list file: Sources.txt
+-- Using source list file: SourcesCocoa.txt
+-- Platform-specific CMakeLists not found: /Users/macbookpro/leopard-webkit-build/sources_610/Source/ThirdParty/ANGLE/PlatformMac.cmake
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-suggest-attribute=format
+-- Performing Test CXX_COMPILER_SUPPORTS_-Wno-suggest-attribute=format - Failed
+-- Platform-specific CMakeLists not found: /Users/macbookpro/leopard-webkit-build/sources_610/Source/ThirdParty/gtest/PlatformMac.cmake
+-- Platform-specific CMakeLists not found: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebInspectorUI/PlatformMac.cmake
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/PAL/pal/PlatformMac.cmake
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/PlatformMac.cmake
+CMake Warning (dev) at /opt/homebrew/share/cmake/Modules/FindPackageHandleStandardArgs.cmake:493 (message):
+  The package name passed to find_package_handle_standard_args() (SQLite3)
+  does not match the name of the calling package (Sqlite3).  This can lead to
+  problems in calling code that expects find_package() result variables
+  (e.g., `_FOUND`) to follow a certain pattern.
+Call Stack (most recent call first):
+  Source/cmake/FindSqlite3.cmake:84 (find_package_handle_standard_args)
+  Source/cmake/WebKitFindPackage.cmake:104 (_find_package)
+  Source/WebCore/PlatformMac.cmake:21 (find_package)
+  Source/cmake/WebKitMacros.cmake:74 (include)
+  Source/WebCore/CMakeLists.txt:1720 (WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Using source list file: Sources.txt
+-- Using source list file: SourcesCocoa.txt
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/PlatformMac.cmake
+-- Using source list file: SourcesCocoa.txt
+-- Using platform-specific CMakeLists: /Users/macbookpro/leopard-webkit-build/sources_610/Source/PlatformMac.cmake
+-- Enabled features:
+--  ENABLE_GRAPHICS_CONTEXT_GL .................... ON
+--  ENABLE_MEDIA_SOURCE                             OFF
+--  ENABLE_VIDEO .................................. ON
+--  ENABLE_WEB_AUDIO                                OFF
+-- Configuring done (3.3s)
+-- Generating done (1.5s)
+-- Build files have been written to: /Users/macbookpro/leopard-webkit-build/build-610

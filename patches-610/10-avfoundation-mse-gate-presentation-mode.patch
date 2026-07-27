@@ -1,0 +1,39 @@
+diff --git a/Source/WebCore/platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.h b/Source/WebCore/platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.h
+--- a/Source/WebCore/platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.h
++++ b/Source/WebCore/platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.h
+@@ -110,6 +110,12 @@ public:
+     WebCoreDecompressionSession* decompressionSession() const { return m_decompressionSession.get(); }
+
++#if ENABLE(VIDEO_PRESENTATION_MODE)
++    // [leopard] These overrides only exist in MediaPlayerPrivateInterface when
++    // ENABLE(VIDEO_PRESENTATION_MODE) is on. Without this gate the build fails
++    // with "only virtual member functions can be marked 'override'" on ports
++    // (like the 10.6 build) that disable fullscreen presentation.
+     RetainPtr<PlatformLayer> createVideoFullscreenLayer() override;
+     void setVideoFullscreenLayer(PlatformLayer*, WTF::Function<void()>&& completionHandler) override;
+     void setVideoFullscreenFrame(FloatRect) override;
++#endif
+
+     bool requiresTextTrackRepresentation() const override;
+diff --git a/Source/WebCore/platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm b/Source/WebCore/platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm
+--- a/Source/WebCore/platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm
++++ b/Source/WebCore/platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm
+@@ -1217,6 +1217,9 @@ void MediaPlayerPrivateMediaSourceAVFObjC::characteristicsChanged()
+     m_player->characteristicChanged();
+ }
+
++#if ENABLE(VIDEO_PRESENTATION_MODE)
++// [leopard] Gated to match base class declarations — definitions for the
++// overrides that exist only when VIDEO_PRESENTATION_MODE is enabled.
+ RetainPtr<PlatformLayer> MediaPlayerPrivateMediaSourceAVFObjC::createVideoFullscreenLayer()
+ {
+     return adoptNS([[CALayer alloc] init]);
+@@ -1232,6 +1235,8 @@ void MediaPlayerPrivateMediaSourceAVFObjC::setVideoFullscreenFrame(FloatRect fra
+     m_videoLayerManager->setVideoFullscreenFrame(frame);
+ }
+
++#endif
++
+ bool MediaPlayerPrivateMediaSourceAVFObjC::requiresTextTrackRepresentation() const
+ {
+     return m_videoLayerManager->videoFullscreenLayer();

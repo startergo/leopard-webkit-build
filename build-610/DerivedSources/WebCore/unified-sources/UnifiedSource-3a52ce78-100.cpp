@@ -1,0 +1,8 @@
+#include "JSServiceWorkerUpdateViaCache.cpp"
+#include "JSServiceWorkerWindowClient.cpp"
+#include "JSShadowRoot.cpp"
+#include "JSShadowRootMode.cpp"
+#include "JSShareData.cpp"
+#include "JSSlotable.cpp"
+#include "JSSourceBuffer.cpp"
+#include "JSSourceBufferList.cpp"

@@ -1,0 +1,8 @@
+#include "JSMediaError.cpp"
+#include "JSMediaList.cpp"
+#include "JSMediaQueryList.cpp"
+#include "JSMediaQueryListEvent.cpp"
+#include "JSMediaRecorder.cpp"
+#include "JSMediaRecorderErrorEvent.cpp"
+#include "JSMediaRemoteControls.cpp"
+#include "JSMediaSession.cpp"

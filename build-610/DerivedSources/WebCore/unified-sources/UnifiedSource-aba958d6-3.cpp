@@ -1,0 +1,8 @@
+#include "accessibility/AccessibilityNodeObject.cpp"
+#include "accessibility/AccessibilityObject.cpp"
+#include "accessibility/AccessibilityProgressIndicator.cpp"
+#include "accessibility/AccessibilityRenderObject.cpp"
+#include "accessibility/AccessibilitySVGElement.cpp"
+#include "accessibility/AccessibilitySVGRoot.cpp"
+#include "accessibility/AccessibilityScrollView.cpp"
+#include "accessibility/AccessibilityScrollbar.cpp"

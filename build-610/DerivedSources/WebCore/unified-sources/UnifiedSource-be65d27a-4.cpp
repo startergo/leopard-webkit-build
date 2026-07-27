@@ -1,0 +1,8 @@
+#include "dom/CustomElementReactionQueue.cpp"
+#include "dom/CustomElementRegistry.cpp"
+#include "dom/CustomEvent.cpp"
+#include "dom/DOMException.cpp"
+#include "dom/DOMImplementation.cpp"
+#include "dom/DOMPointReadOnly.cpp"
+#include "dom/DOMQuad.cpp"
+#include "dom/DOMRectList.cpp"

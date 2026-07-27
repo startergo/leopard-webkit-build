@@ -1,0 +1,8 @@
+#include "loader/ResourceLoadStatistics.cpp"
+#include "loader/ResourceLoader.cpp"
+#include "loader/ResourceTiming.cpp"
+#include "loader/ResourceTimingInformation.cpp"
+#include "loader/ServerTiming.cpp"
+#include "loader/ServerTimingParser.cpp"
+#include "loader/SinkDocument.cpp"
+#include "loader/SubframeLoader.cpp"

@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WHLSL/WHLSLProgram.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLPropertyResolver.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLPruneUnreachableStandardLibraryFunctions.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLRecursionChecker.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLRecursiveTypeChecker.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLResolveOverloadImpl.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLSemanticMatcher.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLStandardLibraryUtilities.cpp"

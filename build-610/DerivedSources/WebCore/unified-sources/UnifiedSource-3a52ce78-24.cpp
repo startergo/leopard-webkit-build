@@ -1,0 +1,8 @@
+#include "JSDeprecatedCSSOMRect.cpp"
+#include "JSDeprecatedCSSOMValue.cpp"
+#include "JSDeprecatedCSSOMValueList.cpp"
+#include "JSDeviceMotionEvent.cpp"
+#include "JSDeviceOrientationEvent.cpp"
+#include "JSDeviceOrientationOrMotionEvent.cpp"
+#include "JSDeviceOrientationOrMotionPermissionState.cpp"
+#include "JSDocument.cpp"

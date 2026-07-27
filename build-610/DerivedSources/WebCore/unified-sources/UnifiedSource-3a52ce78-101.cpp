@@ -1,0 +1,8 @@
+#include "JSSpeechSynthesis.cpp"
+#include "JSSpeechSynthesisEvent.cpp"
+#include "JSSpeechSynthesisUtterance.cpp"
+#include "JSSpeechSynthesisVoice.cpp"
+#include "JSStaticRange.cpp"
+#include "JSStorage.cpp"
+#include "JSStorageEvent.cpp"
+#include "JSStringCallback.cpp"

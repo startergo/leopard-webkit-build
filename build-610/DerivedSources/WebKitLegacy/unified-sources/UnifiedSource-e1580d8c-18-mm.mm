@@ -1,0 +1,8 @@
+#include "mac/Plugins/WebPluginController.mm"
+#include "mac/Plugins/WebPluginDatabase.mm"
+#include "mac/WebCoreSupport/WebApplicationCache.mm"
+#include "mac/WebCoreSupport/WebApplicationCacheQuotaManager.mm"
+#include "mac/WebCoreSupport/WebFrameLoaderClient.mm"
+#include "mac/WebInspector/WebInspector.mm"
+#include "mac/WebView/WebClipView.mm"
+#include "mac/WebView/WebDataSource.mm"

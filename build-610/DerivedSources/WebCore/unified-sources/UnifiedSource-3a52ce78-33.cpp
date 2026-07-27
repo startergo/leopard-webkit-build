@@ -1,0 +1,8 @@
+#include "JSGPUBufferDescriptor.cpp"
+#include "JSGPUBufferUsage.cpp"
+#include "JSGPUCanvasContext.cpp"
+#include "JSGPUColor.cpp"
+#include "JSGPUColorStateDescriptor.cpp"
+#include "JSGPUColorWrite.cpp"
+#include "JSGPUCompareFunction.cpp"
+#include "JSGPUDepthStencilStateDescriptor.cpp"

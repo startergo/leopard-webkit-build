@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WHLSL/AST/WHLSLIntegerLiteralType.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLResourceSemantic.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLSpecializationConstantSemantic.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLStageInOutSemantic.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLStatement.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLType.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLTypeArgument.cpp"
+#include "Modules/webgpu/WHLSL/AST/WHLSLTypeReference.cpp"

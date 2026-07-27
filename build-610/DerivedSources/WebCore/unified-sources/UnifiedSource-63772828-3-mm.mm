@@ -1,0 +1,8 @@
+#include "page/scrolling/cocoa/ScrollingTreeOverflowScrollProxyNode.mm"
+#include "page/scrolling/cocoa/ScrollingTreePositionedNode.mm"
+#include "page/scrolling/cocoa/ScrollingTreeStickyNode.mm"
+#include "page/scrolling/mac/ScrollingCoordinatorMac.mm"
+#include "page/scrolling/mac/ScrollingMomentumCalculatorMac.mm"
+#include "page/scrolling/mac/ScrollingStateScrollingNodeMac.mm"
+#include "page/scrolling/mac/ScrollingTreeFrameScrollingNodeMac.mm"
+#include "page/scrolling/mac/ScrollingTreeMac.mm"

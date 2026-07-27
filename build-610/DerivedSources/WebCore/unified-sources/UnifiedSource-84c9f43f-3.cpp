@@ -1,0 +1,8 @@
+#include "inspector/InspectorNodeFinder.cpp"
+#include "inspector/InspectorOverlay.cpp"
+#include "inspector/InspectorShaderProgram.cpp"
+#include "inspector/InspectorStyleSheet.cpp"
+#include "inspector/InstrumentingAgents.cpp"
+#include "inspector/NetworkResourcesData.cpp"
+#include "inspector/PageScriptDebugServer.cpp"
+#include "inspector/TimelineRecordFactory.cpp"

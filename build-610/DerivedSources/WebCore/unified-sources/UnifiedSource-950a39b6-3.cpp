@@ -1,0 +1,8 @@
+#include "html/DateInputType.cpp"
+#include "html/DateTimeInputType.cpp"
+#include "html/DateTimeLocalInputType.cpp"
+#include "html/EmailInputType.cpp"
+#include "html/EnterKeyHint.cpp"
+#include "html/FTPDirectoryDocument.cpp"
+#include "html/FeaturePolicy.cpp"
+#include "html/FileInputType.cpp"

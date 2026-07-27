@@ -1,0 +1,8 @@
+#include "rendering/mathml/MathMLStyle.cpp"
+#include "rendering/mathml/MathOperator.cpp"
+#include "rendering/mathml/RenderMathMLBlock.cpp"
+#include "rendering/mathml/RenderMathMLFenced.cpp"
+#include "rendering/mathml/RenderMathMLFencedOperator.cpp"
+#include "rendering/mathml/RenderMathMLFraction.cpp"
+#include "rendering/mathml/RenderMathMLMath.cpp"
+#include "rendering/mathml/RenderMathMLMenclose.cpp"

@@ -1,0 +1,8 @@
+#include "platform/mediacapabilities/MediaEngineConfigurationFactory.cpp"
+#include "platform/mediarecorder/MediaRecorderPrivate.cpp"
+#include "platform/mediarecorder/MediaRecorderPrivateMock.cpp"
+#include "platform/mediarecorder/MediaRecorderPrivateAVFImpl.cpp"
+#include "platform/mediastream/AudioMediaStreamTrackRenderer.cpp"
+#include "platform/mediastream/AudioTrackPrivateMediaStream.cpp"
+#include "platform/mediastream/CaptureDeviceManager.cpp"
+#include "platform/mediastream/MediaConstraints.cpp"

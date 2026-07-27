@@ -1,0 +1,8 @@
+#include "platform/graphics/cg/ImageBufferCGBitmapBackend.cpp"
+#include "platform/graphics/cg/ImageBufferIOSurfaceBackend.cpp"
+#include "platform/graphics/cg/ImageBufferUtilitiesCG.cpp"
+#include "platform/graphics/cg/ImageDecoderCG.cpp"
+#include "platform/graphics/cg/IntPointCG.cpp"
+#include "platform/graphics/cg/IntRectCG.cpp"
+#include "platform/graphics/cg/IntSizeCG.cpp"
+#include "platform/graphics/cg/NativeImageCG.cpp"

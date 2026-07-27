@@ -1,0 +1,8 @@
+#include "JSSVGZoomEvent.cpp"
+#include "JSScreen.cpp"
+#include "JSScriptProcessorNode.cpp"
+#include "JSScrollBehavior.cpp"
+#include "JSScrollIntoViewOptions.cpp"
+#include "JSScrollLogicalPosition.cpp"
+#include "JSScrollOptions.cpp"
+#include "JSScrollToOptions.cpp"

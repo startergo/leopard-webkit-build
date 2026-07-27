@@ -1,0 +1,5 @@
+#include "worklets/PaintWorkletGlobalScope.cpp"
+#include "worklets/Worklet.cpp"
+#include "worklets/WorkletConsoleClient.cpp"
+#include "worklets/WorkletGlobalScope.cpp"
+#include "worklets/WorkletScriptController.cpp"

@@ -1,0 +1,8 @@
+#include "JSDOMWindowCaches.cpp"
+#include "JSDOMWindowFetch.cpp"
+#include "JSDOMWindowIndexedDatabase.cpp"
+#include "JSDOMWindowSpeechSynthesis.cpp"
+#include "JSDOMWindowWebDatabase.cpp"
+#include "JSDataCue.cpp"
+#include "JSDataTransfer.cpp"
+#include "JSDataTransferItem.cpp"

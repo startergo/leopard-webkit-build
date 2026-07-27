@@ -1,0 +1,8 @@
+#include "html/canvas/WebGLTexture.cpp"
+#include "html/canvas/WebGLTransformFeedback.cpp"
+#include "html/canvas/WebGLUniformLocation.cpp"
+#include "html/canvas/WebGLVertexArrayObject.cpp"
+#include "html/canvas/WebGLVertexArrayObjectBase.cpp"
+#include "html/canvas/WebGLVertexArrayObjectOES.cpp"
+#include "html/forms/FileIconLoader.cpp"
+#include "html/parser/CSSPreloadScanner.cpp"

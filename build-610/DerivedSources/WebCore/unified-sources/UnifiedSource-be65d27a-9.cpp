@@ -1,0 +1,8 @@
+#include "dom/EventNames.cpp"
+#include "dom/EventPath.cpp"
+#include "dom/EventTarget.cpp"
+#include "dom/EventTargetConcrete.cpp"
+#include "dom/ExceptionData.cpp"
+#include "dom/ExtensionStyleSheets.cpp"
+#include "dom/FocusEvent.cpp"
+#include "dom/FullscreenManager.cpp"

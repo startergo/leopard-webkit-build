@@ -1,0 +1,84 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [development]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Cache submodules
+        id: cache-submodules
+        uses: actions/cache@v4
+        with:
+          path: |
+            source/webkit
+            downloads/icu
+            downloads/llvm-project
+            sdk/MacOSX-SDKs
+          key: submodules-${{ hashFiles('.gitmodules') }}-${{ hashFiles('build.sh') }}
+
+      - name: Restore submodule state
+        if: steps.cache-submodules.outputs.cache-hit == 'true'
+        run: |
+          # Re-sync .git links after cache restore
+          git submodule sync --recursive 2>/dev/null || true
+
+      - name: Initialize submodules
+        if: steps.cache-submodules.outputs.cache-hit != 'true'
+        run: git submodule update --init --recursive --depth 1
+
+      - name: Cache dependencies (ICU + libc++)
+        uses: actions/cache@v4
+        with:
+          path: |
+            dist/icu
+            dist/libcxx
+            dist/crt
+          key: deps-${{ runner.os }}-${{ hashFiles('build.sh') }}
+
+      - name: Install build tools
+        run: brew install cmake ninja pyenv
+
+      - name: Install Python 2.7
+        run: |
+          export PYTHON_CONFIGURE_OPTS="--with-openssl=$(brew --prefix openssl@3)"
+          pyenv install 2.7.18
+          pyenv global 2.7.18
+          echo "$HOME/.pyenv/shims" >> "$GITHUB_PATH"
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Package frameworks
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          ARCHIVE="webkit-604-snowleopard-${SHORT_SHA}.tar.gz"
+          tar -czf "$ARCHIVE" -C build/lib \
+            JavaScriptCore.framework \
+            WebCore.framework \
+            WebKit.framework \
+            WebKitLegacy.framework
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=$SHORT_SHA" >> "$GITHUB_ENV"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ env.SHORT_SHA }}
+          name: WebKit 604 — ${{ env.SHORT_SHA }}
+          prerelease: true
+          files: ${{ env.ARCHIVE }}

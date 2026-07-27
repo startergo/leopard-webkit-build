@@ -1,0 +1,1 @@
+#import "mac/WebCoreSupport/WebAlternativeTextClient.h"

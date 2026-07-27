@@ -1,0 +1,15 @@
+diff --git a/Source/cmake/GStreamerChecks.cmake b/Source/cmake/GStreamerChecks.cmake
+--- a/Source/cmake/GStreamerChecks.cmake
++++ b/Source/cmake/GStreamerChecks.cmake
+@@ -34,6 +34,11 @@ if (ENABLE_VIDEO OR ENABLE_WEB_AUDIO)
+         message(FATAL_ERROR "GStreamerGL is needed for USE_GSTREAMER_GL.")
+     endif ()
+ 
++    # [leopard] SET_AND_EXPOSE_TO_BUILD emits DUSE_GSTREAMER_GL=1 compile define.
++    if (USE_GSTREAMER_GL)
++        SET_AND_EXPOSE_TO_BUILD(USE_GSTREAMER_GL TRUE)
++    endif ()
++
+     SET_AND_EXPOSE_TO_BUILD(USE_GSTREAMER TRUE)
+ endif ()
+ 

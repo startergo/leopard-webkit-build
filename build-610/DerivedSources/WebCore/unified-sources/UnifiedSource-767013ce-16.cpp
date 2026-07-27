@@ -1,0 +1,8 @@
+#include "page/scrolling/AsyncScrollingCoordinator.cpp"
+#include "page/scrolling/AxisScrollSnapOffsets.cpp"
+#include "page/scrolling/ScrollLatchingState.cpp"
+#include "page/scrolling/ScrollingConstraints.cpp"
+#include "page/scrolling/ScrollingCoordinator.cpp"
+#include "page/scrolling/ScrollingStateFixedNode.cpp"
+#include "page/scrolling/ScrollingStateFrameHostingNode.cpp"
+#include "page/scrolling/ScrollingStateFrameScrollingNode.cpp"

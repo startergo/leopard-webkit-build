@@ -1,0 +1,106 @@
+diff --git Source/WebCore/platform/graphics/gstreamer/VideoTextureCopierGStreamer.h Source/WebCore/platform/graphics/gstreamer/VideoTextureCopierGStreamer.h
+--- a/Source/WebCore/platform/graphics/gstreamer/VideoTextureCopierGStreamer.h
++++ b/Source/WebCore/platform/graphics/gstreamer/VideoTextureCopierGStreamer.h
+@@ -20,7 +20,13 @@
+ #ifndef VideoTextureCopierGStreamer_h
+ #define VideoTextureCopierGStreamer_h
+ 
+-#if USE(GSTREAMER_GL)
++#if USE(GSTREAMER_GL) && USE(TEXTURE_MAPPER_GL)
++// [leopard] Tightened from USE(GSTREAMER_GL) to also require USE(TEXTURE_MAPPER_GL).
++// The class's API takes TextureMapperPlatformLayerBuffer (line 48) and is only
++// invoked from MediaPlayerPrivateGStreamer::copyVideoTextureToPlatformTexture
++// which is itself gated by USE(TEXTURE_MAPPER_GL). On Cocoa (CAOpenGLLayer),
++// the whole class is unused — keep the declaration out to avoid pulling in
++// the TextureMapperPlatformLayerBuffer type that isn't forwarded on Mac.
+ 
+ #include "ImageOrientation.h"
+ #include "TextureMapperGLHeaders.h"
+diff --git Source/WebCore/platform/graphics/gstreamer/VideoTextureCopierGStreamer.cpp Source/WebCore/platform/graphics/gstreamer/VideoTextureCopierGStreamer.cpp
+--- a/Source/WebCore/platform/graphics/gstreamer/VideoTextureCopierGStreamer.cpp
++++ b/Source/WebCore/platform/graphics/gstreamer/VideoTextureCopierGStreamer.cpp
+@@ -21,7 +21,8 @@
+ #include "config.h"
+ #include "VideoTextureCopierGStreamer.h"
+ 
+-#if USE(GSTREAMER_GL)
++#if USE(GSTREAMER_GL) && USE(TEXTURE_MAPPER_GL)
++// [leopard] Match the gate tightening in VideoTextureCopierGStreamer.h:23.
+ 
+ #include "FloatRect.h"
+ #include "GLContext.h"
+diff --git Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.h Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.h
+--- a/Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.h
++++ b/Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.h
+@@ -384,7 +384,11 @@
+     bool m_isBeingDestroyed { false };
+ 
+ #if USE(GSTREAMER_GL)
++    // [leopard] m_videoTextureCopier is gated by USE(TEXTURE_MAPPER_GL) — VideoTextureCopierGStreamer
++    // class only exists under that guard (see VideoTextureCopierGStreamer.h:23).
++#if USE(TEXTURE_MAPPER_GL)
+     std::unique_ptr<VideoTextureCopierGStreamer> m_videoTextureCopier;
++#endif
+     GRefPtr<GstGLColorConvert> m_colorConvert;
+     GRefPtr<GstCaps> m_colorConvertInputCaps;
+     GRefPtr<GstCaps> m_colorConvertOutputCaps;
+diff --git Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp
+--- a/Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp
++++ b/Source/WebCore/platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp
+@@ -3120,6 +3120,12 @@
+             gst_sample_get_segment(m_sample.get()), info ? gst_structure_copy(info) : nullptr));
+     }
+ 
++#if USE(TEXTURE_MAPPER_GL)
++    // [leopard] Lambda + invocation both reference TextureMapperPlatformLayerProxy
++    // and m_platformLayerProxy/m_nicosiaLayer members, all gated by
++    // USE(TEXTURE_MAPPER_GL) in the header. Mac (CAOpenGLLayer) skips the
++    // proxy flush entirely; flushCurrentBuffer above already replaced the
++    // sample with a dummy, which is sufficient for the CPU paint path.
+     bool shouldWait = m_videoDecoderPlatform == GstVideoDecoderPlatform::Video4Linux;
+     auto proxyOperation = [shouldWait, pipeline = pipeline()](TextureMapperPlatformLayerProxy& proxy) {
+         GST_DEBUG_OBJECT(pipeline, "Flushing video sample %s", shouldWait ? "synchronously" : "");
+@@ -3134,6 +3140,7 @@
+ #else
+     proxyOperation(*m_platformLayerProxy);
+ #endif
++#endif // USE(TEXTURE_MAPPER_GL)
+ }
+ #endif
+ 
+@@ -3154,7 +3161,11 @@
+     if (!GST_IS_SAMPLE(m_sample.get()))
+         return;
+ 
+-#if USE(GSTREAMER_GL)
++#if USE(GSTREAMER_GL) && GST_CHECK_VERSION(1,8,0)
++    // [leopard] The gst_is_gl_memory, GST_GL_MEMORY_CAST, GST_GL_TEXTURE_TARGET_*,
++    // and gst_gl_color_convert_* APIs used here are all 1.8+. On 1.4.5 (our
++    // bundled framework), paint() falls through to the ImageGStreamer CPU path
++    // below — same behavior as the non-GL build.
+     // Ensure the input is RGBA. We handle YUV video natively, so we need to do
+     // this conversion on-demand here.
+     GstBuffer* buffer = gst_sample_get_buffer(m_sample.get());
+@@ -3224,6 +3235,12 @@
+     if (!GST_IS_SAMPLE(m_sample.get()))
+         return false;
+ 
++#if USE(TEXTURE_MAPPER_GL)
++    // [leopard] GstVideoFrameHolder, TextureMapperPlatformLayerBuffer,
++    // VideoTextureCopierGStreamer, and m_textureMapperFlags are all gated by
++    // USE(TEXTURE_MAPPER_GL) in the header. Mac uses CAOpenGLLayer; on Cocoa
++    // the GL texture upload path isn't wired up — return false so callers
++    // fall back to the CPU paint() path.
+     std::unique_ptr<GstVideoFrameHolder> frameHolder = makeUnique<GstVideoFrameHolder>(m_sample.get(), m_videoDecoderPlatform, m_textureMapperFlags, true);
+ 
+     std::unique_ptr<TextureMapperPlatformLayerBuffer> layerBuffer = frameHolder->platformLayerBuffer();
+@@ -3240,6 +3257,9 @@
+     frameHolder->waitForCPUSync();
+ 
+     return m_videoTextureCopier->copyVideoTextureToPlatformTexture(*layerBuffer.get(), size, outputTexture, outputTarget, level, internalFormat, format, type, flipY, m_videoSourceOrientation);
++#else
++    return false;
++#endif // USE(TEXTURE_MAPPER_GL)
+ }
+ 
+ NativeImagePtr MediaPlayerPrivateGStreamer::nativeImageForCurrentTime()

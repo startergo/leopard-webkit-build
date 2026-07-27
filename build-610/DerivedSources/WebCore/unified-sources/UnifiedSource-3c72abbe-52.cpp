@@ -1,0 +1,8 @@
+#include "platform/text/DateTimeFormat.cpp"
+#include "platform/text/LocaleToScriptMappingDefault.cpp"
+#include "platform/text/PlatformLocale.cpp"
+#include "platform/text/QuotedPrintable.cpp"
+#include "platform/text/SegmentedString.cpp"
+#include "platform/text/TextBoundaries.cpp"
+#include "platform/text/TextCodec.cpp"
+#include "platform/text/TextCodecICU.cpp"

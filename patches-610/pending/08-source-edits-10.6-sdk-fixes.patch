@@ -1,0 +1,2706 @@
+diff --git a/Source/JavaScriptCore/API/JSContext.h b/Source/JavaScriptCore/API/JSContext.h
+index 194e352bf..58defcc63 100644
+--- a/Source/JavaScriptCore/API/JSContext.h
++++ b/Source/JavaScriptCore/API/JSContext.h
+@@ -39,6 +39,7 @@
+  JavaScript execution takes place within a context, and all JavaScript values
+  are tied to a context.
+ */
++__attribute__((visibility("default")))
+ NS_CLASS_AVAILABLE(10_9, 7_0)
+ @interface JSContext : NSObject
+ 
+diff --git a/Source/JavaScriptCore/API/JSManagedValue.h b/Source/JavaScriptCore/API/JSManagedValue.h
+index 01073fad9..00be9c1c1 100644
+--- a/Source/JavaScriptCore/API/JSManagedValue.h
++++ b/Source/JavaScriptCore/API/JSManagedValue.h
+@@ -48,6 +48,7 @@ The primary use for a JSManagedValue is to store a JSValue in an Objective-C
+ or Swift object that is exported to JavaScript. It is incorrect to store a JSValue
+ in an object that is exported to JavaScript, since doing so creates a retain cycle.
+ */ 
++__attribute__((visibility("default")))
+ NS_CLASS_AVAILABLE(10_9, 7_0)
+ @interface JSManagedValue : NSObject
+ 
+diff --git a/Source/JavaScriptCore/API/JSValue.h b/Source/JavaScriptCore/API/JSValue.h
+index 1410dd74a..753c27183 100644
+--- a/Source/JavaScriptCore/API/JSValue.h
++++ b/Source/JavaScriptCore/API/JSValue.h
+@@ -44,6 +44,7 @@
+  JSValue to a method or property of a JSValue or JSContext originating from a
+  different JSVirtualMachine. Doing so will raise an Objective-C exception.
+ */
++__attribute__((visibility("default")))
+ NS_CLASS_AVAILABLE(10_9, 7_0)
+ @interface JSValue : NSObject
+ 
+diff --git a/Source/JavaScriptCore/API/JSVirtualMachine.h b/Source/JavaScriptCore/API/JSVirtualMachine.h
+index ccf9264d5..6ec50f222 100644
+--- a/Source/JavaScriptCore/API/JSVirtualMachine.h
++++ b/Source/JavaScriptCore/API/JSVirtualMachine.h
+@@ -34,6 +34,7 @@
+  virtual machine, with concurrent JavaScript execution supported by allocating
+  separate instances of JSVirtualMachine.
+ */
++__attribute__((visibility("default")))
+ NS_CLASS_AVAILABLE(10_9, 7_0)
+ @interface JSVirtualMachine : NSObject
+ 
+diff --git a/Source/JavaScriptCore/jit/ExecutableAllocator.cpp b/Source/JavaScriptCore/jit/ExecutableAllocator.cpp
+index ae5ccd575..db70ab258 100644
+--- a/Source/JavaScriptCore/jit/ExecutableAllocator.cpp
++++ b/Source/JavaScriptCore/jit/ExecutableAllocator.cpp
+@@ -225,7 +225,15 @@ private:
+         RELEASE_ASSERT(!result);
+ 
+         // Zero out writableAddr to avoid leaking the address of the writable mapping.
++#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300
+         memset_s(&writableAddr, sizeof(writableAddr), 0, sizeof(writableAddr));
++#else
++        // memset_s() is Annex K, only available on macOS 10.13+. On older targets
++        // (e.g. 10.6) zero through a volatile pointer so the compiler can't elide
++        // the store as a dead write — which is the whole reason memset_s() is used here.
++        volatile mach_vm_address_t* zeroedAddr = &writableAddr;
++        *zeroedAddr = 0;
++#endif
+ 
+         jitWriteSeparateHeapsFunction = reinterpret_cast<JITWriteSeparateHeapsFunction>(writeThunk.code().executableAddress());
+     }
+diff --git a/Source/JavaScriptCore/tools/JSDollarVM.cpp b/Source/JavaScriptCore/tools/JSDollarVM.cpp
+index f6da1fb69..f0442dd22 100644
+--- a/Source/JavaScriptCore/tools/JSDollarVM.cpp
++++ b/Source/JavaScriptCore/tools/JSDollarVM.cpp
+@@ -104,7 +104,7 @@ private:
+ 
+ class ElementHandleOwner : public WeakHandleOwner {
+ public:
+-    bool isReachableFromOpaqueRoots(Handle<JSC::Unknown> handle, void*, SlotVisitor& visitor) override
++    bool isReachableFromOpaqueRoots(JSC::Handle<JSC::Unknown> handle, void*, SlotVisitor& visitor) override
+     {
+         Element* element = jsCast<Element*>(handle.slot()->asCell());
+         return visitor.containsOpaqueRoot(element->root());
+diff --git a/Source/WTF/wtf/Platform.h b/Source/WTF/wtf/Platform.h
+index 7fb8ecbed..1f08bb033 100644
+--- a/Source/WTF/wtf/Platform.h
++++ b/Source/WTF/wtf/Platform.h
+@@ -584,8 +584,15 @@
+ #define HAVE_SEC_KEYCHAIN 1
+ 
+ #if CPU(X86_64)
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+ #define HAVE_NETWORK_EXTENSION 1
+-#define USE_PLUGIN_HOST_PROCESS 1
++#endif
++/* 10.6 build: the out-of-process (Hosted) Netscape plugin host needs XPC +
++   private frameworks absent from the MacOSX 10.6 SDK.  The Hosted plugin
++   sources are also excluded from the WebKitLegacy build (see the 605 patch on
++   PlatformMac.cmake); forcing this to 0 makes every USE(PLUGIN_HOST_PROCESS)
++   caller compile out so there are no dangling symbol references. */
++#define USE_PLUGIN_HOST_PROCESS 0
+ #endif
+ 
+ /* OS X defines a series of platform macros for debugging. */
+@@ -1115,8 +1122,15 @@
+ #endif
+ 
+ #if PLATFORM(COCOA)
++// [leopard-webkit-build] AVFoundation.framework is 10.7+; gate USE(AVFOUNDATION) to
++// ≥10.7 so the AVF media-player backend TUs (platform/graphics/avfoundation/*, which
++// #import <AVFoundation/*.h>) compile out on 10.6. The HTMLMediaElement DOM classes
++// still compile (gated by ENABLE(VIDEO) alone) providing the symbols Safari needs;
++// only the AVF playback backend is absent on 10.6.
++#if !PLATFORM(MAC) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+ #define USE_AVFOUNDATION 1
+ #endif
++#endif
+ 
+ #if !defined(ENABLE_TREE_DEBUGGING)
+ #if !defined(NDEBUG)
+@@ -1127,21 +1141,39 @@
+ #endif
+ 
+ #if PLATFORM(IOS) || PLATFORM(MAC)
++// [leopard-webkit-build] CoreMedia.framework is 10.7+; gate USE(COREMEDIA) to ≥10.7
++// so ClockCM.mm (PAL system clock using CMTimebase/CMClock APIs) and the CoreMedia
++// soft-link layer compile out on 10.6. The CoreMedia.h overlay still provides the
++// TYPE definitions for TUs that reference them transitively.
++#if !PLATFORM(MAC) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+ #define USE_COREMEDIA 1
++#endif
++#if !PLATFORM(MAC) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+ #define HAVE_AVFOUNDATION_VIDEO_OUTPUT 1
++#endif
++// [leopard-webkit-build] VideoToolbox.framework is 10.8+; gate USE(VIDEOTOOLBOX)
++// to ≥10.8 so WebCoreDecompressionSession.mm (which #imports CoreMedia sub-headers
++// only present under this gate) and the VideoToolbox soft-link TU compile out on 10.6.
++#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080) || PLATFORM(IOS)
+ #define USE_VIDEOTOOLBOX 1
+ #endif
++#endif
+ 
+-#if PLATFORM(IOS) || PLATFORM(MAC) || (OS(WINDOWS) && USE(CG))
++#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070) || (OS(WINDOWS) && USE(CG))
+ #define HAVE_AVFOUNDATION_MEDIA_SELECTION_GROUP 1
+ #endif
+ 
+-#if PLATFORM(IOS) || PLATFORM(MAC) || (OS(WINDOWS) && USE(CG))
++#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070) || (OS(WINDOWS) && USE(CG))
+ #define HAVE_AVFOUNDATION_LEGIBLE_OUTPUT_SUPPORT 1
++#endif
++// [leopard-webkit-build] MediaAccessibility.framework is macOS 10.9+; gate the
++// HAVE flag so MediaAccessibilitySoftLink.cpp (guarded on this flag) compiles
++// out on the 10.6 target where the framework header is absent.
++#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090) || (OS(WINDOWS) && USE(CG))
+ #define HAVE_MEDIA_ACCESSIBILITY_FRAMEWORK 1
+ #endif
+ 
+-#if PLATFORM(IOS) || PLATFORM(MAC)
++#if PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070)
+ #define HAVE_AVFOUNDATION_LOADER_DELEGATE 1
+ #endif
+ 
+@@ -1192,7 +1224,7 @@
+ #define USE_INSERTION_UNDO_GROUPING 1
+ #endif
+ 
+-#if PLATFORM(MAC) || PLATFORM(IOS)
++#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070) || PLATFORM(IOS)
+ #define HAVE_AVASSETREADER 1
+ #endif
+ 
+diff --git a/Source/WTF/wtf/cocoa/MemoryFootprintCocoa.cpp b/Source/WTF/wtf/cocoa/MemoryFootprintCocoa.cpp
+index a00a68b00..11bccd112 100644
+--- a/Source/WTF/wtf/cocoa/MemoryFootprintCocoa.cpp
++++ b/Source/WTF/wtf/cocoa/MemoryFootprintCocoa.cpp
+@@ -33,12 +33,18 @@ namespace WTF {
+ 
+ std::optional<size_t> memoryFootprint()
+ {
++#if !(defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1090)
+     task_vm_info_data_t vmInfo;
+     mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
+     kern_return_t result = task_info(mach_task_self(), TASK_VM_INFO, (task_info_t) &vmInfo, &count);
+     if (result != KERN_SUCCESS)
+         return std::nullopt;
+     return static_cast<size_t>(vmInfo.phys_footprint);
++#else
++    // task_vm_info / TASK_VM_INFO / phys_footprint are 10.9+ Mach additions,
++    // unavailable on 10.6; report an unknown footprint.
++    return std::nullopt;
++#endif
+ }
+ 
+ }
+diff --git a/Source/WTF/wtf/cocoa/MemoryPressureHandlerCocoa.mm b/Source/WTF/wtf/cocoa/MemoryPressureHandlerCocoa.mm
+index daba2d6e3..4da6a6053 100644
+--- a/Source/WTF/wtf/cocoa/MemoryPressureHandlerCocoa.mm
++++ b/Source/WTF/wtf/cocoa/MemoryPressureHandlerCocoa.mm
+@@ -32,6 +32,18 @@
+ #import <notify.h>
+ #import <wtf/CurrentTime.h>
+ 
++// dispatch memory-pressure symbols are 10.7+ libdispatch additions, absent
++// from the 10.6 SDK. Define the pressure-level bitmask values (used only as
++// plain integers passed to cache_simulate_memory_warning_event) so this file
++// compiles on 10.6. The actual memory-pressure dispatch *source*
++// (DISPATCH_SOURCE_TYPE_MEMORYPRESSURE — a pointer to a struct that doesn't
++// exist on 10.6's libdispatch) is gated out in install() below.
++#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
++#define DISPATCH_MEMORYPRESSURE_NORMAL   0x1
++#define DISPATCH_MEMORYPRESSURE_WARN     0x2
++#define DISPATCH_MEMORYPRESSURE_CRITICAL 0x4
++#endif
++
+ #define ENABLE_FMW_FOOTPRINT_COMPARISON 0
+ 
+ extern "C" void cache_simulate_memory_warning_event(uint64_t);
+@@ -67,6 +79,11 @@ void MemoryPressureHandler::install()
+     if (m_installed || _timer_event_source)
+         return;
+ 
++#if !(defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
++    // DISPATCH_SOURCE_TYPE_MEMORYPRESSURE is a 10.7+ libdispatch source type
++    // with no equivalent on 10.6; skip wiring up the memory-pressure source
++    // there (it only drives proactive memory release, not correctness).
++    // _cache_event_source stays 0, which uninstall() already tolerates.
+     dispatch_async(dispatch_get_main_queue(), ^{
+ #if PLATFORM(IOS)
+         _cache_event_source = dispatch_source_create(DISPATCH_SOURCE_TYPE_MEMORYPRESSURE, 0, DISPATCH_MEMORYPRESSURE_NORMAL | DISPATCH_MEMORYPRESSURE_WARN | DISPATCH_MEMORYPRESSURE_CRITICAL, dispatch_get_main_queue());
+@@ -96,6 +113,7 @@ void MemoryPressureHandler::install()
+         });
+         dispatch_resume(_cache_event_source);
+     });
++#endif
+ 
+     // Allow simulation of memory pressure with "notifyutil -p org.WebKit.lowMemory"
+     notify_register_dispatch("org.WebKit.lowMemory", &_notifyTokens[0], dispatch_get_main_queue(), ^(int) {
+@@ -105,7 +123,11 @@ void MemoryPressureHandler::install()
+         beginSimulatedMemoryPressure();
+ 
+         WTF::releaseFastMallocFreeMemory();
++#if !(defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
++        // malloc_zone_pressure_relief is a 10.7+ malloc addition; on 10.6 the
++        // bmalloc fast-malloc release above already reclaims the bulk of memory.
+         malloc_zone_pressure_relief(nullptr, 0);
++#endif
+ 
+ #if ENABLE(FMW_FOOTPRINT_COMPARISON)
+         auto footprintAfter = pagesPerVMTag();
+@@ -189,6 +211,7 @@ void MemoryPressureHandler::respondToMemoryPressure(Critical critical, Synchrono
+ 
+ std::optional<MemoryPressureHandler::ReliefLogger::MemoryUsage> MemoryPressureHandler::ReliefLogger::platformMemoryUsage()
+ {
++#if !(defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1090)
+     task_vm_info_data_t vmInfo;
+     mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
+     kern_return_t err = task_info(mach_task_self(), TASK_VM_INFO, (task_info_t) &vmInfo, &count);
+@@ -196,6 +219,11 @@ std::optional<MemoryPressureHandler::ReliefLogger::MemoryUsage> MemoryPressureHa
+         return std::nullopt;
+ 
+     return MemoryUsage {static_cast<size_t>(vmInfo.internal), static_cast<size_t>(vmInfo.phys_footprint)};
++#else
++    // task_vm_info / TASK_VM_INFO / phys_footprint are 10.9+ Mach additions,
++    // unavailable on 10.6; report an unknown usage.
++    return std::nullopt;
++#endif
+ }
+ 
+ } // namespace WTF
+diff --git a/Source/WTF/wtf/mac/AppKitCompatibilityDeclarations.h b/Source/WTF/wtf/mac/AppKitCompatibilityDeclarations.h
+index 2615f9445..53f5e390b 100644
+--- a/Source/WTF/wtf/mac/AppKitCompatibilityDeclarations.h
++++ b/Source/WTF/wtf/mac/AppKitCompatibilityDeclarations.h
+@@ -50,8 +50,11 @@ static const NSButtonType NSButtonTypeRadio = NSRadioButton;
+ static const NSButtonType NSButtonTypeMomentaryChange = NSMomentaryChangeButton;
+ static const NSButtonType NSButtonTypeOnOff = NSOnOffButton;
+ static const NSButtonType NSButtonTypeMomentaryPushIn = NSMomentaryPushInButton;
+-static const NSButtonType NSButtonTypeAccelerator = NSAcceleratorButton;
+-static const NSButtonType NSButtonTypeMultiLevelAccelerator = NSMultiLevelAcceleratorButton;
++// [leopard-webkit-build] NSAcceleratorButton (10.13.4+) / NSMultiLevelAcceleratorButton (10.14+)
++// are absent from the 10.6 SDK; assign their modern NSButtonType enum values directly. These
++// accelerator button types are never created on a 10.6 target, so the values are inert at runtime.
++static const NSButtonType NSButtonTypeAccelerator = 8;
++static const NSButtonType NSButtonTypeMultiLevelAccelerator = 9;
+ 
+ static const NSCompositingOperation NSCompositingOperationCopy = NSCompositeCopy;
+ static const NSCompositingOperation NSCompositingOperationDestinationIn = NSCompositeDestinationIn;
+@@ -116,8 +119,18 @@ static const NSEventType NSEventTypeSystemDefined = NSSystemDefined;
+ typedef NSUInteger NSWindowStyleMask;
+ static const NSWindowStyleMask NSWindowStyleMaskBorderless = NSBorderlessWindowMask;
+ static const NSWindowStyleMask NSWindowStyleMaskClosable = NSClosableWindowMask;
+-static const NSWindowStyleMask NSWindowStyleMaskFullScreen = NSFullScreenWindowMask;
+-static const NSWindowStyleMask NSWindowStyleMaskFullSizeContentView = NSFullSizeContentViewWindowMask;
++// [leopard-webkit-build] NSFullScreenWindowMask (10.7+) / NSFullSizeContentViewWindowMask (10.10+)
++// are absent from the 10.6 SDK. The force-included overlays already #define both
++// NSWindowStyleMaskFullScreen (Overlay605Supplement.h) and NSWindowStyleMaskFullSizeContentView
++// (TargetConditionals_compat.h) to the literal bit values, so guard each declaration to avoid a
++// macro/static-const collision and fall back to the literal bit value otherwise. Both bits are
++// inert on 10.6.
++#ifndef NSWindowStyleMaskFullScreen
++static const NSWindowStyleMask NSWindowStyleMaskFullScreen = (1 << 14);
++#endif
++#ifndef NSWindowStyleMaskFullSizeContentView
++static const NSWindowStyleMask NSWindowStyleMaskFullSizeContentView = (1 << 15);
++#endif
+ static const NSWindowStyleMask NSWindowStyleMaskHUDWindow = NSHUDWindowMask;
+ static const NSWindowStyleMask NSWindowStyleMaskMiniaturizable = NSMiniaturizableWindowMask;
+ static const NSWindowStyleMask NSWindowStyleMaskNonactivatingPanel = NSNonactivatingPanelMask;
+diff --git a/Source/WTF/wtf/spi/darwin/XPCSPI.h b/Source/WTF/wtf/spi/darwin/XPCSPI.h
+index 62f30a8d8..ffe800280 100644
+--- a/Source/WTF/wtf/spi/darwin/XPCSPI.h
++++ b/Source/WTF/wtf/spi/darwin/XPCSPI.h
+@@ -76,7 +76,10 @@ typedef void (*xpc_connection_handler_t)(xpc_connection_t connection);
+ 
+ #if USE(APPLE_INTERNAL_SDK)
+ #include <xpc/private.h>
+-#else
++#elif !defined(DISPATCH_MACH_SEND_POSSIBLE)
++// The 10.6 overlay shim (TargetConditionals_compat.h) defines this as the real
++// dispatch value (0x8000000000000000ULL) for code that doesn't include this SPI
++// header; honor it when present so we don't emit a conflicting enum here.
+ enum {
+     DISPATCH_MACH_SEND_POSSIBLE = 0x8,
+ };
+@@ -141,7 +144,7 @@ void xpc_dictionary_set_mach_send(xpc_object_t, const char*, mach_port_t);
+ 
+ void xpc_connection_set_bootstrap(xpc_connection_t, xpc_object_t bootstrap);
+ xpc_object_t xpc_copy_bootstrap(void);
+-void xpc_connection_set_oneshot_instance(xpc_connection_t, uuid_t instance);
++void xpc_connection_set_oneshot_instance(xpc_connection_t, const unsigned char instance[16]);
+ 
+ #if OS_OBJECT_USE_OBJC_RETAIN_RELEASE
+ #if !defined(xpc_retain)
+diff --git a/Source/WebCore/Modules/plugins/QuickTimePluginReplacement.mm b/Source/WebCore/Modules/plugins/QuickTimePluginReplacement.mm
+index 131547816..e5602b796 100644
+--- a/Source/WebCore/Modules/plugins/QuickTimePluginReplacement.mm
++++ b/Source/WebCore/Modules/plugins/QuickTimePluginReplacement.mm
+@@ -25,7 +25,8 @@
+ 
+ #import "config.h"
+ 
+-#if ENABLE(MEDIA_CONTROLS_SCRIPT)
++// [leopard-webkit-build] Gate under USE(AVFOUNDATION) — imports AVFoundation (10.7+).
++#if ENABLE(MEDIA_CONTROLS_SCRIPT) && USE(AVFOUNDATION)
+ 
+ #import "QuickTimePluginReplacement.h"
+ 
+diff --git a/Source/WebCore/PAL/pal/spi/cf/CFNetworkSPI.h b/Source/WebCore/PAL/pal/spi/cf/CFNetworkSPI.h
+index 57bfa21cb..c78017ada 100644
+--- a/Source/WebCore/PAL/pal/spi/cf/CFNetworkSPI.h
++++ b/Source/WebCore/PAL/pal/spi/cf/CFNetworkSPI.h
+@@ -131,6 +131,12 @@ typedef void (^CFCachedURLResponseCallBackBlock)(CFCachedURLResponseRef);
+ - (NSDate *)_lastModifiedDate;
+ @end
+ 
++// [leopard-webkit-build] NSURLSession is 10.9+. The SPI categories below on
++// NSURLSessionTask / NSURLSessionConfiguration reference classes absent from the
++// 10.6 SDK; gate the whole NSURLSession SPI block under MIN_REQUIRED >= 1090 so it
++// compiles out on 10.6 (the NSURLSession networking path is never taken there —
++// ResourceHandleMac uses NSURLConnection/CFNetwork).
++#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090) || (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 70000)
+ @interface NSURLSessionTask (TimingData)
+ - (NSDictionary *)_timingData;
+ @end
+@@ -141,12 +147,17 @@ typedef void (^CFCachedURLResponseCallBackBlock)(CFCachedURLResponseRef);
+ @end
+ #endif
+ 
++#endif // [leopard-webkit-build] NSURLSession SPI ≥10.9 gate (TimingData + ResourceHints)
++
+ @interface NSHTTPCookie ()
+ - (CFHTTPCookieRef)_CFHTTPCookie;
+ + (CFArrayRef __nullable)_ns2cfCookies:(NSArray * __nullable)nsCookies CF_RETURNS_RETAINED;
+ - (CFHTTPCookieRef __nullable)_GetInternalCFHTTPCookie;
+ @end
+ 
++// [leopard-webkit-build] NSURLSessionConfiguration is 10.9+; gate this SPI category
++// out on 10.6 (absent from the SDK). See the ≥10.9 gate above for context.
++#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090) || (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 70000)
+ @interface NSURLSessionConfiguration ()
+ @property (assign) _TimingDataOptions _timingDataOptions;
+ @property (copy) NSData *_sourceApplicationAuditTokenData;
+@@ -160,6 +171,7 @@ typedef void (^CFCachedURLResponseCallBackBlock)(CFCachedURLResponseRef);
+ @property (nullable, copy) NSSet *_suppressedAutoAddedHTTPHeaders;
+ #endif
+ @end
++#endif // [leopard-webkit-build] NSURLSessionConfiguration SPI ≥10.9 gate
+ 
+ #if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101300) || (PLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 110000)
+ @interface NSURLSessionTaskTransactionMetrics ()
+diff --git a/Source/WebCore/PAL/pal/spi/cocoa/CoreTextSPI.h b/Source/WebCore/PAL/pal/spi/cocoa/CoreTextSPI.h
+index 7dcfcded3..576e42478 100644
+--- a/Source/WebCore/PAL/pal/spi/cocoa/CoreTextSPI.h
++++ b/Source/WebCore/PAL/pal/spi/cocoa/CoreTextSPI.h
+@@ -133,4 +133,13 @@ __attribute__((availability(macosx, obsoleted = 10.13))) __attribute__((availabi
+ bool CTFontIsAppleColorEmoji(CTFontRef);
+ CTFontRef CTFontCreateForCharacters(CTFontRef currentFont, const UTF16Char *characters, CFIndex length, CFIndex *coveredLength);
+ 
++// [leopard-webkit-build] kCTFontOpenTypeFeatureTag/Value (10.10+ CoreText attribute
++// keys) and CTFontDrawGlyphs (10.7+ public CoreText glyph-drawing API) are absent
++// from the 10.6 SDK. sdk_stubs_605.mm supplies their DEFINITIONS (working 10.6
++// bridges); declare them here so FontCocoa.mm / FontCacheCoreText.cpp /
++// FontCascadeCocoa.mm compile.
++extern const CFStringRef kCTFontOpenTypeFeatureTag;
++extern const CFStringRef kCTFontOpenTypeFeatureValue;
++void CTFontDrawGlyphs(CTFontRef font, const CGGlyph* glyphs, const CGPoint* positions, size_t count, CGContextRef context);
++
+ WTF_EXTERN_C_END
+diff --git a/Source/WebCore/PAL/pal/spi/cocoa/NSKeyedArchiverSPI.h b/Source/WebCore/PAL/pal/spi/cocoa/NSKeyedArchiverSPI.h
+index 55a64886a..3b77d53e7 100644
+--- a/Source/WebCore/PAL/pal/spi/cocoa/NSKeyedArchiverSPI.h
++++ b/Source/WebCore/PAL/pal/spi/cocoa/NSKeyedArchiverSPI.h
+@@ -92,7 +92,9 @@ inline id _Nullable insecurelyUnarchiveObjectFromData(NSData * _Nonnull data)
+ #pragma clang diagnostic pop
+ }
+ 
+-inline id _Nullable unarchivedObjectOfClassesFromData(NSSet<Class> * _Nonnull classes, NSData * _Nonnull data)
++// [leopard-webkit-build] NSSet lightweight generics (<Class>) require the 10.7+
++// SDK; the 10.6 SDK's NSSet is non-parameterized, so drop the type argument.
++inline id _Nullable unarchivedObjectOfClassesFromData(NSSet * _Nonnull classes, NSData * _Nonnull data)
+ {
+ #if USE(SECURE_ARCHIVER_API)
+ #if !USE(SECURE_ARCHIVER_FOR_ATTRIBUTED_STRING)
+diff --git a/Source/WebCore/PAL/pal/spi/cocoa/QuartzCoreSPI.h b/Source/WebCore/PAL/pal/spi/cocoa/QuartzCoreSPI.h
+index 6e5f6b433..df5dfcf2e 100644
+--- a/Source/WebCore/PAL/pal/spi/cocoa/QuartzCoreSPI.h
++++ b/Source/WebCore/PAL/pal/spi/cocoa/QuartzCoreSPI.h
+@@ -158,10 +158,21 @@ typedef enum {
+ @property BOOL inheritsSecurity;
+ @end
+ 
+-@interface CASpringAnimation (Private)
++// [leopard-webkit-build] CASpringAnimation is 10.8+ and absent from the 10.6 SDK.
++// Declare the primary class here (matching the @implementation in sdk_stubs_605.mm)
++// so the Private category below resolves its primary interface. Minimal surface —
++// only what this SPI header and the stub need; the stub @synthesize-s all properties.
++@interface CASpringAnimation : CABasicAnimation
++@property CGFloat mass;
++@property CGFloat stiffness;
++@property CGFloat damping;
++@property CGFloat initialVelocity;
+ @property CGFloat velocity;
+ @end
+ 
++@interface CASpringAnimation (Private)
++@end
++
+ #endif // __OBJC__
+ 
+ #endif
+@@ -234,9 +245,18 @@ extern NSString * const kCAFilterDifferenceBlendMode;
+ extern NSString * const kCAFilterExclusionBlendMode;
+ 
+ extern NSString * const kCAContextCIFilterBehavior;
++// [leopard-webkit-build] TargetConditionals_compat.h (force-included) #defines these
++// three as NSString literals for the 10.6 build; guard the extern declarations so the
++// macro expansion doesn't corrupt the declarator ("expected unqualified-id").
++#ifndef kCAContextDisplayName
+ extern NSString * const kCAContextDisplayName;
++#endif
++#ifndef kCAContextDisplayId
+ extern NSString * const kCAContextDisplayId;
++#endif
++#ifndef kCAContextIgnoresHitTest
+ extern NSString * const kCAContextIgnoresHitTest;
++#endif
+ extern NSString * const kCAContextPortNumber;
+ 
+ #if PLATFORM(IOS)
+diff --git a/Source/WebCore/PAL/pal/spi/mac/NSAccessibilitySPI.h b/Source/WebCore/PAL/pal/spi/mac/NSAccessibilitySPI.h
+index 0e8700ff7..448351431 100644
+--- a/Source/WebCore/PAL/pal/spi/mac/NSAccessibilitySPI.h
++++ b/Source/WebCore/PAL/pal/spi/mac/NSAccessibilitySPI.h
+@@ -53,6 +53,12 @@ WTF_EXTERN_C_BEGIN
+ 
+ void NSAccessibilityHandleFocusChanged();
+ void NSAccessibilityUnregisterUniqueIdForUIElement(id element);
++// [leopard-webkit-build] NSAccessibilityPostNotificationWithUserInfo is a public
++// AX C function (10.9+) absent from the 10.6 SDK. Declared here alongside the
++// other SDK-absent AX functions; the working 10.6-bridge implementation (drops
++// userInfo, forwards to the 2-arg NSAccessibilityPostNotification) lives in
++// sdk_stubs_605.mm. Referenced by accessibility/mac/AXObjectCacheMac.mm:258.
++void NSAccessibilityPostNotificationWithUserInfo(id element, NSString *notification, id userInfo);
+ 
+ WTF_EXTERN_C_END
+ 
+diff --git a/Source/WebCore/PAL/pal/spi/mac/NSMenuSPI.h b/Source/WebCore/PAL/pal/spi/mac/NSMenuSPI.h
+index 50d509c50..68e90563a 100644
+--- a/Source/WebCore/PAL/pal/spi/mac/NSMenuSPI.h
++++ b/Source/WebCore/PAL/pal/spi/mac/NSMenuSPI.h
+@@ -57,6 +57,16 @@ enum {
+ 
+ @class QLPreviewMenuItem;
+ 
++// NSUserInterfaceItemIdentification (AppKit 10.8+) is absent from the 10.6 SDK;
++// declare the minimal protocol so the NSMenuItem() conformance below compiles.
++// Macro-guarded so a real AppKit declaration elsewhere is never redefined.
++#ifndef WebKitNSUserInterfaceItemIdentification
++#define WebKitNSUserInterfaceItemIdentification
++@protocol NSUserInterfaceItemIdentification <NSObject>
++@property (nullable, strong) id identifier;
++@end
++#endif
++
+ #if __MAC_OS_X_VERSION_MAX_ALLOWED < 101200
+ @interface NSMenuItem () <NSUserInterfaceItemIdentification>
+ #else 
+diff --git a/Source/WebCore/PAL/pal/system/mac/PopupMenu.mm b/Source/WebCore/PAL/pal/system/mac/PopupMenu.mm
+index 2233575dc..1e46f099a 100644
+--- a/Source/WebCore/PAL/pal/system/mac/PopupMenu.mm
++++ b/Source/WebCore/PAL/pal/system/mac/PopupMenu.mm
+@@ -43,7 +43,15 @@ namespace PAL {
+ 
+ void popUpMenu(NSMenu *menu, NSPoint location, float width, NSView *view, int selectedItem, NSFont *font, NSControlSize controlSize, bool usesCustomAppearance)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+     NSRect adjustedPopupBounds = [view.window convertRectToScreen:[view convertRect:view.bounds toView:nil]];
++#else
++    // convertRectToScreen: is 10.10+. On 10.6 the classic convertBaseToScreen:
++    // is point-based, so convert the bounds origin and carry the size over.
++    NSRect boundsInWindow = [view convertRect:view.bounds toView:nil];
++    NSRect adjustedPopupBounds = NSMakeRect([view.window convertBaseToScreen:boundsInWindow.origin].x,
++        [view.window convertBaseToScreen:boundsInWindow.origin].y, boundsInWindow.size.width, boundsInWindow.size.height);
++#endif
+ #pragma clang diagnostic push
+ #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+     if (controlSize != NSMiniControlSize) {
+@@ -55,8 +63,12 @@ void popUpMenu(NSMenu *menu, NSPoint location, float width, NSView *view, int se
+ 
+     // These numbers were extracted from visual inspection as the menu animates shut.
+     NSSize labelOffset = NSMakeSize(11, 1);
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
++    // userInterfaceLayoutDirection / NSUserInterfaceLayoutDirection are 10.8+;
++    // on 10.6 assume left-to-right.
+     if (menu.userInterfaceLayoutDirection == NSUserInterfaceLayoutDirectionRightToLeft)
+         labelOffset = NSMakeSize(24, 1);
++#endif
+ 
+     auto options = adoptNS([@{
+         NSPopUpMenuPopupButtonBounds : [NSValue valueWithRect:adjustedPopupBounds],
+diff --git a/Source/WebCore/PlatformMac.cmake b/Source/WebCore/PlatformMac.cmake
+index cda98a4f7..360ccefa9 100644
+--- a/Source/WebCore/PlatformMac.cmake
++++ b/Source/WebCore/PlatformMac.cmake
+@@ -39,7 +39,6 @@ list(APPEND WebCore_LIBRARIES
+     ${DISKARBITRATION_LIBRARY}
+     ${IOKIT_LIBRARY}
+     ${IOSURFACE_LIBRARY}
+-    ${METAL_LIBRARY}
+     ${OPENGL_LIBRARY}
+     ${QUARTZ_LIBRARY}
+     ${QUARTZCORE_LIBRARY}
+@@ -307,27 +306,6 @@ list(APPEND WebCore_SOURCES
+     platform/graphics/cg/TransformationMatrixCG.cpp
+     platform/graphics/cg/UTIRegistry.cpp
+ 
+-    platform/graphics/cocoa/GPUBufferMetal.mm
+-    platform/graphics/cocoa/GPUCommandBufferMetal.mm
+-    platform/graphics/cocoa/GPUCommandQueueMetal.mm
+-    platform/graphics/cocoa/GPUComputeCommandEncoderMetal.mm
+-    platform/graphics/cocoa/GPUComputePipelineStateMetal.mm
+-    platform/graphics/cocoa/GPUDepthStencilDescriptorMetal.mm
+-    platform/graphics/cocoa/GPUDepthStencilStateMetal.mm
+-    platform/graphics/cocoa/GPUDeviceMetal.mm
+-    platform/graphics/cocoa/GPUDrawableMetal.mm
+-    platform/graphics/cocoa/GPUFunctionMetal.mm
+-    platform/graphics/cocoa/GPULibraryMetal.mm
+-    platform/graphics/cocoa/GPURenderCommandEncoderMetal.mm
+-    platform/graphics/cocoa/GPURenderPassAttachmentDescriptorMetal.mm
+-    platform/graphics/cocoa/GPURenderPassColorAttachmentDescriptorMetal.mm
+-    platform/graphics/cocoa/GPURenderPassDepthAttachmentDescriptorMetal.mm
+-    platform/graphics/cocoa/GPURenderPassDescriptorMetal.mm
+-    platform/graphics/cocoa/GPURenderPipelineColorAttachmentDescriptorMetal.mm
+-    platform/graphics/cocoa/GPURenderPipelineDescriptorMetal.mm
+-    platform/graphics/cocoa/GPURenderPipelineStateMetal.mm
+-    platform/graphics/cocoa/GPUTextureDescriptorMetal.mm
+-    platform/graphics/cocoa/GPUTextureMetal.mm
+     platform/graphics/cocoa/GraphicsContext3DCocoa.mm
+     platform/graphics/cocoa/GraphicsContextCocoa.mm
+     platform/graphics/cocoa/FontCacheCoreText.cpp
+@@ -342,7 +320,6 @@ list(APPEND WebCore_SOURCES
+     platform/graphics/cocoa/WebCoreCALayerExtras.mm
+     platform/graphics/cocoa/WebCoreDecompressionSession.mm
+     platform/graphics/cocoa/WebGLLayer.mm
+-    platform/graphics/cocoa/WebGPULayer.mm
+ 
+     platform/graphics/cv/PixelBufferConformerCV.cpp
+     platform/graphics/cv/TextureCacheCV.mm
+diff --git a/Source/WebCore/SourcesCocoa.txt b/Source/WebCore/SourcesCocoa.txt
+index 6aab4c91a..cc2c02bb4 100644
+--- a/Source/WebCore/SourcesCocoa.txt
++++ b/Source/WebCore/SourcesCocoa.txt
+@@ -236,27 +236,6 @@ platform/graphics/cg/SubimageCacheWithTimer.cpp
+ platform/graphics/cg/TransformationMatrixCG.cpp
+ platform/graphics/cg/UTIRegistry.cpp
+ 
+-platform/graphics/cocoa/GPUBufferMetal.mm
+-platform/graphics/cocoa/GPUCommandBufferMetal.mm
+-platform/graphics/cocoa/GPUCommandQueueMetal.mm
+-platform/graphics/cocoa/GPUComputeCommandEncoderMetal.mm
+-platform/graphics/cocoa/GPUComputePipelineStateMetal.mm
+-platform/graphics/cocoa/GPUDepthStencilDescriptorMetal.mm
+-platform/graphics/cocoa/GPUDepthStencilStateMetal.mm
+-platform/graphics/cocoa/GPUDeviceMetal.mm
+-platform/graphics/cocoa/GPUDrawableMetal.mm
+-platform/graphics/cocoa/GPUFunctionMetal.mm
+-platform/graphics/cocoa/GPULibraryMetal.mm
+-platform/graphics/cocoa/GPURenderCommandEncoderMetal.mm
+-platform/graphics/cocoa/GPURenderPassAttachmentDescriptorMetal.mm
+-platform/graphics/cocoa/GPURenderPassColorAttachmentDescriptorMetal.mm
+-platform/graphics/cocoa/GPURenderPassDepthAttachmentDescriptorMetal.mm
+-platform/graphics/cocoa/GPURenderPassDescriptorMetal.mm
+-platform/graphics/cocoa/GPURenderPipelineColorAttachmentDescriptorMetal.mm
+-platform/graphics/cocoa/GPURenderPipelineDescriptorMetal.mm
+-platform/graphics/cocoa/GPURenderPipelineStateMetal.mm
+-platform/graphics/cocoa/GPUTextureDescriptorMetal.mm
+-platform/graphics/cocoa/GPUTextureMetal.mm
+ platform/graphics/cocoa/GraphicsContext3DCocoa.mm
+ platform/graphics/cocoa/GraphicsContextCocoa.mm
+ platform/graphics/cocoa/FontCacheCoreText.cpp
+@@ -271,7 +250,6 @@ platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm
+ platform/graphics/cocoa/WebCoreCALayerExtras.mm
+ platform/graphics/cocoa/WebCoreDecompressionSession.mm
+ platform/graphics/cocoa/WebGLLayer.mm
+-platform/graphics/cocoa/WebGPULayer.mm
+ platform/graphics/cocoa/TextTrackRepresentationCocoa.mm
+ 
+ platform/graphics/cv/PixelBufferConformerCV.cpp
+diff --git a/Source/WebCore/css/StyleResolver.cpp b/Source/WebCore/css/StyleResolver.cpp
+index 89a42fbae..54290f0d6 100644
+--- a/Source/WebCore/css/StyleResolver.cpp
++++ b/Source/WebCore/css/StyleResolver.cpp
+@@ -216,7 +216,14 @@ StyleResolver::StyleResolver(Document& document)
+     if (view)
+         m_mediaQueryEvaluator = MediaQueryEvaluator { view->mediaType() };
+     else
+-        m_mediaQueryEvaluator = MediaQueryEvaluator { "all" };
++        // [leopard-webkit-build] Wrap "all" in String explicitly: the modern Apple
++        // clang on the build host treats -Wc++11-narrowing as an error (older
++        // upstream clang only warned). With bare {"all"} overload resolution
++        // prefers the explicit MediaQueryEvaluator(bool) (standard conversion,
++        // narrowing) over MediaQueryEvaluator(const String&) (user-defined),
++        // which fails the braced-init narrowing check. An explicit String forces
++        // the intended String overload.
++        m_mediaQueryEvaluator = MediaQueryEvaluator { String { "all" } };
+ 
+     if (root) {
+         m_rootDefaultStyle = styleForElement(*root, m_document.renderStyle(), nullptr, MatchOnlyUserAgentRules).renderStyle;
+diff --git a/Source/WebCore/editing/mac/DictionaryLookup.mm b/Source/WebCore/editing/mac/DictionaryLookup.mm
+index 4d96b7ec2..5d60727fa 100644
+--- a/Source/WebCore/editing/mac/DictionaryLookup.mm
++++ b/Source/WebCore/editing/mac/DictionaryLookup.mm
+@@ -232,7 +232,14 @@ static PlatformAnimationController showPopupOrCreateAnimationController(bool cre
+ 
+     // Convert to screen coordinates.
+     textBaselineOrigin = [view convertPoint:textBaselineOrigin toView:nil];
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] NSWindow -convertRectToScreen: is 10.7+. On 10.6 the
++    // classic -convertBaseToScreen: is point-based, so convert just the origin
++    // (the rect wrapper carried zero size; this matches that transform exactly).
+     textBaselineOrigin = [view.window convertRectToScreen:NSMakeRect(textBaselineOrigin.x, textBaselineOrigin.y, 0, 0)].origin;
++#else
++    textBaselineOrigin = [view.window convertBaseToScreen:textBaselineOrigin];
++#endif
+ 
+     if (createAnimationController)
+         return [getLULookupDefinitionModuleClass() lookupAnimationControllerForTerm:dictionaryPopupInfo.attributedString.get() atLocation:textBaselineOrigin options:mutableOptions.get()];
+diff --git a/Source/WebCore/html/HTMLAttachmentElement.cpp b/Source/WebCore/html/HTMLAttachmentElement.cpp
+index 1f445e806..8592ad8f7 100644
+--- a/Source/WebCore/html/HTMLAttachmentElement.cpp
++++ b/Source/WebCore/html/HTMLAttachmentElement.cpp
+@@ -145,10 +145,15 @@ void HTMLAttachmentElement::invalidateShadowRootChildrenIfNecessary()
+         image->setAttributeWithoutSynchronization(srcAttr, emptyString());
+         image->setInlineStyleProperty(CSSPropertyDisplay, CSSValueNone, true);
+     }
++#if ENABLE(VIDEO)
++    // [leopard-webkit-build] HTMLVideoElement is only defined under ENABLE(VIDEO)
++    // (html/HTMLVideoElement.h gates the entire class). On the 10.6 build VIDEO=0,
++    // so the inner-video invalidation path is inert — attachments never host video.
+     if (auto video = innerVideo()) {
+         video->setAttributeWithoutSynchronization(srcAttr, emptyString());
+         video->setInlineStyleProperty(CSSPropertyDisplay, CSSValueNone, true);
+     }
++#endif
+ }
+ 
+ RenderAttachment* HTMLAttachmentElement::attachmentRenderer() const
+@@ -250,6 +255,7 @@ Ref<HTMLImageElement> HTMLAttachmentElement::ensureInnerImage()
+     return image;
+ }
+ 
++#if ENABLE(VIDEO)
+ Ref<HTMLVideoElement> HTMLAttachmentElement::ensureInnerVideo()
+ {
+     if (auto video = innerVideo())
+@@ -259,6 +265,7 @@ Ref<HTMLVideoElement> HTMLAttachmentElement::ensureInnerVideo()
+     ensureUserAgentShadowRoot().appendChild(video);
+     return video;
+ }
++#endif
+ 
+ RefPtr<HTMLImageElement> HTMLAttachmentElement::innerImage() const
+ {
+@@ -267,12 +274,14 @@ RefPtr<HTMLImageElement> HTMLAttachmentElement::innerImage() const
+     return nullptr;
+ }
+ 
++#if ENABLE(VIDEO)
+ RefPtr<HTMLVideoElement> HTMLAttachmentElement::innerVideo() const
+ {
+     if (auto root = userAgentShadowRoot())
+         return childrenOfType<HTMLVideoElement>(*root).first();
+     return nullptr;
+ }
++#endif
+ 
+ void HTMLAttachmentElement::populateShadowRootIfNecessary()
+ {
+@@ -297,12 +306,19 @@ void HTMLAttachmentElement::populateShadowRootIfNecessary()
+         }
+ 
+     } else if (MIMETypeRegistry::isSupportedMediaMIMEType(mimeType)) {
++#if ENABLE(VIDEO)
++        // [leopard-webkit-build] ensureInnerVideo()/HTMLVideoElement only exist
++        // under ENABLE(VIDEO). On VIDEO=0 isSupportedMediaMIMEType() is always
++        // false anyway, so this branch is dead, but gate the body so it compiles.
+         auto video = ensureInnerVideo();
+         if (video->attributeWithoutSynchronization(srcAttr).isEmpty()) {
+             video->setAttributeWithoutSynchronization(srcAttr, DOMURL::createObjectURL(document(), *m_file));
+             video->setAttributeWithoutSynchronization(controlsAttr, emptyString());
+             video->setInlineStyleProperty(CSSPropertyDisplay, CSSValueInline, true);
+         }
++#else
++        // Media MIME types are unsupported without ENABLE(VIDEO); nothing to render.
++#endif
+     }
+ }
+ 
+diff --git a/Source/WebCore/html/HTMLAttachmentElement.h b/Source/WebCore/html/HTMLAttachmentElement.h
+index 1795d1fd0..67c36c39d 100644
+--- a/Source/WebCore/html/HTMLAttachmentElement.h
++++ b/Source/WebCore/html/HTMLAttachmentElement.h
+@@ -73,9 +73,13 @@ private:
+ 
+     RenderPtr<RenderElement> createElementRenderer(RenderStyle&&, const RenderTreePosition&) final;
+     Ref<HTMLImageElement> ensureInnerImage();
++#if ENABLE(VIDEO)
+     Ref<HTMLVideoElement> ensureInnerVideo();
++#endif
+     RefPtr<HTMLImageElement> innerImage() const;
++#if ENABLE(VIDEO)
+     RefPtr<HTMLVideoElement> innerVideo() const;
++#endif
+ 
+     void populateShadowRootIfNecessary();
+     void invalidateShadowRootChildrenIfNecessary();
+diff --git a/Source/WebCore/page/AlternativeTextClient.h b/Source/WebCore/page/AlternativeTextClient.h
+index 935593788..56ed3aca9 100644
+--- a/Source/WebCore/page/AlternativeTextClient.h
++++ b/Source/WebCore/page/AlternativeTextClient.h
+@@ -31,8 +31,15 @@
+ 
+ #if PLATFORM(MAC)
+ // Some platforms provide UI for suggesting alternative dictation text.
++// [leopard-webkit-build] NSTextAlternatives + the NSSpellChecker
++// showCorrectionIndicatorOfType: SPI it depends on are 10.8+; gate the feature
++// off for the 10.6 target so AlternativeTextUIController.mm (which #imports
++// <AppKit/NSTextAlternatives.h>) and the matching WebKitLegacy client compile
++// out cleanly. Dictation-alternative indicators are inert on 10.6 anyway.
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
+ #define USE_DICTATION_ALTERNATIVES 1
+ #endif
++#endif
+ 
+ namespace WebCore {
+ 
+diff --git a/Source/WebCore/page/CaptionUserPreferencesMediaAF.cpp b/Source/WebCore/page/CaptionUserPreferencesMediaAF.cpp
+index 70c55a7f6..04e2fa25e 100644
+--- a/Source/WebCore/page/CaptionUserPreferencesMediaAF.cpp
++++ b/Source/WebCore/page/CaptionUserPreferencesMediaAF.cpp
+@@ -25,7 +25,8 @@
+ 
+ #include "config.h"
+ 
+-#if ENABLE(VIDEO_TRACK)
++// [leopard-webkit-build] Gate under USE(AVFOUNDATION) — uses MediaToolbox/AVF SPIs (10.7+).
++#if ENABLE(VIDEO_TRACK) && USE(AVFOUNDATION)
+ 
+ #if !USE(DIRECT2D)
+ 
+diff --git a/Source/WebCore/page/Crypto.cpp b/Source/WebCore/page/Crypto.cpp
+index 5f7ee0804..0db981bea 100644
+--- a/Source/WebCore/page/Crypto.cpp
++++ b/Source/WebCore/page/Crypto.cpp
+@@ -38,6 +38,17 @@
+ 
+ #if OS(DARWIN)
+ #include "CommonCryptoUtilities.h"
++// [leopard-webkit-build] CommonCryptoUtilities.h gates its entire body (including
++// the CCRandom declarations) under ENABLE(SUBTLE_CRYPTO). Crypto.cpp's
++// getRandomValues() uses CCRandomCopyBytes/kCCRandomDefault/kCCSuccess on every
++// Darwin build regardless of SubtleCrypto. Forward-declare the minimal set and
++// pull in kCCSuccess when the SubtleCrypto feature is off.
++#if !ENABLE(SUBTLE_CRYPTO)
++#include <CommonCrypto/CommonCryptor.h>
++typedef struct __CCRandom *CCRandomRef;
++extern const CCRandomRef kCCRandomDefault;
++extern "C" int CCRandomCopyBytes(CCRandomRef, void *, size_t);
++#endif
+ #endif
+ 
+ namespace WebCore {
+diff --git a/Source/WebCore/page/DOMWindow.cpp b/Source/WebCore/page/DOMWindow.cpp
+index e51e30e79..16ee4b357 100644
+--- a/Source/WebCore/page/DOMWindow.cpp
++++ b/Source/WebCore/page/DOMWindow.cpp
+@@ -124,6 +124,14 @@
+ #include "WebKitNamespace.h"
+ #endif
+ 
++// [leopard-webkit-build] UserContentProvider is consumed by the
++// ENABLE(CONTENT_EXTENSIONS) popup blocker (DOMWindow::openmnem), not just the
++// USER_MESSAGE_HANDLERS path; include it under the gate that matches the call site
++// (USER_MESSAGE_HANDLERS is off on the 10.6 build but CONTENT_EXTENSIONS is on).
++#if ENABLE(CONTENT_EXTENSIONS)
++#include "UserContentProvider.h"
++#endif
++
+ #if ENABLE(GAMEPAD)
+ #include "GamepadManager.h"
+ #endif
+diff --git a/Source/WebCore/page/DeprecatedGlobalSettings.cpp b/Source/WebCore/page/DeprecatedGlobalSettings.cpp
+index 269d93b45..576426d6d 100644
+--- a/Source/WebCore/page/DeprecatedGlobalSettings.cpp
++++ b/Source/WebCore/page/DeprecatedGlobalSettings.cpp
+@@ -93,7 +93,11 @@ void DeprecatedGlobalSettings::setAVFoundationEnabled(bool enabled)
+         return;
+ 
+     gAVFoundationEnabled = enabled;
++#if ENABLE(VIDEO)
++    // [leopard-webkit-build] HTMLMediaElement is only defined under ENABLE(VIDEO).
++    // The AVFoundation/QTKit media-backend toggles are no-ops on a VIDEO=0 build.
+     HTMLMediaElement::resetMediaEngines();
++#endif
+ }
+ 
+ void DeprecatedGlobalSettings::setAVFoundationNSURLSessionEnabled(bool enabled)
+@@ -112,7 +116,11 @@ void DeprecatedGlobalSettings::setQTKitEnabled(bool enabled)
+         return;
+ 
+     gQTKitEnabled = enabled;
++#if ENABLE(VIDEO)
++    // [leopard-webkit-build] HTMLMediaElement is only defined under ENABLE(VIDEO).
++    // The AVFoundation/QTKit media-backend toggles are no-ops on a VIDEO=0 build.
+     HTMLMediaElement::resetMediaEngines();
++#endif
+ }
+ #endif
+ 
+@@ -125,8 +133,12 @@ void DeprecatedGlobalSettings::setGStreamerEnabled(bool enabled)
+     gGStreamerEnabled = enabled;
+ 
+ #if ENABLE(VIDEO)
++#if ENABLE(VIDEO)
++    // [leopard-webkit-build] HTMLMediaElement is only defined under ENABLE(VIDEO).
++    // The AVFoundation/QTKit media-backend toggles are no-ops on a VIDEO=0 build.
+     HTMLMediaElement::resetMediaEngines();
+ #endif
++#endif
+ }
+ #endif
+ 
+diff --git a/Source/WebCore/page/Page.cpp b/Source/WebCore/page/Page.cpp
+index ec34669f3..72976c1bc 100644
+--- a/Source/WebCore/page/Page.cpp
++++ b/Source/WebCore/page/Page.cpp
+@@ -70,6 +70,10 @@
+ #include "PageConfiguration.h"
+ #include "PageConsoleClient.h"
+ #include "PageDebuggable.h"
++// [leopard-webkit-build] ApplicationStateChangeListener is used as a complete type
++// at Page.cpp:2366/2385 (member access); the forward declaration Page.h ships is
++// insufficient. Include the full definition.
++#include "ApplicationStateChangeListener.h"
+ #include "PageGroup.h"
+ #include "PageOverlayController.h"
+ #include "PerformanceLoggingClient.h"
+diff --git a/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm b/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm
+index 2896fe197..7c448f107 100644
+--- a/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm
++++ b/Source/WebCore/page/cocoa/PerformanceLoggingCocoa.mm
+@@ -33,16 +33,24 @@ namespace WebCore {
+ 
+ std::optional<uint64_t> PerformanceLogging::physicalFootprint()
+ {
++// [leopard-webkit-build] task_vm_info_data_t / TASK_VM_INFO / TASK_VM_INFO_COUNT are
++// 10.9+ (mach/task_info.h). On 10.6 there is no per-task VM-footprint API; return
++// nullopt so the caller reports "unavailable" rather than crashing.
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
+     task_vm_info_data_t vmInfo;
+     mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
+     kern_return_t result = task_info(mach_task_self(), TASK_VM_INFO, (task_info_t) &vmInfo, &count);
+     if (result != KERN_SUCCESS)
+         return std::nullopt;
+     return vmInfo.phys_footprint;
++#else
++    return std::nullopt;
++#endif
+ }
+ 
+ void PerformanceLogging::getPlatformMemoryUsageStatistics(HashMap<const char*, size_t>& stats)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
+     task_vm_info_data_t vmInfo;
+     mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
+     kern_return_t err = task_info(mach_task_self(), TASK_VM_INFO, (task_info_t) &vmInfo, &count);
+@@ -53,6 +61,9 @@ void PerformanceLogging::getPlatformMemoryUsageStatistics(HashMap<const char*, s
+     stats.add("phys_footprint", static_cast<size_t>(vmInfo.phys_footprint));
+     stats.add("resident_size", static_cast<size_t>(vmInfo.resident_size));
+     stats.add("virtual_size", static_cast<size_t>(vmInfo.virtual_size));
++#else
++    UNUSED_PARAM(stats);
++#endif
+ }
+ 
+ }
+diff --git a/Source/WebCore/page/cocoa/ResourceUsageThreadCocoa.mm b/Source/WebCore/page/cocoa/ResourceUsageThreadCocoa.mm
+index 55462076d..7df46a707 100644
+--- a/Source/WebCore/page/cocoa/ResourceUsageThreadCocoa.mm
++++ b/Source/WebCore/page/cocoa/ResourceUsageThreadCocoa.mm
+@@ -129,8 +129,15 @@ std::array<TagInfo, 256> pagesPerVMTag()
+ 
+         bool anonymous = !info.external_pager;
+         if (anonymous) {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
++            // [leopard-webkit-build] pages_reusable was added to
++            // vm_region_submap_info_64 in 10.9; on 10.6 treat all resident pages as
++            // dirty (no reusable subset reported by the kernel).
+             tags[info.user_tag].dirty += info.pages_resident - info.pages_reusable;
+             tags[info.user_tag].reclaimable += info.pages_reusable;
++#else
++            tags[info.user_tag].dirty += info.pages_resident;
++#endif
+         } else
+             tags[info.user_tag].dirty += info.pages_dirtied;
+     }
+diff --git a/Source/WebCore/page/mac/TextIndicatorWindow.mm b/Source/WebCore/page/mac/TextIndicatorWindow.mm
+index cd1a56ee8..81d9fa358 100644
+--- a/Source/WebCore/page/mac/TextIndicatorWindow.mm
++++ b/Source/WebCore/page/mac/TextIndicatorWindow.mm
+@@ -168,11 +168,15 @@ static bool indicatorWantsManualAnimation(const TextIndicator& indicator)
+ 
+     RetainPtr<NSMutableArray> bounceLayers = adoptNS([[NSMutableArray alloc] init]);
+ 
+-    RetainPtr<CGColorRef> highlightColor = [NSColor colorWithDeviceRed:1 green:1 blue:0 alpha:1].CGColor;
+-    RetainPtr<CGColorRef> rimShadowColor = [NSColor colorWithDeviceWhite:0 alpha:0.35].CGColor;
+-    RetainPtr<CGColorRef> dropShadowColor = [NSColor colorWithDeviceWhite:0 alpha:0.2].CGColor;
+-
+-    RetainPtr<CGColorRef> borderColor = [NSColor colorWithDeviceRed:.96 green:.90 blue:0 alpha:1].CGColor;
++    // [leopard-webkit-build] NSColor -CGColor is 10.8+; the 10.6 SDK has no such
++    // property. These are device-RGB/device-gray colors with known components, so
++    // build the CGColorRefs directly via CGColorCreateGenericRGB (10.5+, in
++    // CoreGraphics). The values match the original NSColor components exactly.
++    RetainPtr<CGColorRef> highlightColor = adoptCF(CGColorCreateGenericRGB(1, 1, 0, 1));
++    RetainPtr<CGColorRef> rimShadowColor = adoptCF(CGColorCreateGenericRGB(0, 0, 0, 0.35));
++    RetainPtr<CGColorRef> dropShadowColor = adoptCF(CGColorCreateGenericRGB(0, 0, 0, 0.2));
++
++    RetainPtr<CGColorRef> borderColor = adoptCF(CGColorCreateGenericRGB(0.96, 0.90, 0, 1));
+ 
+     Vector<FloatRect> textRectsInBoundingRectCoordinates = _textIndicator->textRectsInBoundingRectCoordinates();
+ 
+diff --git a/Source/WebCore/platform/audio/PlatformMediaSession.cpp b/Source/WebCore/platform/audio/PlatformMediaSession.cpp
+index 27ab225f3..4d890fdfb 100644
+--- a/Source/WebCore/platform/audio/PlatformMediaSession.cpp
++++ b/Source/WebCore/platform/audio/PlatformMediaSession.cpp
+@@ -26,7 +26,7 @@
+ #include "config.h"
+ #include "PlatformMediaSession.h"
+ 
+-#if ENABLE(VIDEO) || ENABLE(WEB_AUDIO)
++#if ENABLE(VIDEO) || ENABLE(WEB_AUDIO) || PLATFORM(COCOA)
+ #include "HTMLMediaElement.h"
+ #include "Logging.h"
+ #include "MediaPlayer.h"
+diff --git a/Source/WebCore/platform/audio/PlatformMediaSessionManager.cpp b/Source/WebCore/platform/audio/PlatformMediaSessionManager.cpp
+index 1430355c8..b19971cba 100644
+--- a/Source/WebCore/platform/audio/PlatformMediaSessionManager.cpp
++++ b/Source/WebCore/platform/audio/PlatformMediaSessionManager.cpp
+@@ -33,7 +33,7 @@
+ 
+ namespace WebCore {
+ 
+-#if ENABLE(VIDEO) || ENABLE(WEB_AUDIO)
++#if ENABLE(VIDEO) || ENABLE(WEB_AUDIO) || PLATFORM(COCOA)
+ 
+ #if !PLATFORM(COCOA)
+ static PlatformMediaSessionManager* platformMediaSessionManager = nullptr;
+diff --git a/Source/WebCore/platform/audio/mac/AudioHardwareListenerMac.h b/Source/WebCore/platform/audio/mac/AudioHardwareListenerMac.h
+index 6057d3840..b768160a1 100644
+--- a/Source/WebCore/platform/audio/mac/AudioHardwareListenerMac.h
++++ b/Source/WebCore/platform/audio/mac/AudioHardwareListenerMac.h
+@@ -33,6 +33,18 @@
+ 
+ #include <CoreAudio/AudioHardware.h>
+ 
++#if __MAC_OS_X_VERSION_MAX_ALLOWED < 1070
++// [leopard-webkit-build] AudioObjectPropertyListenerBlock and the block-based
++// AudioObject{Add,Remove}PropertyListenerBlock functions are 10.7+ CoreAudio.
++// The 10.6 SDK ships only the C-callback variant (AudioObjectPropertyListenerProc).
++// Provide the block typedef + extern declarations; sdk_stubs_605.mm supplies no-op
++// implementations (audio-hardware change callbacks are inert on 10.6 — degraded
++// but functional; Safari launches without dynamic output-device-change detection).
++typedef void (^AudioObjectPropertyListenerBlock)(UInt32, const AudioObjectPropertyAddress[]);
++extern OSStatus AudioObjectAddPropertyListenerBlock(AudioObjectID, const AudioObjectPropertyAddress*, dispatch_queue_t, AudioObjectPropertyListenerBlock);
++extern OSStatus AudioObjectRemovePropertyListenerBlock(AudioObjectID, const AudioObjectPropertyAddress*, dispatch_queue_t, AudioObjectPropertyListenerBlock);
++#endif
++
+ namespace WebCore {
+ 
+ class AudioHardwareListenerMac : public AudioHardwareListener {
+diff --git a/Source/WebCore/platform/audio/mac/MediaSessionManagerMac.mm b/Source/WebCore/platform/audio/mac/MediaSessionManagerMac.mm
+index 106f95a8b..1cabe5ea8 100644
+--- a/Source/WebCore/platform/audio/mac/MediaSessionManagerMac.mm
++++ b/Source/WebCore/platform/audio/mac/MediaSessionManagerMac.mm
+@@ -107,8 +107,12 @@ void MediaSessionManagerMac::clientCharacteristicsChanged(PlatformMediaSession&)
+ 
+ PlatformMediaSession* MediaSessionManagerMac::nowPlayingEligibleSession()
+ {
++#if ENABLE(VIDEO)
++    // [leopard-webkit-build] HTMLMediaElement is only defined under ENABLE(VIDEO);
++    // on VIDEO=0 the now-playing eligibility check has no media elements to find.
+     if (auto element = HTMLMediaElement::bestMediaElementForShowingPlaybackControlsManager(MediaElementSession::PlaybackControlsPurpose::NowPlaying))
+         return &element->mediaSession();
++#endif
+ 
+     return nullptr;
+ }
+diff --git a/Source/WebCore/platform/cocoa/VideoToolboxSoftLink.cpp b/Source/WebCore/platform/cocoa/VideoToolboxSoftLink.cpp
+index 23c4978ca..45fa4497f 100644
+--- a/Source/WebCore/platform/cocoa/VideoToolboxSoftLink.cpp
++++ b/Source/WebCore/platform/cocoa/VideoToolboxSoftLink.cpp
+@@ -25,6 +25,11 @@
+ 
+ #include "config.h"
+ 
++// [leopard-webkit-build] VideoToolbox.framework is 10.8+ and absent from the 10.6
++// SDK. Gate under USE(VIDEOTOOLBOX) (which is gated ≥10.8 in Platform.h) so the
++// soft-link TU compiles to an empty .o on 10.6 where VideoToolbox doesn't exist.
++#if ENABLE(VIDEO) && USE(VIDEOTOOLBOX)
++
+ #include <VideoToolbox/VideoToolbox.h>
+ #include <wtf/SoftLinking.h>
+ 
+@@ -50,3 +55,5 @@ SOFT_LINK_CONSTANT_FOR_SOURCE(WebCore, VideoToolbox, kVTDecompressionPropertyKey
+ SOFT_LINK_CONSTANT_FOR_SOURCE(WebCore, VideoToolbox, kVTImageRotationPropertyKey_EnableHighSpeedTransfer, CFStringRef)
+ SOFT_LINK_CONSTANT_FOR_SOURCE(WebCore, VideoToolbox, kVTImageRotationPropertyKey_FlipHorizontalOrientation, CFStringRef)
+ SOFT_LINK_CONSTANT_FOR_SOURCE(WebCore, VideoToolbox, kVTImageRotationPropertyKey_FlipVerticalOrientation, CFStringRef)
++
++#endif // ENABLE(VIDEO)
+diff --git a/Source/WebCore/platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.mm b/Source/WebCore/platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.mm
+index 2aafa1c11..31ba53dd1 100644
+--- a/Source/WebCore/platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.mm
++++ b/Source/WebCore/platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.mm
+@@ -26,7 +26,9 @@
+ #include "config.h"
+ #include "AVTrackPrivateAVFObjCImpl.h"
+ 
+-#if ENABLE(VIDEO_TRACK)
++// [leopard-webkit-build] Gate under USE(AVFOUNDATION) too — this TU imports
++// <AVFoundation/AVAssetTrack.h> (10.7+); on 10.6 where USE(AVFOUNDATION)=0 it compiles out.
++#if ENABLE(VIDEO_TRACK) && USE(AVFOUNDATION)
+ 
+ #import "MediaSelectionGroupAVFObjC.h"
+ #import <AVFoundation/AVAssetTrack.h>
+diff --git a/Source/WebCore/platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm b/Source/WebCore/platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm
+index a23d809d3..9f82e5cdd 100644
+--- a/Source/WebCore/platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm
++++ b/Source/WebCore/platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm
+@@ -26,7 +26,8 @@
+ #import "config.h"
+ #import "MediaSelectionGroupAVFObjC.h"
+ 
+-#if ENABLE(VIDEO_TRACK)
++// [leopard-webkit-build] Gate under USE(AVFOUNDATION) — imports AVFoundation (10.7+).
++#if ENABLE(VIDEO_TRACK) && USE(AVFOUNDATION)
+ 
+ #import <AVFoundation/AVAsset.h>
+ #import <AVFoundation/AVMediaSelectionGroup.h>
+diff --git a/Source/WebCore/platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm b/Source/WebCore/platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm
+index fb52c754e..f351aaa5b 100644
+--- a/Source/WebCore/platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm
++++ b/Source/WebCore/platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm
+@@ -35,6 +35,12 @@
+ #import <pal/cf/CoreMediaSoftLink.h>
+ #import "CoreVideoSoftLink.h"
+ 
++// [leopard-webkit-build] Gate under USE(AVFOUNDATION) — this TU uses CoreMedia
++// functions/types (CMSampleBuffer*, CMVideoFormatDescription*) that are only
++// available via the AVF/CoreMedia soft-link path. On 10.6 where USE(AVFOUNDATION)=0
++// the body compiles out (the class declaration in the .h is sufficient for callers).
++#if ENABLE(VIDEO) && USE(AVFOUNDATION)
++
+ using namespace PAL;
+ 
+ WTF_DECLARE_CF_TYPE_TRAIT(CMSampleBuffer);
+@@ -302,3 +308,5 @@ RefPtr<JSC::Uint8ClampedArray> MediaSampleAVFObjC::getRGBAImageData() const
+ }
+ 
+ }
++
++#endif // ENABLE(VIDEO) && USE(AVFOUNDATION)
+\ No newline at end of file
+diff --git a/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm b/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm
+index 82d76d6b2..5b715adb7 100644
+--- a/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm
++++ b/Source/WebCore/platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm
+@@ -690,14 +690,26 @@ void PlatformCALayerCocoa::setMasksToBounds(bool value)
+ 
+ bool PlatformCALayerCocoa::acceleratesDrawing() const
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
+     return [m_layer drawsAsynchronously];
++#else
++    // -[CALayer drawsAsynchronously] is a 10.8+ SPI; absent on 10.6.
++    return false;
++#endif
+ }
+ 
+ void PlatformCALayerCocoa::setAcceleratesDrawing(bool acceleratesDrawing)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
+     BEGIN_BLOCK_OBJC_EXCEPTIONS
+     [m_layer setDrawsAsynchronously:acceleratesDrawing];
+     END_BLOCK_OBJC_EXCEPTIONS
++#else
++    // -[CALayer setDrawsAsynchronously:] is a 10.8+ SPI; on 10.6 CALayer does not
++    // respond to it, so sending it raises "unrecognized selector" and terminates
++    // the app. Async/accelerated layer drawing is simply unavailable on 10.6.
++    UNUSED_PARAM(acceleratesDrawing);
++#endif
+ }
+ 
+ bool PlatformCALayerCocoa::wantsDeepColorBackingStore() const
+@@ -883,15 +895,26 @@ void PlatformCALayerCocoa::setTimeOffset(CFTimeInterval value)
+ 
+ float PlatformCALayerCocoa::contentsScale() const
+ {
++#if PLATFORM(IOS) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     return [m_layer contentsScale];
++#else
++    // CALayer.contentsScale is 10.7+; on 10.6 the layer's backing store is always
++    // at a 1.0 scale (no Retina), so report the effective scale as 1.0.
++    return 1.0f;
++#endif
+ }
+ 
+ void PlatformCALayerCocoa::setContentsScale(float value)
+ {
+     BEGIN_BLOCK_OBJC_EXCEPTIONS
++#if PLATFORM(IOS) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     [m_layer setContentsScale:value];
+ #if PLATFORM(IOS)
+     [m_layer setRasterizationScale:value];
++#endif
++#else
++    // CALayer.contentsScale is 10.7+ — no-op on 10.6 (always 1.0).
++    UNUSED_PARAM(value);
+ #endif
+     END_BLOCK_OBJC_EXCEPTIONS
+ }
+diff --git a/Source/WebCore/platform/graphics/cg/ImageBufferDataCG.cpp b/Source/WebCore/platform/graphics/cg/ImageBufferDataCG.cpp
+index 548d7970a..5af75e176 100644
+--- a/Source/WebCore/platform/graphics/cg/ImageBufferDataCG.cpp
++++ b/Source/WebCore/platform/graphics/cg/ImageBufferDataCG.cpp
+@@ -81,7 +81,9 @@ static void premultiplyBufferData(const vImage_Buffer& src, const vImage_Buffer&
+ 
+ static inline void transferData(void* output, void* input, int width, int height, size_t inputBytesPerRow)
+ {
+-#if USE(ACCELERATE)
++// [leopard-webkit-build] vImageUnpremultiplyData_BGRA8888 (and the matching BGRA
++// premultiply) are 10.8+ Accelerate APIs. On 10.6 fall to the non-accelerated path.
++#if USE(ACCELERATE) && (!PLATFORM(MAC) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080)
+     ASSERT(input);
+     ASSERT(output);
+ 
+diff --git a/Source/WebCore/platform/graphics/cg/PathCG.cpp b/Source/WebCore/platform/graphics/cg/PathCG.cpp
+index e959abf2e..0aea694e1 100644
+--- a/Source/WebCore/platform/graphics/cg/PathCG.cpp
++++ b/Source/WebCore/platform/graphics/cg/PathCG.cpp
+@@ -221,7 +221,9 @@ void Path::transform(const AffineTransform& transform)
+         return;
+ 
+     CGAffineTransform transformCG = transform;
+-#if PLATFORM(WIN)
++#if PLATFORM(WIN) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 1090)
++    // [leopard-webkit-build] CGPathCreateMutableCopyByTransformingPath is 10.9+.
++    // On 10.6 / Windows, build the transformed copy via the 10.6-available primitives.
+     CGMutablePathRef path = CGPathCreateMutable();
+     CGPathAddPath(path, &transformCG, m_path);
+ #else
+@@ -315,6 +317,12 @@ void Path::platformAddPathForRoundedRect(const FloatRect& rect, const FloatSize&
+             radiusWidth = rectWidth / 2 - std::numeric_limits<CGFloat>::epsilon();
+         if (rectHeight < 2 * radiusHeight)
+             radiusHeight = rectHeight / 2 - std::numeric_limits<CGFloat>::epsilon();
++#if __MAC_OS_X_VERSION_MAX_ALLOWED < 1090
++    // [leopard-webkit-build] CGPathAddRoundedRect is 10.9+. The stub in
++    // sdk_stubs_605.mm delegates to CGPathAddRect (rounded corners lost on 10.6 —
++    // cosmetic only). Declare it here so this TU compiles against the 10.6 SDK.
++    extern void CGPathAddRoundedRect(CGMutablePathRef, const CGAffineTransform*, CGRect, CGFloat, CGFloat);
++#endif
+         CGPathAddRoundedRect(ensurePlatformPath(), nullptr, rectToDraw, radiusWidth, radiusHeight);
+         return;
+     }
+diff --git a/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm b/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm
+index 29d30e443..1f27ed9a7 100644
+--- a/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm
++++ b/Source/WebCore/platform/graphics/cocoa/FontCascadeCocoa.mm
+@@ -163,8 +163,27 @@ static void showGlyphsWithAdvances(const FloatPoint& point, const Font& font, CG
+         }
+         CTFontDrawGlyphs(platformData.ctFont(), glyphs, positions.data(), count, context);
+     } else {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED < 1070
++        // CTFontDrawGlyphs is a 10.7+ API (absent from the 10.6 CoreText headers).
++        // It is exported on 10.6 but undocumented there, and — critically — does not
++        // honor the per-glyph positions the way 10.7+ does: WebKit pre-transforms
++        // those positions with the *inverse* text matrix expecting 10.7+'s
++        // CTFontDrawGlyphs to re-apply it. On 10.6 that double-handling is lost, so
++        // the positions come out wrong and the flipped text matrix is ignored,
++        // producing mangled, vertically-mirrored glyphs. Fall back to the classic
++        // CoreGraphics glyph path, which honors CGContextSetTextPosition + the text
++        // matrix (hence the flip) correctly on every macOS back to 10.0. Both the
++        // simple and complex code paths route through this function, so this fixes
++        // all text rendering.
++        RetainPtr<CGFontRef> cgFont = adoptCF(CTFontCopyGraphicsFont(platformData.ctFont(), nullptr));
++        CGContextSetFont(context, cgFont.get());
++        CGContextSetFontSize(context, platformData.size());
++        CGContextShowGlyphsWithAdvances(context, glyphs, advances, count);
++        CGContextSetFont(context, nullptr);
++#else
+         fillVectorWithHorizontalGlyphPositions(positions, context, advances, count);
+         CTFontDrawGlyphs(platformData.ctFont(), glyphs, positions.data(), count, context);
++#endif
+     }
+ }
+ 
+diff --git a/Source/WebCore/platform/graphics/cocoa/GraphicsContext3DCocoa.mm b/Source/WebCore/platform/graphics/cocoa/GraphicsContext3DCocoa.mm
+index a0c26e4d8..93044ef36 100644
+--- a/Source/WebCore/platform/graphics/cocoa/GraphicsContext3DCocoa.mm
++++ b/Source/WebCore/platform/graphics/cocoa/GraphicsContext3DCocoa.mm
+@@ -355,10 +355,14 @@ static void setPixelFormat(Vector<CGLPixelFormatAttribute>& attribs, int colorBi
+     }
+ 
+     if (useGLES3) {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+         // FIXME: Instead of backing a WebGL2 GraphicsContext3D with a OpenGL 3.2 context, we should instead back it with ANGLE.
+         // Use an OpenGL 3.2 context for now until the ANGLE backend is ready.
++        // [leopard-webkit-build] kCGLPFAOpenGLProfile / kCGLOGLPVersion_3_2_Core are
++        // 10.7+ CGL constants; WebGL2/GLES3 isn't supported on 10.6 anyway — skip.
+         attribs.append(kCGLPFAOpenGLProfile);
+         attribs.append(static_cast<CGLPixelFormatAttribute>(kCGLOGLPVersion_3_2_Core));
++#endif
+     }
+         
+     attribs.append(static_cast<CGLPixelFormatAttribute>(0));
+@@ -456,7 +460,9 @@ GraphicsContext3D::GraphicsContext3D(GraphicsContext3DAttributes attrs, HostWind
+ 
+     CGLError err = CGLCreateContext(pixelFormatObj, sharedContext ? sharedContext->m_contextObj : nullptr, &m_contextObj);
+     GLint abortOnBlacklist = 0;
+-#if PLATFORM(MAC)
++#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
++    // [leopard-webkit-build] kCGLCPAbortOnGPURestartStatusBlacklisted is 10.10+;
++    // on 10.6-10.9 there is no GPU-restart blacklist mechanism — skip silently.
+     CGLSetParameter(m_contextObj, kCGLCPAbortOnGPURestartStatusBlacklisted, &abortOnBlacklist);
+ #elif PLATFORM(IOS)
+     CGLSetParameter(m_contextObj, kEAGLCPAbortOnGPURestartStatusBlacklisted, &abortOnBlacklist);
+@@ -647,7 +653,9 @@ void GraphicsContext3D::checkGPUStatus()
+     m_statusCheckCount = (m_statusCheckCount + 1) % statusCheckThreshold;
+ 
+     GLint restartStatus = 0;
+-#if PLATFORM(MAC)
++#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
++    // [leopard-webkit-build] kCGLCPGPURestartStatus* are 10.10+ CGL parameters;
++    // on 10.6-10.9 the GPU-restart detection API doesn't exist — skip the check.
+     CGLGetParameter(platformGraphicsContext3D(), kCGLCPGPURestartStatus, &restartStatus);
+     if (restartStatus == kCGLCPGPURestartStatusBlacklisted) {
+         LOG(WebGL, "The GPU has blacklisted us (%p). Terminating.", this);
+@@ -658,7 +666,7 @@ void GraphicsContext3D::checkGPUStatus()
+         forceContextLost();
+         CGLSetCurrentContext(0);
+     }
+-#else
++#elif PLATFORM(IOS)
+     EAGLContext* currentContext = static_cast<EAGLContext*>(PlatformGraphicsContext3D());
+     [currentContext getParameter:kEAGLCPGPURestartStatus to:&restartStatus];
+     if (restartStatus == kEAGLCPGPURestartStatusCaused || restartStatus == kEAGLCPGPURestartStatusBlacklisted) {
+@@ -685,7 +693,9 @@ void GraphicsContext3D::presentRenderbuffer()
+ 
+ bool GraphicsContext3D::texImageIOSurface2D(GC3Denum target, GC3Denum internalFormat, GC3Dsizei width, GC3Dsizei height, GC3Denum format, GC3Denum type, IOSurfaceRef surface, GC3Duint plane)
+ {
+-#if PLATFORM(MAC)
++#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] CGLTexImageIOSurface2D requires IOSurface-backed CGL
++    // texture upload (post-10.6 header); on 10.6 fall to the UNUSED_PARAM no-op path.
+     return kCGLNoError == CGLTexImageIOSurface2D(platformGraphicsContext3D(), target, internalFormat, width, height, format, type, surface, plane);
+ #elif PLATFORM(IOS) && !PLATFORM(IOS_SIMULATOR)
+     return [platformGraphicsContext3D() texImageIOSurface:surface target:target internalFormat:internalFormat width:width height:height format:format type:type plane:plane];
+@@ -723,7 +733,13 @@ void GraphicsContext3D::updateCGLContext()
+     LOG(WebGL, "Detected a mux switch or display reconfiguration. Call CGLUpdateContext. (%p)", this);
+ 
+     makeContextCurrent();
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] CGLUpdateContext (display-reconfiguration update) is
++    // declared in CGLCurrent.h on 10.5+ but the 10.6 SDK header surface around it
++    // is incomplete in this cross-compile; gate to ≥10.7 and skip on 10.6 (the
++    // mux-switch / display-reconfig path degrades to a no-op refresh).
+     CGLUpdateContext(m_contextObj);
++#endif
+ }
+ 
+ void GraphicsContext3D::setContextVisibility(bool isVisible)
+diff --git a/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm b/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm
+index bc5324e68..c17186c45 100644
+--- a/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm
++++ b/Source/WebCore/platform/graphics/cocoa/GraphicsContextCocoa.mm
+@@ -360,7 +360,7 @@ void GraphicsContext::drawLineForDocumentMarker(const FloatPoint& point, float w
+ #pragma clang diagnostic pop
+         CGContextDrawTiledImage(context, NSRectToCGRect(dotRect), cgImage);
+     } else {
+-        CGContextSetFillColorWithColor(context, [fallbackColor CGColor]);
++        CGContextSetFillColorWithColor(context, (CGColorRef)[fallbackColor CGColor]);
+         CGContextFillRect(context, destinationRect);
+     }
+ #else
+@@ -369,6 +369,17 @@ void GraphicsContext::drawLineForDocumentMarker(const FloatPoint& point, float w
+ }
+ 
+ #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED < 101200
++// [leopard-webkit-build] CGColorSpaceCreateWithICCProfile is deprecated; suppress the
++// warning via a file-scope helper so the #pragma is NOT inside the dispatch_once block
++// literal (clang rejects "#pragma within macro arguments" on the 10.6 SDK's dispatch_once).
++static CGColorSpaceRef createColorSpaceFromICCProfile(CFDataRef iccData)
++{
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wdeprecated-declarations"
++    return CGColorSpaceCreateWithICCProfile(iccData);
++#pragma clang diagnostic pop
++}
++
+ CGColorSpaceRef linearRGBColorSpaceRef()
+ {
+     static CGColorSpaceRef linearSRGBColorSpace;
+@@ -377,10 +388,7 @@ CGColorSpaceRef linearRGBColorSpaceRef()
+         RetainPtr<NSString> iccProfilePath = [[NSBundle bundleWithIdentifier:@"com.apple.WebCore"] pathForResource:@"linearSRGB" ofType:@"icc"];
+         RetainPtr<NSData> iccProfileData = adoptNS([[NSData alloc] initWithContentsOfFile:iccProfilePath.get()]);
+         if (iccProfileData)
+-#pragma clang diagnostic push
+-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+-            linearSRGBColorSpace = CGColorSpaceCreateWithICCProfile((CFDataRef)iccProfileData.get());
+-#pragma clang diagnostic pop
++            linearSRGBColorSpace = createColorSpaceFromICCProfile((CFDataRef)iccProfileData.get());
+ 
+         // If we fail to load the linearized sRGB ICC profile, fall back to sRGB.
+         if (!linearSRGBColorSpace)
+diff --git a/Source/WebCore/platform/graphics/cocoa/WebGLLayer.mm b/Source/WebCore/platform/graphics/cocoa/WebGLLayer.mm
+index a73f02aba..4225a88d3 100644
+--- a/Source/WebCore/platform/graphics/cocoa/WebGLLayer.mm
++++ b/Source/WebCore/platform/graphics/cocoa/WebGLLayer.mm
+@@ -56,7 +56,13 @@ using namespace WebCore;
+ #if PLATFORM(MAC)
+     self.contentsOpaque = !context->getContextAttributes().alpha;
+     self.transform = CATransform3DIdentity;
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] CALayer.contentsScale is 10.7+ (Retina backing); 10.6
++    // has no Retina displays, so the device-pixel-ratio scale is inert — skip.
+     self.contentsScale = _devicePixelRatio;
++#else
++    (void)_devicePixelRatio;
++#endif
+ #else
+     self.opaque = !context->getContextAttributes().alpha;
+ #endif
+@@ -178,8 +184,17 @@ static void freeData(void *, const void *data, size_t /* size */)
+     GC3Denum internalFormat = _usingAlpha ? GL_RGBA : GL_RGB;
+ 
+     // Link the IOSurface to the texture.
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] CGLTexImageIOSurface2D (IOSurface-backed CGL texture
++    // upload) is not declared in the 10.6 SDK header surface; gate to ≥10.7. On
++    // 10.6 the WebGL IOSurface fast-path is unavailable (WebGL falls back to the
++    // CPU raster path).
+     CGLError error = CGLTexImageIOSurface2D(_context->platformGraphicsContext3D(), GL_TEXTURE_RECTANGLE_ARB, internalFormat, _bufferSize.width(), _bufferSize.height(), GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, ioSurface, 0);
+     ASSERT_UNUSED(error, error == kCGLNoError);
++#else
++    UNUSED_PARAM(internalFormat);
++    UNUSED_PARAM(ioSurface);
++#endif
+ }
+ #endif
+ 
+diff --git a/Source/WebCore/platform/graphics/cv/VideoTextureCopierCV.cpp b/Source/WebCore/platform/graphics/cv/VideoTextureCopierCV.cpp
+index f6779e6b9..75e9d586b 100644
+--- a/Source/WebCore/platform/graphics/cv/VideoTextureCopierCV.cpp
++++ b/Source/WebCore/platform/graphics/cv/VideoTextureCopierCV.cpp
+@@ -24,6 +24,15 @@
+  */
+ 
+ #include "config.h"
++
++// [leopard-webkit-build] VideoTextureCopierCV is the WebGL↔CoreVideo texture-copy
++// path; it references CoreVideo pixel-format constants absent from the 10.6 SDK and
++// only makes sense with USE(AVFOUNDATION) (10.7+). Gate the whole body so it compiles
++// to an empty .o on 10.6.
++// .o on VIDEO=0 — the sole consumer (GraphicsContext3D video-texture upload) is itself
++// ENABLE(VIDEO)-gated.
++#if ENABLE(VIDEO) && USE(AVFOUNDATION)
++
+ #include "VideoTextureCopierCV.h"
+ 
+ #include "FourCC.h"
+@@ -945,3 +954,5 @@ bool VideoTextureCopierCV::copyVideoTextureToPlatformTexture(Platform3DObject vi
+ }
+ 
+ }
++
++#endif // ENABLE(VIDEO)
+diff --git a/Source/WebCore/platform/graphics/mac/ComplexTextControllerCoreText.mm b/Source/WebCore/platform/graphics/mac/ComplexTextControllerCoreText.mm
+index e8b3c74a2..803c8cac3 100644
+--- a/Source/WebCore/platform/graphics/mac/ComplexTextControllerCoreText.mm
++++ b/Source/WebCore/platform/graphics/mac/ComplexTextControllerCoreText.mm
+@@ -234,7 +234,10 @@ void ComplexTextController::collectComplexTextRunsForCharacters(const UChar* cp,
+ 
+     CFArrayRef runArray = CTLineGetGlyphRuns(line.get());
+ 
+-    CFIndex runCount = CFArrayGetCount(runArray);
++    // On 10.6 CoreText, CTLineGetGlyphRuns can return NULL where modern CoreText
++    // returns an empty array; CFArrayGetCount(NULL) then faults (KERN_INVALID_ADDRESS
++    // at 0x0). Treat NULL as zero runs so layout of the line simply yields no glyphs.
++    CFIndex runCount = runArray ? CFArrayGetCount(runArray) : 0;
+ 
+     for (CFIndex r = 0; r < runCount; r++) {
+         CTRunRef ctRun = static_cast<CTRunRef>(CFArrayGetValueAtIndex(runArray, m_run.ltr() ? r : runCount - 1 - r));
+diff --git a/Source/WebCore/platform/graphics/mac/FontCustomPlatformData.cpp b/Source/WebCore/platform/graphics/mac/FontCustomPlatformData.cpp
+index 069a7952b..374243ecc 100644
+--- a/Source/WebCore/platform/graphics/mac/FontCustomPlatformData.cpp
++++ b/Source/WebCore/platform/graphics/mac/FontCustomPlatformData.cpp
+@@ -27,6 +27,9 @@
+ #include "SharedBuffer.h"
+ #include <CoreGraphics/CoreGraphics.h>
+ #include <CoreText/CoreText.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
+ 
+ namespace WebCore {
+ 
+@@ -47,7 +50,35 @@ std::unique_ptr<FontCustomPlatformData> createFontCustomPlatformData(SharedBuffe
+ {
+     RetainPtr<CFDataRef> bufferData = buffer.createCFData();
+ 
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     RetainPtr<CTFontDescriptorRef> fontDescriptor = adoptCF(CTFontManagerCreateFontDescriptorFromData(bufferData.get()));
++#else
++    // [leopard-webkit-build] CTFontManagerCreateFontDescriptorFromData is 10.7+.
++    // 10.6 fallback: write the font data to a temp file and use the URL-based
++    // CTFontManagerCreateFontDescriptorsFromURL (available 10.6+). This preserves
++    // @font-face custom-font loading on 10.6.
++    RetainPtr<CTFontDescriptorRef> fontDescriptor;
++    const char* tmpDir = getenv("TMPDIR");
++    if (!tmpDir || !*tmpDir)
++        tmpDir = "/tmp";
++    char tempPath[PATH_MAX];
++    snprintf(tempPath, sizeof(tempPath), "%s/webkit-font.XXXXXX", tmpDir);
++    int fd = mkstemp(tempPath);
++    if (fd >= 0) {
++        CFIndex length = CFDataGetLength(bufferData.get());
++        ssize_t written = write(fd, CFDataGetBytePtr(bufferData.get()), length);
++        close(fd);
++        if (written == static_cast<ssize_t>(length)) {
++            RetainPtr<CFURLRef> tempURL = adoptCF(CFURLCreateFromFileSystemRepresentation(kCFAllocatorDefault, reinterpret_cast<const UInt8*>(tempPath), strlen(tempPath), false));
++            RetainPtr<CFArrayRef> descriptors = adoptCF(CTFontManagerCreateFontDescriptorsFromURL(tempURL.get()));
++            if (descriptors && CFArrayGetCount(descriptors.get()) > 0) {
++                CTFontDescriptorRef firstDesc = static_cast<CTFontDescriptorRef>(const_cast<void*>(CFArrayGetValueAtIndex(descriptors.get(), 0)));
++                fontDescriptor = adoptCF(static_cast<CTFontDescriptorRef>(CFRetain(firstDesc)));
++            }
++        }
++        unlink(tempPath);
++    }
++#endif
+     if (!fontDescriptor)
+         return nullptr;
+ 
+diff --git a/Source/WebCore/platform/graphics/opengl/Extensions3DOpenGLCommon.cpp b/Source/WebCore/platform/graphics/opengl/Extensions3DOpenGLCommon.cpp
+index cb6c84490..4716bff92 100644
+--- a/Source/WebCore/platform/graphics/opengl/Extensions3DOpenGLCommon.cpp
++++ b/Source/WebCore/platform/graphics/opengl/Extensions3DOpenGLCommon.cpp
+@@ -212,10 +212,18 @@ void Extensions3DOpenGLCommon::initializeAvailableExtensions()
+ {
+ #if PLATFORM(MAC) || (PLATFORM(GTK) && !USE(OPENGL_ES_2))
+     if (m_useIndexedGetString) {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++        // [leopard-webkit-build] glGetStringi (OpenGL 3.0+ indexed string query) is
++        // absent from the 10.6 SDK's OpenGL headers and the 10.6 runtime (OpenGL 2.1).
++        // Gate the indexed-get path to ≥10.7; on 10.6 fall through to the legacy
++        // glGetString(GL_EXTENSIONS) space-split path below.
+         GLint numExtensions = 0;
+         ::glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+         for (GLint i = 0; i < numExtensions; ++i)
+             m_availableExtensions.add(glGetStringi(GL_EXTENSIONS, i));
++#else
++        m_useIndexedGetString = false;
++#endif
+ 
+         if (!m_availableExtensions.contains(ASCIILiteral("GL_ARB_texture_storage"))) {
+             GLint majorVersion;
+diff --git a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp
+index 0e4ac4bbe..41e5ee3a9 100644
+--- a/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp
++++ b/Source/WebCore/platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp
+@@ -545,7 +545,12 @@ void GraphicsContext3D::bufferSubData(GC3Denum target, GC3Dintptr offset, GC3Dsi
+     ::glBufferSubData(target, offset, size, data);
+ }
+ 
+-#if PLATFORM(MAC) || PLATFORM(IOS) || PLATFORM(WPE)
++// [leopard-webkit-build] glMapBufferRange / glCopyBufferSubData / glTexStorage2D /
++// glTexStorage3D are OpenGL 3.0+/4.2+ core entry points absent from the 10.6 SDK
++// (10.6 ships OpenGL 2.1 only). Gate the implementations to ≥10.7; on 10.6 the
++// WebGL2 buffer-mapping / immutable-storage code path is unavailable (WebGL degrades
++// to the 2.1-compatible redefinition path in the caller).
++#if (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070) || PLATFORM(IOS) || PLATFORM(WPE)
+ void* GraphicsContext3D::mapBufferRange(GC3Denum target, GC3Dintptr offset, GC3Dsizeiptr length, GC3Dbitfield access)
+ {
+     makeContextCurrent();
+diff --git a/Source/WebCore/platform/mac/DragImageMac.mm b/Source/WebCore/platform/mac/DragImageMac.mm
+index 20799bd6a..87e83d933 100644
+--- a/Source/WebCore/platform/mac/DragImageMac.mm
++++ b/Source/WebCore/platform/mac/DragImageMac.mm
+@@ -28,6 +28,17 @@
+ 
+ #if ENABLE(DRAG_SUPPORT) && PLATFORM(MAC)
+ 
++// [leopard-webkit-build] CGPathCreateWithRect (10.9+) + CTLineGetBoundsWithOptions
++// (10.8+) are absent from the 10.6 SDK; sdk_stubs_605.mm supplies definitions.
++// Forward-declare at file scope so the call sites resolve.
++#if __MAC_OS_X_VERSION_MAX_ALLOWED < 1090
++extern "C" CGPathRef CGPathCreateWithRect(CGRect, const CGAffineTransform*);
++#endif
++#if __MAC_OS_X_VERSION_MAX_ALLOWED < 1080
++typedef unsigned int CTLineBoundsOptions;
++extern "C" CGRect CTLineGetBoundsWithOptions(CTLineRef, CTLineBoundsOptions);
++#endif
++
+ #import "BitmapImage.h"
+ #import "Element.h"
+ #import "FloatRoundedRect.h"
+diff --git a/Source/WebCore/platform/mac/FileSystemMac.mm b/Source/WebCore/platform/mac/FileSystemMac.mm
+index 640dfc12b..42d354063 100644
+--- a/Source/WebCore/platform/mac/FileSystemMac.mm
++++ b/Source/WebCore/platform/mac/FileSystemMac.mm
+@@ -40,8 +40,10 @@ bool FileSystem::deleteEmptyDirectory(const String& path)
+ 
+     if (NSArray *directoryContents = [fileManager contentsOfDirectoryAtPath:path error:nullptr]) {
+         // Explicitly look for and delete .DS_Store files.
+-        if (directoryContents.count == 1 && [directoryContents.firstObject isEqualToString:@".DS_Store"])
+-            [fileManager removeItemAtPath:[path stringByAppendingPathComponent:directoryContents.firstObject] error:nullptr];
++        // [leopard-webkit-build] NSArray.firstObject is 10.7+; use lastObject (10.0+),
++        // which equals firstObject for a single-element array.
++        if (directoryContents.count == 1 && [[directoryContents lastObject] isEqualToString:@".DS_Store"])
++            [fileManager removeItemAtPath:[path stringByAppendingPathComponent:[directoryContents lastObject]] error:nullptr];
+     }
+ 
+     // rmdir(...) returns 0 on successful deletion of the path and non-zero in any other case (including invalid permissions or non-existent file)
+@@ -67,7 +69,11 @@ void FileSystem::setMetadataURL(const String& path, const String& metadataURLStr
+             [whereFromAttribute addObject:referrer];
+ 
+         MDItemSetAttribute(item.get(), kMDItemWhereFroms, whereFromAttribute.get());
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++        // [leopard-webkit-build] kMDItemDownloadedDate is 10.7+ (Metadata framework);
++        // on 10.6 the downloaded-date metadata attribute is not set.
+         MDItemSetAttribute(item.get(), kMDItemDownloadedDate, @[ [NSDate date] ]);
++#endif
+     });
+ }
+ 
+diff --git a/Source/WebCore/platform/mac/NSScrollerImpDetails.mm b/Source/WebCore/platform/mac/NSScrollerImpDetails.mm
+index c2319f937..333f10099 100644
+--- a/Source/WebCore/platform/mac/NSScrollerImpDetails.mm
++++ b/Source/WebCore/platform/mac/NSScrollerImpDetails.mm
+@@ -34,9 +34,15 @@ namespace WebCore {
+ 
+ NSScrollerStyle recommendedScrollerStyle()
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     if (DeprecatedGlobalSettings::usesOverlayScrollbars())
+         return NSScrollerStyleOverlay;
+     return [NSScroller preferredScrollerStyle];
++#else
++    // [leopard-webkit-build] 10.6 has only legacy scrollers; +preferredScrollerStyle
++    // is 10.7+. Always return Legacy (0).
++    return NSScrollerStyleLegacy;
++#endif
+ }
+ 
+ }
+diff --git a/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm b/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
+index 36b49e092..dfa3c84f6 100644
+--- a/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
++++ b/Source/WebCore/platform/mac/PlatformEventFactoryMac.mm
+@@ -177,6 +177,7 @@ static int clickCountForEvent(NSEvent *event)
+ 
+ static PlatformWheelEventPhase momentumPhaseForEvent(NSEvent *event)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     uint32_t phase = PlatformWheelEventPhaseNone;
+ 
+     if ([event momentumPhase] & NSEventPhaseBegan)
+@@ -191,11 +192,18 @@ static PlatformWheelEventPhase momentumPhaseForEvent(NSEvent *event)
+         phase |= PlatformWheelEventPhaseCancelled;
+ 
+     return static_cast<PlatformWheelEventPhase>(phase);
++#else
++    // NSEvent -momentumPhase / NSEventPhase are 10.7+; 10.6 scroll events carry no
++    // momentum phase.
++    UNUSED_PARAM(event);
++    return PlatformWheelEventPhaseNone;
++#endif
+ }
+ 
+ static PlatformWheelEventPhase phaseForEvent(NSEvent *event)
+ {
+-    uint32_t phase = PlatformWheelEventPhaseNone; 
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    uint32_t phase = PlatformWheelEventPhaseNone;
+     if ([event phase] & NSEventPhaseBegan)
+         phase |= PlatformWheelEventPhaseBegan;
+     if ([event phase] & NSEventPhaseStationary)
+@@ -210,6 +218,11 @@ static PlatformWheelEventPhase phaseForEvent(NSEvent *event)
+         phase |= PlatformWheelEventPhaseMayBegin;
+ 
+     return static_cast<PlatformWheelEventPhase>(phase);
++#else
++    // NSEvent -phase / NSEventPhase are 10.7+; 10.6 scroll events carry no phase.
++    UNUSED_PARAM(event);
++    return PlatformWheelEventPhaseNone;
++#endif
+ }
+ 
+ static inline String textFromEvent(NSEvent* event)
+@@ -679,17 +692,27 @@ static inline OptionSet<PlatformEvent::Modifier> modifiersForEvent(NSEvent *even
+ 
+ static int typeForEvent(NSEvent *event)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
+     return static_cast<int>([NSMenu menuTypeForEvent:event]);
++#else
++    // +[NSMenu menuTypeForEvent:] is a modern AppKit SPI (returns NSMenuType);
++    // absent on 10.6, where sending it raises "unrecognized selector". 0 = none.
++    UNUSED_PARAM(event);
++    return 0;
++#endif
+ }
+ 
+ void getWheelEventDeltas(NSEvent *event, float& deltaX, float& deltaY, BOOL& continuous)
+ {
+     ASSERT(event);
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     if (event.hasPreciseScrollingDeltas) {
+         deltaX = event.scrollingDeltaX;
+         deltaY = event.scrollingDeltaY;
+         continuous = YES;
+-    } else {
++    } else
++#endif
++    {
+         deltaX = event.deltaX;
+         deltaY = event.deltaY;
+         continuous = NO;
+diff --git a/Source/WebCore/platform/mac/PlatformPasteboardMac.mm b/Source/WebCore/platform/mac/PlatformPasteboardMac.mm
+index c4dd071f1..11cb3687e 100644
+--- a/Source/WebCore/platform/mac/PlatformPasteboardMac.mm
++++ b/Source/WebCore/platform/mac/PlatformPasteboardMac.mm
+@@ -95,7 +95,10 @@ static bool pasteboardMayContainFilePaths(NSPasteboard *pasteboard)
+ String PlatformPasteboard::stringForType(const String& pasteboardType) const
+ {
+     if (pasteboardType == String { legacyURLPasteboardType() }) {
+-        String urlString = ([NSURL URLFromPasteboard:m_pasteboard.get()] ?: [NSURL URLWithString:[m_pasteboard stringForType:legacyURLPasteboardType()]]).absoluteString;
++        // [leopard-webkit-build] The nil-coalescing ternary can degrade to `id` on the
++        // 10.6 SDK; bind to NSURL* explicitly so .absoluteString resolves at compile time.
++        NSURL *pasteboardURL = [NSURL URLFromPasteboard:m_pasteboard.get()] ?: [NSURL URLWithString:[m_pasteboard stringForType:legacyURLPasteboardType()]];
++        String urlString = pasteboardURL.absoluteString;
+         if (pasteboardMayContainFilePaths(m_pasteboard.get()) && !Pasteboard::canExposeURLToDOMWhenPasteboardContainsFiles(urlString))
+             return { };
+         return urlString;
+@@ -130,7 +133,9 @@ Vector<String> PlatformPasteboard::typesSafeForDOMToReadAndWrite(const String& o
+         }
+     }
+ 
+-    NSArray<NSString *> *allTypes = [m_pasteboard types];
++    // [leopard-webkit-build] NSArray lightweight generics require the 10.11+ SDK;
++    // the 10.6 SDK's NSArray is non-parameterized, so drop the type argument.
++    NSArray *allTypes = [m_pasteboard types];
+     for (NSString *type in allTypes) {
+         if ([type isEqualToString:@(PasteboardCustomData::cocoaType())])
+             continue;
+diff --git a/Source/WebCore/platform/mac/PowerObserverMac.cpp b/Source/WebCore/platform/mac/PowerObserverMac.cpp
+index 8f37dd71f..dac9bf87f 100644
+--- a/Source/WebCore/platform/mac/PowerObserverMac.cpp
++++ b/Source/WebCore/platform/mac/PowerObserverMac.cpp
+@@ -28,6 +28,11 @@
+ #if PLATFORM(MAC)
+ #import "PowerObserverMac.h"
+ 
++// [leopard-webkit-build] IONotificationPortSetDispatchQueue is a runtime IOKit
++// symbol not declared in the 10.6 SDK headers; sdk_stubs_605.mm supplies the
++// no-op definition. Forward-declare at file scope so this TU compiles.
++extern "C" void IONotificationPortSetDispatchQueue(IONotificationPortRef, dispatch_queue_t);
++
+ namespace WebCore {
+ 
+ PowerObserver::PowerObserver(WTF::Function<void()>&& powerOnHander)
+diff --git a/Source/WebCore/platform/mac/SSLKeyGeneratorMac.mm b/Source/WebCore/platform/mac/SSLKeyGeneratorMac.mm
+index 98e5f1723..4b8a21cc2 100644
+--- a/Source/WebCore/platform/mac/SSLKeyGeneratorMac.mm
++++ b/Source/WebCore/platform/mac/SSLKeyGeneratorMac.mm
+@@ -26,6 +26,11 @@
+ #import "config.h"
+ #import "SSLKeyGenerator.h"
+ 
++// [leopard-webkit-build] SecEncodeTransform.h (Security framework) is 10.7+; the
++// <keygen> SSL key-generation path depends on it. Gate the whole body out on 10.6 —
++// the <keygen> element is deprecated and non-critical for basic browsing.
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++
+ #import "LocalizedStrings.h"
+ #import "URL.h"
+ #import <Security/SecAsn1Coder.h>
+@@ -247,3 +252,5 @@ String signedPublicKeyAndChallengeString(unsigned keySizeIndex, const String& ch
+ }
+ 
+ }
++
++#endif // __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+diff --git a/Source/WebCore/platform/mac/ScrollViewMac.mm b/Source/WebCore/platform/mac/ScrollViewMac.mm
+index 1290311c3..b01327d33 100644
+--- a/Source/WebCore/platform/mac/ScrollViewMac.mm
++++ b/Source/WebCore/platform/mac/ScrollViewMac.mm
+@@ -35,7 +35,11 @@
+ #import <wtf/BlockObjCExceptions.h>
+ 
+ @interface NSScrollView ()
+-- (NSEdgeInsets)contentInsets;
++// [leopard-webkit-build] contentInsets / automaticallyAdjustsContentInsets are 10.10+
++// NSScrollView APIs; declare them here (compile-time) so ScrollViewMac compiles. The
++// USAGE sites are gated under ≥10.10 below, so on 10.6 these are never called.
++@property NSEdgeInsets contentInsets;
++@property BOOL automaticallyAdjustsContentInsets;
+ @end
+ 
+ @interface NSWindow (WebWindowDetails)
+@@ -110,15 +114,18 @@ bool ScrollView::platformCanBlitOnScroll() const
+ 
+ float ScrollView::platformTopContentInset() const
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+     BEGIN_BLOCK_OBJC_EXCEPTIONS;
+     return scrollView().contentInsets.top;
+     END_BLOCK_OBJC_EXCEPTIONS;
+-
++#endif
++    // [leopard-webkit-build] 10.6 NSScrollView has no contentInsets API.
+     return 0;
+ }
+ 
+ void ScrollView::platformSetTopContentInset(float topContentInset)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+     BEGIN_BLOCK_OBJC_EXCEPTIONS;
+     if (topContentInset)
+         scrollView().automaticallyAdjustsContentInsets = NO;
+@@ -129,6 +136,9 @@ void ScrollView::platformSetTopContentInset(float topContentInset)
+     contentInsets.top = topContentInset;
+     scrollView().contentInsets = contentInsets;
+     END_BLOCK_OBJC_EXCEPTIONS;
++#else
++    UNUSED_PARAM(topContentInset);
++#endif
+ }
+ 
+ IntRect ScrollView::platformVisibleContentRect(bool includeScrollbars) const
+@@ -136,8 +146,12 @@ IntRect ScrollView::platformVisibleContentRect(bool includeScrollbars) const
+     BEGIN_BLOCK_OBJC_EXCEPTIONS;
+     IntRect visibleContentRect = platformVisibleContentRectIncludingObscuredArea(includeScrollbars);
+ 
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
++    // [leopard-webkit-build] NSScrollView contentInsets is 10.10+; on 10.6 there are
++    // no content insets to apply to the visible content rect.
+     visibleContentRect.move(scrollView().contentInsets.left, scrollView().contentInsets.top);
+     visibleContentRect.contract(scrollView().contentInsets.left + scrollView().contentInsets.right, scrollView().contentInsets.top + scrollView().contentInsets.bottom);
++#endif
+ 
+     return visibleContentRect;
+     END_BLOCK_OBJC_EXCEPTIONS;
+diff --git a/Source/WebCore/platform/mac/ScrollbarThemeMac.mm b/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
+index 39ae98bf1..b6568043c 100644
+--- a/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
++++ b/Source/WebCore/platform/mac/ScrollbarThemeMac.mm
+@@ -608,13 +608,21 @@ void ScrollbarThemeMac::setUpOverhangAreaShadow(CALayer *layer)
+         layer.shadowRadius = shadowRadius;
+     }
+ 
++#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] CGPathCreateWithRect (10.9+) and CALayer.shadowPath
++    // (10.7+) are absent from the 10.6 SDK. On 10.6 the layer still casts a shadow
++    // from its composited shape (opacity/offset/radius set above), so skip the
++    // explicit path. Gated out entirely so neither symbol is referenced.
+     RetainPtr<CGPathRef> shadowPath = adoptCF(CGPathCreateWithRect(layer.bounds, NULL));
+     layer.shadowPath = shadowPath.get();
++#endif
+ }
+ 
+ void ScrollbarThemeMac::removeOverhangAreaShadow(CALayer *layer)
+ {
++#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     layer.shadowPath = nil;
++#endif
+     layer.shadowOpacity = 0;
+ }
+ 
+diff --git a/Source/WebCore/platform/mac/SerializedPlatformRepresentationMac.mm b/Source/WebCore/platform/mac/SerializedPlatformRepresentationMac.mm
+index 4ab8b1f99..143e30ea3 100644
+--- a/Source/WebCore/platform/mac/SerializedPlatformRepresentationMac.mm
++++ b/Source/WebCore/platform/mac/SerializedPlatformRepresentationMac.mm
+@@ -25,7 +25,8 @@
+ 
+ #include "config.h"
+ 
+-#if ENABLE(VIDEO_TRACK) && ENABLE(DATACUE_VALUE)
++// [leopard-webkit-build] Gate under USE(AVFOUNDATION) — imports AVFoundation (10.7+).
++#if ENABLE(VIDEO_TRACK) && ENABLE(DATACUE_VALUE) && USE(AVFOUNDATION)
+ #include "SerializedPlatformRepresentationMac.h"
+ 
+ #import "JSDOMConvertBufferSource.h"
+diff --git a/Source/WebCore/platform/mac/ValidationBubbleMac.mm b/Source/WebCore/platform/mac/ValidationBubbleMac.mm
+index 4f630fc85..733c2b9d7 100644
+--- a/Source/WebCore/platform/mac/ValidationBubbleMac.mm
++++ b/Source/WebCore/platform/mac/ValidationBubbleMac.mm
+@@ -25,7 +25,10 @@
+ 
+ #import "config.h"
+ 
+-#if PLATFORM(MAC)
++#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++// [leopard-webkit-build] NSPopover (the base class of WebValidationPopover) is 10.7+.
++// Gate the whole TU out on 10.6 — form-validation popovers are unavailable (forms
++// still validate; the UI popover just doesn't appear).
+ #import "ValidationBubble.h"
+ 
+ #import <AppKit/AppKit.h>
+diff --git a/Source/WebCore/platform/mac/WebCoreFullScreenPlaceholderView.h b/Source/WebCore/platform/mac/WebCoreFullScreenPlaceholderView.h
+index 0a7ac53d6..8c197179e 100644
+--- a/Source/WebCore/platform/mac/WebCoreFullScreenPlaceholderView.h
++++ b/Source/WebCore/platform/mac/WebCoreFullScreenPlaceholderView.h
+@@ -30,6 +30,10 @@
+ 
+ #import <wtf/RetainPtr.h>
+ 
++// [leopard-webkit-build] NSVisualEffectView is 10.10+; forward-declare so RetainPtr
++// resolves. The TU body (WebCoreFullScreenPlaceholderView.mm) is gated ≥10.10.
++@class NSVisualEffectView;
++
+ WEBCORE_EXPORT @interface WebCoreFullScreenPlaceholderView : NSView {
+ @private
+     RetainPtr<NSVisualEffectView> _effectView;
+diff --git a/Source/WebCore/platform/mac/WebCoreFullScreenPlaceholderView.mm b/Source/WebCore/platform/mac/WebCoreFullScreenPlaceholderView.mm
+index b1faeb535..54b7e7690 100644
+--- a/Source/WebCore/platform/mac/WebCoreFullScreenPlaceholderView.mm
++++ b/Source/WebCore/platform/mac/WebCoreFullScreenPlaceholderView.mm
+@@ -24,7 +24,10 @@
+  */
+ 
+ #include "config.h"
+-#if !PLATFORM(IOS)
++// [leopard-webkit-build] NSVisualEffectView (base of the fullscreen placeholder) is
++// 10.10+. Gate the whole TU out on < 10.10 — the fullscreen placeholder is a
++// visual-only element shown during fullscreen transitions.
++#if !PLATFORM(IOS) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+ 
+ #include "WebCoreFullScreenPlaceholderView.h"
+ 
+diff --git a/Source/WebCore/platform/mac/WebCoreFullScreenWarningView.mm b/Source/WebCore/platform/mac/WebCoreFullScreenWarningView.mm
+index 3494b88ac..d0325a82d 100644
+--- a/Source/WebCore/platform/mac/WebCoreFullScreenWarningView.mm
++++ b/Source/WebCore/platform/mac/WebCoreFullScreenWarningView.mm
+@@ -24,7 +24,9 @@
+  */
+ 
+ #include "config.h"
+-#if !PLATFORM(IOS)
++// [leopard-webkit-build] WebCoreFullScreenWarningView inherits WebCoreFullScreenPlaceholderView
++// (which inherits NSVisualEffectView on 10.10+). Gate out on < 10.10.
++#if !PLATFORM(IOS) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+ 
+ #include "WebCoreFullScreenWarningView.h"
+ 
+diff --git a/Source/WebCore/platform/mac/WebGLBlacklist.mm b/Source/WebCore/platform/mac/WebGLBlacklist.mm
+index bb7e331cc..ccf25518a 100644
+--- a/Source/WebCore/platform/mac/WebGLBlacklist.mm
++++ b/Source/WebCore/platform/mac/WebGLBlacklist.mm
+@@ -30,6 +30,19 @@
+ 
+ #import "BlacklistUpdater.h"
+ #import <OpenGL/OpenGL.h>
++
++// [leopard-webkit-build] kCGLRendererIDMatchingMask + kCGLCPSupportSeparateAddressSpace
++// are CGL constants absent from the 10.6 SDK's OpenGL headers. Provide them so the
++// WebGL GPU blacklist renderer-ID matching + separate-address-space probe compile.
++// Values per the modern CGLContext.h / CGLTypes.h.
++#ifndef kCGLRendererIDMatchingMask
++#define kCGLRendererIDMatchingMask 0x00FF
++#endif
++#ifndef kCGLCPSupportSeparateAddressSpace
++// Cast to the same type as kCGLCPCurrentRendererID (a CGL enum) so the value
++// matches CGLGetParameter's parameter type (no int→enum implicit conversion in C++).
++#define kCGLCPSupportSeparateAddressSpace ((__typeof__(kCGLCPCurrentRendererID))135)
++#endif
+ #import <pal/spi/cf/CFUtilitiesSPI.h>
+ 
+ namespace WebCore {
+@@ -76,6 +89,10 @@ struct OSBuildInfo {
+ 
+ static OSBuildInfo buildInfoFromOSBuildString(NSString *buildString)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] NSRegularExpression + NSTextCheckingResult are 10.7+.
++    // On 10.6 return a default OSBuildInfo (the OS-build-based WebGL blacklist
++    // rules won't apply; the GPU/chassis rules still do via the other code paths).
+     NSError *error = NULL;
+     NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"^(\\d+)([A-Z])(\\d+)" options:0 error:&error];
+     NSArray *matches = [regex matchesInString:buildString options:0 range:NSMakeRange(0, [buildString length])];
+@@ -100,6 +117,10 @@ static OSBuildInfo buildInfoFromOSBuildString(NSString *buildString)
+     int buildVersion = [[buildString substringWithRange:[matchResult rangeAtIndex:3]] intValue];
+ 
+     return OSBuildInfo(majorVersion, minorVersion, buildVersion);
++#else
++    UNUSED_PARAM(buildString);
++    return OSBuildInfo();
++#endif
+ }
+ 
+ bool WebGLBlacklist::shouldBlockWebGL()
+diff --git a/Source/WebCore/platform/mac/WebVideoFullscreenController.mm b/Source/WebCore/platform/mac/WebVideoFullscreenController.mm
+index 51c940564..18692a10f 100644
+--- a/Source/WebCore/platform/mac/WebVideoFullscreenController.mm
++++ b/Source/WebCore/platform/mac/WebVideoFullscreenController.mm
+@@ -231,7 +231,11 @@ using WebCore::PlatformMedia;
+     // Is the fullscreen screen the main screen? (Note: this covers the case where only a 
+     // single screen is available.)  Is the fullscreen screen on the current space? IFF so, 
+     // then exit fullscreen mode.    
+-    if (fullscreenWindow.screen == [NSScreen screens][0] && fullscreenWindow.onActiveSpace)
++    if (fullscreenWindow.screen == [NSScreen screens][0]
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++        && fullscreenWindow.onActiveSpace
++#endif
++       )
+          [self requestExitFullscreenWithAnimation:NO];
+ }
+          
+@@ -360,7 +364,14 @@ static NSWindow *createBackgroundFullscreenWindow(NSRect frame, int level)
+             options |= NSApplicationPresentationAutoHideDock;
+     }
+ 
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     NSApp.presentationOptions = options;
++#else
++    // [leopard-webkit-build] NSApplication -setPresentationOptions: is declared on
++    // 10.6 but the property syntax requires the @property declaration (10.7+ SDK).
++    // Use the explicit method call which the 10.6 SDK declares.
++    [NSApp setPresentationOptions:options];
++#endif
+ }
+ 
+ - (void)updatePowerAssertions
+diff --git a/Source/WebCore/platform/network/cocoa/CookieCocoa.mm b/Source/WebCore/platform/network/cocoa/CookieCocoa.mm
+index 1a951e43d..faa9777c0 100644
+--- a/Source/WebCore/platform/network/cocoa/CookieCocoa.mm
++++ b/Source/WebCore/platform/network/cocoa/CookieCocoa.mm
+@@ -28,7 +28,7 @@
+ 
+ namespace WebCore {
+ 
+-static Vector<uint16_t> portVectorFromList(NSArray<NSNumber *> *portList)
++static Vector<uint16_t> portVectorFromList(NSArray *portList)
+ {
+     Vector<uint16_t> ports;
+     ports.reserveInitialCapacity(portList.count);
+diff --git a/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm b/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
+index 3a71807bd..d8e5b99e4 100644
+--- a/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
++++ b/Source/WebCore/platform/network/cocoa/NetworkStorageSessionCocoa.mm
+@@ -57,7 +57,7 @@ void NetworkStorageSession::deleteCookie(const Cookie& cookie)
+     [nsCookieStorage() deleteCookie:(NSHTTPCookie *)cookie];
+ }
+ 
+-static Vector<Cookie> nsCookiesToCookieVector(NSArray<NSHTTPCookie *> *nsCookies)
++static Vector<Cookie> nsCookiesToCookieVector(NSArray *nsCookies)
+ {
+     Vector<Cookie> cookies;
+     cookies.reserveInitialCapacity(nsCookies.count);
+diff --git a/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm b/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm
+index c73963048..c621d57c5 100644
+--- a/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm
++++ b/Source/WebCore/platform/network/cocoa/ResourceResponseCocoa.mm
+@@ -93,10 +93,17 @@ CertificateInfo ResourceResponse::platformCertificateInfo() const
+         return { };
+     auto trust = checked_cf_cast<SecTrustRef>(trustValue);
+ 
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] SecTrustGetTrustResult is 10.7+; on 10.6 use the
++    // classic SecTrustEvaluate (10.2+) directly by forcing the invalid-result path.
+     SecTrustResultType trustResultType;
+     OSStatus result = SecTrustGetTrustResult(trust, &trustResultType);
+     if (result != errSecSuccess)
+         return { };
++#else
++    SecTrustResultType trustResultType = kSecTrustResultInvalid;
++    OSStatus result = errSecSuccess;
++#endif
+ 
+     if (trustResultType == kSecTrustResultInvalid) {
+         result = SecTrustEvaluate(trust, &trustResultType);
+diff --git a/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.h b/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.h
+index 9873bc342..d3a5acbc5 100644
+--- a/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.h
++++ b/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.h
+@@ -79,8 +79,10 @@ WEBCORE_EXPORT @interface WebCoreNSURLSession : NSObject {
+ 
+ - (void)resetWithCompletionHandler:(void (^)(void))completionHandler;
+ - (void)flushWithCompletionHandler:(void (^)(void))completionHandler;
+-- (void)getTasksWithCompletionHandler:(void (^)(NSArray<NSURLSessionDataTask *> *dataTasks, NSArray<NSURLSessionUploadTask *> *uploadTasks, NSArray<NSURLSessionDownloadTask *> *downloadTasks))completionHandler;
+-- (void)getAllTasksWithCompletionHandler:(void (^)(NSArray<__kindof NSURLSessionTask *> *tasks))completionHandler;
++// [leopard-webkit-build] NSArray lightweight generics require the 10.11 SDK; the
++// 10.6 SDK's NSArray is non-parameterized, so drop the type arguments here.
++- (void)getTasksWithCompletionHandler:(void (^)(NSArray *dataTasks, NSArray *uploadTasks, NSArray *downloadTasks))completionHandler;
++- (void)getAllTasksWithCompletionHandler:(void (^)(NSArray *tasks))completionHandler;
+ 
+ - (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request;
+ - (NSURLSessionDataTask *)dataTaskWithURL:(NSURL *)url;
+diff --git a/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.mm b/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.mm
+index 37cbb3249..5075028a7 100644
+--- a/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.mm
++++ b/Source/WebCore/platform/network/cocoa/WebCoreNSURLSession.mm
+@@ -24,6 +24,15 @@
+  */
+ 
+ #import "config.h"
++
++// [leopard-webkit-build] This entire TU (the WebCore NSURLSession shim that backs
++// AVFoundation's media resource loading) depends on the PlatformMediaResource{Loader,Client}
++// types, which platform/graphics/PlatformMediaResourceLoader.h defines only under
++// #if ENABLE(VIDEO). On the 10.6 cross-build ENABLE(VIDEO)=0 (no AVFoundation/CoreMedia),
++// so the types are absent; gate the whole body to match. The sole symbol consumer
++// (MediaPlayerPrivateAVFoundationObjC.mm) is itself ENABLE(VIDEO)-gated, so this is safe.
++#if ENABLE(VIDEO)
++
+ #import "WebCoreNSURLSession.h"
+ 
+ #import "CachedResourceRequest.h"
+@@ -230,7 +239,8 @@ NS_ASSUME_NONNULL_END
+     }];
+ }
+ 
+-- (void)getTasksWithCompletionHandler:(void (^)(NSArray<NSURLSessionDataTask *> *dataTasks, NSArray<NSURLSessionUploadTask *> *uploadTasks, NSArray<NSURLSessionDownloadTask *> *downloadTasks))completionHandler
++// [leopard-webkit-build] NSArray lightweight generics require the 10.11 SDK; match the header's plain NSArray.
++- (void)getTasksWithCompletionHandler:(void (^)(NSArray *dataTasks, NSArray *uploadTasks, NSArray *downloadTasks))completionHandler
+ {
+     NSMutableArray *array = nullptr;
+     {
+@@ -244,7 +254,7 @@ NS_ASSUME_NONNULL_END
+     }];
+ }
+ 
+-- (void)getAllTasksWithCompletionHandler:(void (^)(NSArray<__kindof NSURLSessionTask *> *tasks))completionHandler
++- (void)getAllTasksWithCompletionHandler:(void (^)(NSArray *tasks))completionHandler
+ {
+     NSMutableArray *array = nullptr;
+     {
+@@ -506,7 +516,7 @@ void WebCoreNSURLSessionDataTaskClient::loadFinished(PlatformMediaResource& reso
+     if (_resource) {
+         _resource->stop();
+         _resource->setClient(nullptr);
+-        _resource = nil;
++        _resource = nullptr;
+     }
+ }
+ 
+@@ -734,3 +744,5 @@ void WebCoreNSURLSessionDataTaskClient::loadFinished(PlatformMediaResource& reso
+     [self _resource:resource loadFinishedWithError:nil];
+ }
+ @end
++
++#endif // ENABLE(VIDEO)
+diff --git a/Source/WebCore/platform/network/mac/BlobDataFileReferenceMac.mm b/Source/WebCore/platform/network/mac/BlobDataFileReferenceMac.mm
+index fcf55d76e..7193656d0 100644
+--- a/Source/WebCore/platform/network/mac/BlobDataFileReferenceMac.mm
++++ b/Source/WebCore/platform/network/mac/BlobDataFileReferenceMac.mm
+@@ -39,6 +39,17 @@
+ 
+ typedef struct _BOMCopier* BOMCopier;
+ 
++// [leopard-webkit-build] NSFileCoordinator is 10.7+ Foundation. BlobDataFileReferenceMac
++// uses it to coordinate reading the blob source file. Declare the @interface here so
++// this TU compiles; sdk_stubs_605.mm provides the @implementation (no-op: invokes the
++// accessor block synchronously — safe on 10.6 which has no file presenters).
++#if __MAC_OS_X_VERSION_MAX_ALLOWED < 1070
++@interface NSFileCoordinator : NSObject
++- (instancetype)initWithFilePresenter:(id)presenter;
++- (void)coordinateReadingItemAtURL:(NSURL *)url options:(unsigned long)options error:(NSError **)error byAccessor:(void (^)(NSURL *))accessor;
++@end
++#endif
++
+ SOFT_LINK_PRIVATE_FRAMEWORK(Bom)
+ SOFT_LINK(Bom, BOMCopierNew, BOMCopier, (), ())
+ SOFT_LINK(Bom, BOMCopierFree, void, (BOMCopier copier), (copier))
+diff --git a/Source/WebCore/platform/network/mac/CertificateInfoMac.mm b/Source/WebCore/platform/network/mac/CertificateInfoMac.mm
+index ffc99be49..84fcbc91a 100644
+--- a/Source/WebCore/platform/network/mac/CertificateInfoMac.mm
++++ b/Source/WebCore/platform/network/mac/CertificateInfoMac.mm
+@@ -37,11 +37,19 @@ namespace WebCore {
+ #if PLATFORM(COCOA)
+ RetainPtr<CFArrayRef> CertificateInfo::certificateChainFromSecTrust(SecTrustRef trust)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] SecTrustGetCertificateCount/AtIndex are 10.7+ Security
++    // APIs. On 10.6 return an empty chain (certificate info unavailable — TLS cert
++    // details won't display in the page-info UI, but browsing is unaffected).
+     auto count = SecTrustGetCertificateCount(trust);
+     auto certificateChain = CFArrayCreateMutable(0, count, &kCFTypeArrayCallBacks);
+     for (CFIndex i = 0; i < count; i++)
+         CFArrayAppendValue(certificateChain, SecTrustGetCertificateAtIndex(trust, i));
+     return adoptCF((CFArrayRef)certificateChain);
++#else
++    UNUSED_PARAM(trust);
++    return nullptr;
++#endif
+ }
+ #endif
+ 
+diff --git a/Source/WebCore/platform/sql/SQLiteStatement.cpp b/Source/WebCore/platform/sql/SQLiteStatement.cpp
+index c8f30ba5d..fd1006648 100644
+--- a/Source/WebCore/platform/sql/SQLiteStatement.cpp
++++ b/Source/WebCore/platform/sql/SQLiteStatement.cpp
+@@ -36,7 +36,11 @@
+ // SQLite 3.6.16 makes sqlite3_prepare_v2 automatically retry preparing the statement
+ // once if the database scheme has changed. We rely on this behavior.
+ #if SQLITE_VERSION_NUMBER < 3006016
+-#error SQLite version 3.6.16 or newer is required
++// [leopard-webkit-build] The 10.6 SDK ships SQLite 3.6.12 (< 3.6.16). The 3.6.16
++// auto-retry-on-schema-change feature is unavailable on the 10.6 target; callers
++// that hit a schema-change error handle it manually. Bypass the hard #error so the
++// TU compiles; runtime behavior degrades gracefully (rare schema-change edge case).
++#warning SQLite < 3.6.16 on 10.6: auto-retry-on-schema-change unavailable
+ #endif
+ 
+ namespace WebCore {
+diff --git a/Source/WebCore/platform/text/cf/HyphenationCF.cpp b/Source/WebCore/platform/text/cf/HyphenationCF.cpp
+index 1c70c413d..f99d99e4b 100644
+--- a/Source/WebCore/platform/text/cf/HyphenationCF.cpp
++++ b/Source/WebCore/platform/text/cf/HyphenationCF.cpp
+@@ -32,6 +32,17 @@
+ #include <wtf/text/StringView.h>
+ #include <wtf/text/TextBreakIteratorInternalICU.h>
+ 
++// [leopard-webkit-build] CFStringIsHyphenationAvailableForLocale +
++// CFStringGetHyphenationLocationBeforeIndex are 10.7+ CoreFoundation hyphenation
++// APIs absent from the 10.6 SDK. sdk_stubs_605.mm supplies the definitions
++// (isHyphenationAvailable → false on 10.6; getHyphenationLocation → delegates to
++// the 10.6-era private SPI via wkGetHyphenationLocationBeforeIndex). Forward-declare
++// here so this TU compiles.
++#if __MAC_OS_X_VERSION_MAX_ALLOWED < 1070
++extern "C" Boolean CFStringIsHyphenationAvailableForLocale(CFLocaleRef locale);
++extern "C" CFIndex CFStringGetHyphenationLocationBeforeIndex(CFStringRef string, CFIndex location, CFRange limitRange, CFOptionFlags options, CFLocaleRef locale, char *hyphenCharacters);
++#endif
++
+ namespace WTF {
+ 
+ template<>
+diff --git a/Source/WebCore/rendering/RenderThemeCocoa.mm b/Source/WebCore/rendering/RenderThemeCocoa.mm
+index df2c731d0..f40cdea09 100644
+--- a/Source/WebCore/rendering/RenderThemeCocoa.mm
++++ b/Source/WebCore/rendering/RenderThemeCocoa.mm
+@@ -119,6 +119,11 @@ String RenderThemeCocoa::mediaControlsFormattedStringForDuration(const double du
+         return WEB_UI_STRING("indefinite time", "accessibility help text for an indefinite media controller time value");
+ 
+     BEGIN_BLOCK_OBJC_EXCEPTIONS;
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
++    // [leopard-webkit-build] NSDateComponentsFormatter properties (unitsStyle,
++    // allowedUnits, formattingContext, maximumUnitCount) + NSFormattingContext are
++    // 10.8+/10.10+. On 10.6 the duration formatter is unconfigured → media controls
++    // show "indefinite" (line 119) instead of formatted time. Acceptable on 10.6.
+     if (!m_durationFormatter) {
+         m_durationFormatter = adoptNS([NSDateComponentsFormatter new]);
+         m_durationFormatter.get().unitsStyle = NSDateComponentsFormatterUnitsStyleFull;
+@@ -126,6 +131,7 @@ String RenderThemeCocoa::mediaControlsFormattedStringForDuration(const double du
+         m_durationFormatter.get().formattingContext = NSFormattingContextStandalone;
+         m_durationFormatter.get().maximumUnitCount = 2;
+     }
++#endif
+     return [m_durationFormatter.get() stringFromTimeInterval:durationInSeconds];
+     END_BLOCK_OBJC_EXCEPTIONS;
+ #else
+diff --git a/Source/WebCore/rendering/RenderThemeMac.mm b/Source/WebCore/rendering/RenderThemeMac.mm
+index d8cab2c46..3b73abb4e 100644
+--- a/Source/WebCore/rendering/RenderThemeMac.mm
++++ b/Source/WebCore/rendering/RenderThemeMac.mm
+@@ -111,6 +111,18 @@
+ 
+ #endif // ENABLE(SERVICE_CONTROLS)
+ 
++// [leopard-webkit-build] Forward declarations for 10.8+/10.9+ APIs absent from the
++// 10.6 SDK. Placed AFTER all imports so CG/CT types are already defined. Definitions
++// in sdk_stubs_605.mm.
++#if __MAC_OS_X_VERSION_MAX_ALLOWED < 1080
++extern "C" CFTypeRef CFAutorelease(CFTypeRef cf);
++typedef unsigned int CTLineBoundsOptions;
++extern "C" CGRect CTLineGetBoundsWithOptions(CTLineRef, CTLineBoundsOptions);
++#endif
++#if __MAC_OS_X_VERSION_MAX_ALLOWED < 1090
++extern "C" CGPathRef CGPathCreateWithRect(CGRect, const CGAffineTransform*);
++#endif
++
+ // FIXME: This should go into an SPI.h file in the spi directory.
+ @interface NSTextFieldCell ()
+ - (CFDictionaryRef)_coreUIDrawOptionsWithFrame:(NSRect)cellFrame inView:(NSView *)controlView includeFocus:(BOOL)includeFocus;
+diff --git a/Source/WebKitLegacy/PlatformMac.cmake b/Source/WebKitLegacy/PlatformMac.cmake
+index 0cbe38fcb..088e1e94f 100644
+--- a/Source/WebKitLegacy/PlatformMac.cmake
++++ b/Source/WebKitLegacy/PlatformMac.cmake
+@@ -18,7 +18,6 @@ list(APPEND WebKitLegacy_SYSTEM_INCLUDE_DIRECTORIES
+     mac/Misc
+     mac/Panels
+     mac/Plugins
+-    mac/Plugins/Hosted
+     mac/Storage
+     mac/WebCoreSupport
+     mac/WebInspector
+@@ -63,6 +62,7 @@ list(APPEND WebKitLegacy_SOURCES
+     mac/DOM/DOMDocumentFragment.mm
+     mac/DOM/DOMDocumentType.mm
+     mac/DOM/DOMElement.mm
++    mac/DOM/DOMEntity.mm
+     mac/DOM/DOMEntityReference.mm
+     mac/DOM/DOMEvent.mm
+     mac/DOM/DOMEvents.mm
+@@ -164,6 +164,7 @@ list(APPEND WebKitLegacy_SOURCES
+     mac/DOM/ExceptionHandlers.mm
+     mac/DOM/ObjCEventListener.mm
+     mac/DOM/ObjCNodeFilterCondition.mm
++    mac/DOM/WebDOMOperations.mm
+ 
+     mac/DefaultDelegates/WebDefaultContextMenuDelegate.mm
+     mac/DefaultDelegates/WebDefaultEditingDelegate.m
+@@ -226,20 +227,6 @@ list(APPEND WebKitLegacy_SOURCES
+     mac/Plugins/WebPluginRequest.m
+     mac/Plugins/npapi.mm
+ 
+-    mac/Plugins/Hosted/HostedNetscapePluginStream.mm
+-    mac/Plugins/Hosted/NetscapePluginHostManager.mm
+-    mac/Plugins/Hosted/NetscapePluginHostProxy.mm
+-    mac/Plugins/Hosted/NetscapePluginInstanceProxy.mm
+-    mac/Plugins/Hosted/ProxyInstance.mm
+-    mac/Plugins/Hosted/ProxyRuntimeObject.mm
+-    mac/Plugins/Hosted/WebHostedNetscapePluginView.mm
+-    mac/Plugins/Hosted/WebKitPluginAgent.defs
+-    mac/Plugins/Hosted/WebKitPluginAgentReply.defs
+-    mac/Plugins/Hosted/WebKitPluginClient.defs
+-    mac/Plugins/Hosted/WebKitPluginHost.defs
+-    mac/Plugins/Hosted/WebKitPluginHostTypes.defs
+-    mac/Plugins/Hosted/WebTextInputWindowController.m
+-
+     mac/Storage/WebDatabaseManager.mm
+     mac/Storage/WebDatabaseManagerClient.mm
+     mac/Storage/WebDatabaseProvider.mm
+@@ -402,41 +389,6 @@ foreach (_file ${WebKitLegacy_SOURCES})
+     endif ()
+ endforeach ()
+ 
+-file(COPY
+-    mac/Plugins/Hosted/WebKitPluginAgent.defs
+-    mac/Plugins/Hosted/WebKitPluginAgentReply.defs
+-    mac/Plugins/Hosted/WebKitPluginClient.defs
+-    mac/Plugins/Hosted/WebKitPluginHost.defs
+-    mac/Plugins/Hosted/WebKitPluginHostTypes.defs
+-    mac/Plugins/Hosted/WebKitPluginHostTypes.h
+-DESTINATION ${DERIVED_SOURCES_WEBKITLEGACY_DIR})
+-
+-add_custom_command(
+-    OUTPUT
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentReplyServer.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentReplyUser.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentServer.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentUser.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginHostServer.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginHostUser.c
+-    DEPENDS mac/Plugins/Hosted/WebKitPluginAgent.defs mac/Plugins/Hosted/WebKitPluginHost.defs
+-    WORKING_DIRECTORY ${DERIVED_SOURCES_WEBKITLEGACY_DIR}
+-    COMMAND mig -I.. WebKitPluginAgent.defs WebKitPluginAgentReply.defs WebKitPluginHost.defs
+-    VERBATIM)
+-add_custom_command(
+-    OUTPUT
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginClientServer.c
+-        ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginClientUser.c
+-    DEPENDS mac/Plugins/Hosted/WebKitPluginClient.defs
+-    WORKING_DIRECTORY ${DERIVED_SOURCES_WEBKITLEGACY_DIR}
+-    COMMAND mig -I.. -sheader WebKitPluginClientServer.h WebKitPluginClient.defs
+-    VERBATIM)
+-list(APPEND WebKitLegacy_SOURCES
+-    ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginAgentUser.c
+-    ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginClientServer.c
+-    ${DERIVED_SOURCES_WEBKITLEGACY_DIR}/WebKitPluginHostUser.c
+-)
+-
+ WEBKIT_CREATE_FORWARDING_HEADERS(WebKitLegacy DIRECTORIES ${WebKitLegacy_FORWARDING_HEADERS_DIRECTORIES} FILES ${WebKitLegacy_FORWARDING_HEADERS_FILES})
+ 
+ # FIXME: Forwarding headers should be copies of actual headers.
+diff --git a/Source/WebKitLegacy/mac/Misc/WebNSControlExtras.m b/Source/WebKitLegacy/mac/Misc/WebNSControlExtras.m
+index 0962e0e6a..411bff2d0 100644
+--- a/Source/WebKitLegacy/mac/Misc/WebNSControlExtras.m
++++ b/Source/WebKitLegacy/mac/Misc/WebNSControlExtras.m
+@@ -48,7 +48,13 @@ - (void)sizeToFitAndAdjustWindowHeight
+     NSRect windowFrame = [window frame];
+ 
+     CGFloat backingScaleFactor;
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     backingScaleFactor = [window backingScaleFactor];
++#else
++    // [leopard-webkit-build] NSWindow -backingScaleFactor is 10.7+ (Retina); on 10.6
++    // the backing scale is always 1.0 (no HiDPI displays).
++    backingScaleFactor = 1.0;
++#endif
+ 
+     windowFrame.size.height += heightDelta * backingScaleFactor;
+     [window setFrame:windowFrame display:NO];
+diff --git a/Source/WebKitLegacy/mac/Panels/WebAuthenticationPanel.m b/Source/WebKitLegacy/mac/Panels/WebAuthenticationPanel.m
+index 67f18b8f5..ba878cdcd 100644
+--- a/Source/WebKitLegacy/mac/Panels/WebAuthenticationPanel.m
++++ b/Source/WebKitLegacy/mac/Panels/WebAuthenticationPanel.m
+@@ -78,7 +78,13 @@ - (IBAction)cancel:(id)sender
+     [[self retain] autorelease];
+ 
+     if (usingSheet) {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+         [panel.sheetParent endSheet:panel returnCode:NSModalResponseCancel];
++#else
++        // [leopard-webkit-build] NSWindow.sheetParent is 10.10+; on 10.6 end the
++        // sheet via NSApp (the classic modal-sheet API, 10.0+).
++        [NSApp endSheet:panel returnCode:NSModalResponseCancel];
++#endif
+     } else {
+         [panel orderOut:sender];
+         [[NSApplication sharedApplication] stopModalWithCode:1];
+@@ -94,7 +100,11 @@ - (IBAction)logIn:(id)sender
+     [[panel retain] autorelease];
+ 
+     if (usingSheet) {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
+         [panel.sheetParent endSheet:panel returnCode:NSModalResponseOK];
++#else
++        [NSApp endSheet:panel returnCode:NSModalResponseOK];
++#endif
+     } else {
+         [panel orderOut:sender];
+         [[NSApplication sharedApplication] stopModalWithCode:0];
+diff --git a/Source/WebKitLegacy/mac/Storage/WebDatabaseManager.mm b/Source/WebKitLegacy/mac/Storage/WebDatabaseManager.mm
+index 76c28f4dd..7d173c3d3 100644
+--- a/Source/WebKitLegacy/mac/Storage/WebDatabaseManager.mm
++++ b/Source/WebKitLegacy/mac/Storage/WebDatabaseManager.mm
+@@ -127,7 +127,10 @@ static NSString *databasesDirectoryPath();
+     objects[0] = details.displayName().isEmpty() ? databaseIdentifier : (NSString *)details.displayName();
+     objects[1] = [NSNumber numberWithUnsignedLongLong:details.expectedUsage()];
+     objects[2] = [NSNumber numberWithUnsignedLongLong:details.currentUsage()];
+-    return [[[NSDictionary alloc] initWithObjects:objects forKeys:keys count:3] autorelease];
++    // [leopard-webkit-build] Cast away const for the `static const id keys[3]` — the
++    // newer Apple clang on the build host rejects the implicit const→non-const
++    // conversion to initWithObjects:forKeys:count:'s `id *` parameter.
++    return [[[NSDictionary alloc] initWithObjects:objects forKeys:(id *)keys count:3] autorelease];
+ }
+ 
+ - (void)deleteAllDatabases
+diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebDragClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebDragClient.mm
+index f4cf380c8..fffe0a80e 100644
+--- a/Source/WebKitLegacy/mac/WebCoreSupport/WebDragClient.mm
++++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebDragClient.mm
+@@ -141,6 +141,10 @@ void WebDragClient::startDrag(DragItem dragItem, DataTransfer& dataTransfer, Fra
+ 
+ void WebDragClient::beginDrag(DragItem dragItem, Frame& frame, const IntPoint& mouseDownPosition, const IntPoint& mouseDraggedPosition, DataTransfer& dataTransfer, DragSourceAction dragSourceAction)
+ {
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] NSDraggingItem + NSDraggingSession (beginDraggingSessionWithItems:)
++    // are 10.7+. On 10.6 the modern drag path is unavailable; WebCore falls back to the
++    // legacy startDrag path (dragImage:at:offset:event:pasteboard:source:slideBack:).
+     ASSERT(!dataTransfer.pasteboard().hasData());
+ 
+     RetainPtr<WebHTMLView> topWebHTMLView = dynamic_objc_cast<WebHTMLView>(m_webView.mainFrame.frameView.documentView);
+@@ -161,6 +165,10 @@ void WebDragClient::beginDrag(DragItem dragItem, Frame& frame, const IntPoint& m
+     // FIXME: We should be able to make a fake event with the mosue dragged coordinates.
+     NSEvent *event = frame.eventHandler().currentNSEvent();
+     [topWebHTMLView.get() beginDraggingSessionWithItems:@[ draggingItem.get() ] event:event source:topWebHTMLView.get()];
++#else
++    UNUSED_PARAM(dragItem); UNUSED_PARAM(frame); UNUSED_PARAM(mouseDownPosition);
++    UNUSED_PARAM(mouseDraggedPosition); UNUSED_PARAM(dataTransfer); UNUSED_PARAM(dragSourceAction);
++#endif
+ }
+ 
+ void WebDragClient::declareAndWriteDragImage(const String& pasteboardName, Element& element, const URL& url, const String& title, WebCore::Frame* frame)
+diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm
+index fcc9e8951..84f95ed2b 100644
+--- a/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm
++++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameLoaderClient.mm
+@@ -28,6 +28,17 @@
+ 
+ #import "WebFrameLoaderClient.h"
+ 
++// [leopard-webkit-build] NSScrollElasticity* enum values (10.7+ AppKit) used by
++// -[NSScrollView setVertical/HorizontalScrollElasticity:]. Define the constants
++// so the call sites compile; on 10.6 the methods are dynamically dispatched (no-op
++// — NSScrollView doesn't respond, message is harmlessly dropped).
++#ifndef NSScrollElasticityAutomatic
++#define NSScrollElasticityAutomatic 0
++#endif
++#ifndef NSScrollElasticityNone
++#define NSScrollElasticityNone 1
++#endif
++
+ #import "BackForwardList.h"
+ #import "DOMElementInternal.h"
+ #import "DOMHTMLFormElementInternal.h"
+diff --git a/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm b/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
+index c74d10252..fe0265abd 100644
+--- a/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
++++ b/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.mm
+@@ -473,9 +473,14 @@ void WebInspectorFrontendClient::append(const String& suggestedURL, const String
+     CGFloat approximatelyHalfScreenSize = (window.screen.frame.size.width / 2) - 4;
+     CGFloat minimumFullScreenWidth = std::max<CGFloat>(636, approximatelyHalfScreenSize);
+     [window setMinFullScreenContentSize:NSMakeSize(minimumFullScreenWidth, minimumWindowHeight)];
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101000
++    // [leopard-webkit-build] NSWindowCollectionBehaviorFullScreenAllowsTiling +
++    // titlebarAppearsTransparent are 10.10+; on < 10.10 skip (inspector window just
++    // uses standard collection behavior + opaque titlebar).
+     [window setCollectionBehavior:([window collectionBehavior] | NSWindowCollectionBehaviorFullScreenAllowsTiling)];
+ 
+     window.titlebarAppearsTransparent = YES;
++#endif
+ 
+     [self setWindow:window];
+     [window release];
+diff --git a/Source/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm b/Source/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm
+index a6547f378..bd38bf121 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm
++++ b/Source/WebKitLegacy/mac/WebView/WebDynamicScrollBarsView.mm
+@@ -535,8 +535,14 @@ static const unsigned cMaxUpdateScrollbarsPass = 2;
+     BOOL isContinuous;
+     getWheelEventDeltas(event, deltaX, deltaY, isContinuous);
+ 
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
++    // [leopard-webkit-build] NSEvent -momentumPhase + NSEventPhase enum are 10.7+
++    // (momentum scrolling). On 10.6 there's no momentum scroll tracking.
+     NSEventPhase momentumPhase = [event momentumPhase];
+     BOOL isLatchingEvent = momentumPhase & NSEventPhaseBegan || momentumPhase & NSEventPhaseStationary;
++#else
++    BOOL isLatchingEvent = NO;
++#endif
+ 
+     if (fabsf(deltaY) > fabsf(deltaX)) {
+         if (![self allowsVerticalScrolling]) {
+diff --git a/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm b/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
+index fa5874ba0..17387087d 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
++++ b/Source/WebKitLegacy/mac/WebView/WebHTMLView.mm
+@@ -73,6 +73,11 @@
+ #import "WebUIDelegatePrivate.h"
+ #import "WebViewInternal.h"
+ #import <QuartzCore/QuartzCore.h>
++// [leopard-webkit-build] Declares the 10.7+ NSWindow convertRectToScreen:/
++// convertRectFromScreen: category (sdk_stubs_605.mm provides the 10.6 bridge impl).
++// WebHTMLView calls these at 3+ sites; importing the category makes the NSRect
++// return type visible so .origin resolves (otherwise they'd be `id`).
++#import <AppKit/NSWindowScreenConversionCompat.h>
+ #import <WebCore/CSSStyleDeclaration.h>
+ #import <WebCore/CachedImage.h>
+ #import <WebCore/CachedResourceClient.h>
+@@ -6357,7 +6362,13 @@ static BOOL writingDirectionKeyBindingsEnabled()
+     if (_private) {
+         ASSERT(!_private->drawingIntoLayer);
+         _private->drawingIntoLayer = YES;
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
++        // [leopard-webkit-build] CALayer -drawsAsynchronously is 10.8+; on 10.6
++        // there's no async drawing → always false.
+         _private->drawingIntoAcceleratedLayer = [layer drawsAsynchronously];
++#else
++        _private->drawingIntoAcceleratedLayer = NO;
++#endif
+     }
+ 
+     [super drawLayer:layer inContext:ctx];
+diff --git a/Source/WebKitLegacy/mac/WebView/WebImmediateActionController.mm b/Source/WebKitLegacy/mac/WebView/WebImmediateActionController.mm
+index ea62ab905..e4f1a552d 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebImmediateActionController.mm
++++ b/Source/WebKitLegacy/mac/WebView/WebImmediateActionController.mm
+@@ -31,6 +31,10 @@
+ #import "DOMNodeInternal.h"
+ #import "DOMRangeInternal.h"
+ #import "WebElementDictionary.h"
++// [leopard-webkit-build] Declares the 10.7+ NSWindow convertRectToScreen:/
++// convertRectFromScreen: category so the NSRect return type is visible (this TU
++// calls them; without the import the return degrades to `id`).
++#import <AppKit/NSWindowScreenConversionCompat.h>
+ #import "WebFrameInternal.h"
+ #import "WebHTMLView.h"
+ #import "WebHTMLViewInternal.h"
+diff --git a/Source/WebKitLegacy/mac/WebView/WebPDFView.mm b/Source/WebKitLegacy/mac/WebView/WebPDFView.mm
+index 0b7e1f672..c36421d25 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebPDFView.mm
++++ b/Source/WebKitLegacy/mac/WebView/WebPDFView.mm
+@@ -1073,7 +1073,11 @@ static BOOL isFrameInRange(WebFrame *frame, DOMRange *range)
+ 
+     // Delegate method sent when the user requests downloading the PDF file to disk. We pass NO for
+     // showingPanel: so that the PDF file is saved to the standard location without user intervention.
+-    CallUIDelegate([self _webView], @selector(webView:saveFrameView:showingPanel:), [[dataSource webFrame] frameView], NO);
++    // [leopard-webkit-build] Bind NO to a named BOOL variable so the CallUIDelegate overload
++    // (WebView*, SEL, id, BOOL) is selected unambiguously (modern clang ranks the BOOL vs
++    // NSUInteger candidates as a tie for a bare `NO` literal against the 10.6 SDK's type defs).
++    BOOL showingPanel = NO;
++    CallUIDelegate([self _webView], @selector(webView:saveFrameView:showingPanel:), [[dataSource webFrame] frameView], showingPanel);
+ }
+ 
+ @end
+diff --git a/Source/WebKitLegacy/mac/WebView/WebView.mm b/Source/WebKitLegacy/mac/WebView/WebView.mm
+index 46bdd7750..c463d84f2 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebView.mm
++++ b/Source/WebKitLegacy/mac/WebView/WebView.mm
+@@ -30,6 +30,10 @@
+ 
+ #import "WebViewInternal.h"
+ #import "WebViewData.h"
++// [leopard-webkit-build] Declares the 10.7+ NSWindow convertRectToScreen:/
++// convertRectFromScreen: category (sdk_stubs_605.mm provides the 10.6 bridge).
++// WebView.mm calls convertRectToScreen: for text-indicator screen-coord conversion.
++#import <AppKit/NSWindowScreenConversionCompat.h>
+ 
+ #import "BackForwardList.h"
+ #import "DOMCSSStyleDeclarationInternal.h"
+@@ -5428,7 +5432,11 @@ static Vector<String> toStringVector(NSArray* patterns)
+ {
+     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+     if (![defaults objectForKey:WebAutomaticTextReplacementEnabled])
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
+         return [NSSpellChecker isAutomaticTextReplacementEnabled];
++#else
++        return NO; // [leopard-webkit-build] 10.8+ NSSpellChecker autocorrect API
++#endif
+     return [defaults boolForKey:WebAutomaticTextReplacementEnabled];
+ }
+ 
+@@ -5442,7 +5450,11 @@ static Vector<String> toStringVector(NSArray* patterns)
+ {
+     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+     if (![defaults objectForKey:WebAutomaticSpellingCorrectionEnabled])
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
+         return [NSSpellChecker isAutomaticTextReplacementEnabled];
++#else
++        return NO; // [leopard-webkit-build] 10.8+ NSSpellChecker autocorrect API
++#endif
+     return [defaults boolForKey:WebAutomaticSpellingCorrectionEnabled];
+ }
+ 
+@@ -5456,7 +5468,11 @@ static Vector<String> toStringVector(NSArray* patterns)
+ {
+     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+     if (![defaults objectForKey:WebAutomaticQuoteSubstitutionEnabled])
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
+         return [NSSpellChecker isAutomaticQuoteSubstitutionEnabled];
++#else
++        return NO; // [leopard-webkit-build] 10.8+ NSSpellChecker autocorrect API
++#endif
+ 
+     return [defaults boolForKey:WebAutomaticQuoteSubstitutionEnabled];
+ }
+@@ -5465,7 +5481,11 @@ static Vector<String> toStringVector(NSArray* patterns)
+ {
+     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+     if (![defaults objectForKey:WebAutomaticDashSubstitutionEnabled])
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1080
+         return [NSSpellChecker isAutomaticDashSubstitutionEnabled];
++#else
++        return NO; // [leopard-webkit-build] 10.8+ NSSpellChecker autocorrect API
++#endif
+ 
+     return [defaults boolForKey:WebAutomaticDashSubstitutionEnabled];
+ }
+@@ -8580,10 +8600,22 @@ static WebFrameView *containingFrameView(NSView *view)
+     NSWindow *window = [self window];
+     NSWindow *hostWindow = [self hostWindow];
+     if (window)
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+         return [window backingScaleFactor];
++#else
++        return 1.0; // [leopard-webkit-build] backingScaleFactor is 10.7+ (Retina); 10.6 is always 1.0
++#endif
+     if (hostWindow)
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+         return [hostWindow backingScaleFactor];
++#else
++        return 1.0;
++#endif
++#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+     return [[NSScreen mainScreen] backingScaleFactor];
++#else
++    return 1.0;
++#endif
+ }
+ #endif
+ 
+diff --git a/Source/WebKitLegacy/mac/WebView/WebViewPrivate.h b/Source/WebKitLegacy/mac/WebView/WebViewPrivate.h
+index bb959b5b7..5be1ab6fb 100644
+--- a/Source/WebKitLegacy/mac/WebView/WebViewPrivate.h
++++ b/Source/WebKitLegacy/mac/WebView/WebViewPrivate.h
+@@ -190,7 +190,9 @@ typedef enum {
+ @property (nonatomic, retain) UIImage *dataInteractionImage;
+ @property (nonatomic, assign) CGRect selectionRectInRootViewCoordinates;
+ @property (nonatomic, assign) CGRect textBoundingRectInRootViewCoordinates;
+-@property (nonatomic, retain) NSArray<NSValue *> *textRectsInBoundingRectCoordinates; // CGRect values
++// [leopard-webkit-build] NSArray lightweight generics require the 10.11+ SDK; the
++// 10.6 SDK's NSArray is non-parameterized, so drop the type argument.
++@property (nonatomic, retain) NSArray *textRectsInBoundingRectCoordinates; // CGRect values
+ @property (nonatomic, assign) CGFloat contentImageScaleFactor;
+ @property (nonatomic, retain) UIImage *contentImageWithHighlight;
+ @property (nonatomic, retain) UIImage *contentImage;
+diff --git a/Source/bmalloc/bmalloc/Scavenger.cpp b/Source/bmalloc/bmalloc/Scavenger.cpp
+index 0bdc77d28..8ffe63491 100644
+--- a/Source/bmalloc/bmalloc/Scavenger.cpp
++++ b/Source/bmalloc/bmalloc/Scavenger.cpp
+@@ -36,7 +36,11 @@ DEFINE_SAFE_PER_PROCESS_STORAGE(Scavenger);
+ 
+ Scavenger::Scavenger(std::lock_guard<StaticMutex>&)
+ {
+-#if BOS(DARWIN)
++// DISPATCH_SOURCE_TYPE_MEMORYPRESSURE / DISPATCH_MEMORYPRESSURE_CRITICAL are
++// 10.7+ libdispatch additions (absent from the 10.6 dispatch/source.h). The
++// memory-pressure source is only a scavenging hint, not required for
++// correctness, so skip it on 10.6; the member is read solely inside this block.
++#if BOS(DARWIN) && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && (__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070)
+     auto queue = dispatch_queue_create("WebKit Malloc Memory Pressure Handler", DISPATCH_QUEUE_SERIAL);
+     m_pressureHandlerDispatchSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_MEMORYPRESSURE, 0, DISPATCH_MEMORYPRESSURE_CRITICAL, queue);
+     dispatch_source_set_event_handler(m_pressureHandlerDispatchSource, ^{
+diff --git a/Source/cmake/OptionsMac.cmake b/Source/cmake/OptionsMac.cmake
+index bdab6b97e..170bb124b 100644
+--- a/Source/cmake/OptionsMac.cmake
++++ b/Source/cmake/OptionsMac.cmake
+@@ -41,21 +41,46 @@ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_SERVICE_CONTROLS PRIVATE ON)
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_SPEECH_SYNTHESIS PRIVATE ON)
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_TELEPHONE_NUMBER_DETECTION PRIVATE ON)
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBGL2 PRIVATE ON)
+-WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBGPU PRIVATE ON)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBGPU PRIVATE OFF)
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBVTT_REGIONS PRIVATE ON)
+ 
+-# FIXME: These are turned off temporarily to get CMake working easier. 
++# FIXME: These are turned off temporarily to get CMake working easier.
+ # https://bugs.webkit.org/show_bug.cgi?id=135856
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_DEVICE_ORIENTATION PRIVATE OFF)
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_GAMEPAD PRIVATE OFF)
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_IOS_AIRPLAY PRIVATE OFF)
+ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_TOUCH_EVENTS PRIVATE OFF)
+ 
++# --- 10.6 Snow Leopard cross-build: disable features needing 10.7+ SDK APIs ---
++# WebGPU/Metal needs Metal (10.11+); AVFoundation-backed media needs 10.7+;
++# fullscreen API, smooth scrolling, remote inspector, notifications, user message
++# handlers, media controls script and service workers all pull in post-10.6 SPI.
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_VIDEO PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_VIDEO_TRACK PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEB_AUDIO PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_MEDIA_STREAM PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_FULLSCREEN_API PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_SMOOTH_SCROLLING PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_REMOTE_INSPECTOR PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_NOTIFICATIONS PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_USER_MESSAGE_HANDLERS PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_MEDIA_CONTROLS_SCRIPT PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_LEGACY_ENCRYPTED_MEDIA PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_MEDIA_SOURCE PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_SERVICE_CONTROLS PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_TELEPHONE_NUMBER_DETECTION PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_CONTENT_FILTERING PRIVATE OFF)
++WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_ACCESSIBILITY PRIVATE OFF)
++
+ WEBKIT_OPTION_END()
+ 
+ set(ENABLE_GRAPHICS_CONTEXT_3D ON)
+ set(ENABLE_WEBKIT_LEGACY ON)
+-set(ENABLE_WEBKIT ON)
++# ENABLE_WEBKIT (modern WK2/Cocoa API) is OFF for the 10.6 build: it needs
++# NetworkProcess/StorageProcess + post-10.6 SPI. Only WebKitLegacy (WK1) is built.
++if (NOT DEFINED ENABLE_WEBKIT)
++    set(ENABLE_WEBKIT OFF)
++endif ()
+ 
+ set(JavaScriptCore_LIBRARY_TYPE SHARED)
+ set(WebCore_LIBRARY_TYPE SHARED)

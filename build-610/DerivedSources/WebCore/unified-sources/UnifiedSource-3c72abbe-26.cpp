@@ -1,0 +1,8 @@
+#include "platform/graphics/StringTruncator.cpp"
+#include "platform/graphics/SurrogatePairAwareTextIterator.cpp"
+#include "platform/graphics/TextRun.cpp"
+#include "platform/graphics/VelocityData.cpp"
+#include "platform/graphics/WOFFFileFormat.cpp"
+#include "platform/graphics/WidthIterator.cpp"
+#include "platform/graphics/MediaPlaybackTargetPicker.cpp"
+#include "platform/graphics/ca/GraphicsLayerCA.cpp"

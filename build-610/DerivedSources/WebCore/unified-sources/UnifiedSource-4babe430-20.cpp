@@ -1,0 +1,8 @@
+#include "Modules/paymentrequest/PaymentMethodChangeEvent.cpp"
+#include "Modules/paymentrequest/PaymentRequest.cpp"
+#include "Modules/paymentrequest/PaymentRequestUpdateEvent.cpp"
+#include "Modules/paymentrequest/PaymentResponse.cpp"
+#include "Modules/pictureinpicture/DocumentPictureInPicture.cpp"
+#include "Modules/pictureinpicture/EnterPictureInPictureEvent.cpp"
+#include "Modules/pictureinpicture/HTMLVideoElementPictureInPicture.cpp"
+#include "Modules/pictureinpicture/PictureInPictureWindow.cpp"

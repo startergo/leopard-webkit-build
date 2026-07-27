@@ -1,0 +1,8 @@
+#include "dom/DocumentFragment.cpp"
+#include "dom/DocumentMarkerController.cpp"
+#include "dom/DocumentParser.cpp"
+#include "dom/DocumentSharedObjectPool.cpp"
+#include "dom/DocumentStorageAccess.cpp"
+#include "dom/DocumentType.cpp"
+#include "dom/DragEvent.cpp"
+#include "dom/Element.cpp"

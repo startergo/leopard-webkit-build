@@ -1,0 +1,8 @@
+#include "html/Autocapitalize.cpp"
+#include "html/Autofill.cpp"
+#include "html/BaseButtonInputType.cpp"
+#include "html/BaseCheckableInputType.cpp"
+#include "html/BaseChooserOnlyDateAndTimeInputType.cpp"
+#include "html/BaseClickableWithKeyInputType.cpp"
+#include "html/BaseDateAndTimeInputType.cpp"
+#include "html/BaseTextInputType.cpp"

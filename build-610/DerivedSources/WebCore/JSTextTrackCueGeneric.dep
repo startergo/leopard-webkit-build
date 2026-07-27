@@ -1,0 +1,4 @@
+JSTextTrackCueGeneric.h : VTTCue.idl TextTrackCue.idl EventTarget.idl
+VTTCue.idl :
+TextTrackCue.idl :
+EventTarget.idl :

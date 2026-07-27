@@ -1,0 +1,8 @@
+#include "JSNavigatorGamepad.cpp"
+#include "JSNavigatorGeolocation.cpp"
+#include "JSNavigatorID.cpp"
+#include "JSNavigatorLanguage.cpp"
+#include "JSNavigatorMaxTouchPoints.cpp"
+#include "JSNavigatorMediaCapabilities.cpp"
+#include "JSNavigatorMediaDevices.cpp"
+#include "JSNavigatorOnLine.cpp"

@@ -1,0 +1,8 @@
+#include "Modules/geolocation/NavigatorGeolocation.cpp"
+#include "Modules/highlight/HighlightMap.cpp"
+#include "Modules/highlight/HighlightRangeGroup.cpp"
+#include "Modules/indexeddb/DOMWindowIndexedDatabase.cpp"
+#include "Modules/indexeddb/IDBCursor.cpp"
+#include "Modules/indexeddb/IDBCursorWithValue.cpp"
+#include "Modules/indexeddb/IDBDatabase.cpp"
+#include "Modules/indexeddb/IDBDatabaseIdentifier.cpp"

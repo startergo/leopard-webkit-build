@@ -1,0 +1,8 @@
+#include "accessibility/AccessibilitySlider.cpp"
+#include "accessibility/AccessibilitySpinButton.cpp"
+#include "accessibility/AccessibilityTable.cpp"
+#include "accessibility/AccessibilityTableCell.cpp"
+#include "accessibility/AccessibilityTableColumn.cpp"
+#include "accessibility/AccessibilityTableHeaderContainer.cpp"
+#include "accessibility/AccessibilityTableRow.cpp"
+#include "accessibility/AccessibilityTree.cpp"

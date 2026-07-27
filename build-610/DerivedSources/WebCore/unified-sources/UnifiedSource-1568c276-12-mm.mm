@@ -1,0 +1,8 @@
+#include "platform/mac/WidgetMac.mm"
+#include "platform/mediarecorder/cocoa/MediaRecorderPrivateWriterCocoa.mm"
+#include "platform/mediasession/mac/MediaSessionInterruptionProviderMac.mm"
+#include "platform/network/cocoa/CookieCocoa.mm"
+#include "platform/network/cocoa/CookieStorageObserver.mm"
+#include "platform/network/cocoa/CredentialCocoa.mm"
+#include "platform/network/cocoa/NetworkLoadMetrics.mm"
+#include "platform/network/cocoa/NetworkStorageSessionCocoa.mm"

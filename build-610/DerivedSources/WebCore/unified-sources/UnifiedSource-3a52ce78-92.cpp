@@ -1,0 +1,8 @@
+#include "JSSVGPathSegCurvetoQuadraticAbs.cpp"
+#include "JSSVGPathSegCurvetoQuadraticRel.cpp"
+#include "JSSVGPathSegCurvetoQuadraticSmoothAbs.cpp"
+#include "JSSVGPathSegCurvetoQuadraticSmoothRel.cpp"
+#include "JSSVGPathSegLinetoAbs.cpp"
+#include "JSSVGPathSegLinetoHorizontalAbs.cpp"
+#include "JSSVGPathSegLinetoHorizontalRel.cpp"
+#include "JSSVGPathSegLinetoRel.cpp"

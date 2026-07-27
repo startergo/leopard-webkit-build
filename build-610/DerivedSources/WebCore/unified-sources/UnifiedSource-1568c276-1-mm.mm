@@ -1,0 +1,8 @@
+#include "platform/audio/mac/AudioBusMac.mm"
+#include "platform/audio/mac/AudioSampleDataSource.mm"
+#include "platform/cocoa/DragDataCocoa.mm"
+#include "platform/cocoa/DragImageCocoa.mm"
+#include "platform/cocoa/FileMonitorCocoa.mm"
+#include "platform/cocoa/KeyEventCocoa.mm"
+#include "platform/cocoa/LocalizedStringsCocoa.mm"
+#include "platform/cocoa/MIMETypeRegistryCocoa.mm"

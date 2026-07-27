@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMHTMLModElement.mm"
+#include "mac/DOM/DOMHTMLOListElement.mm"
+#include "mac/DOM/DOMHTMLObjectElement.mm"
+#include "mac/DOM/DOMHTMLOptGroupElement.mm"
+#include "mac/DOM/DOMHTMLOptionElement.mm"
+#include "mac/DOM/DOMHTMLOptionsCollection.mm"
+#include "mac/DOM/DOMHTMLParagraphElement.mm"
+#include "mac/DOM/DOMHTMLParamElement.mm"

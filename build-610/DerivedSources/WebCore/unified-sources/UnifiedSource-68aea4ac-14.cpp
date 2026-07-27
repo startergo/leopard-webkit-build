@@ -1,0 +1,8 @@
+#include "bindings/js/JSServiceWorkerClientCustom.cpp"
+#include "bindings/js/JSServiceWorkerGlobalScopeCustom.cpp"
+#include "bindings/js/JSStyleSheetCustom.cpp"
+#include "bindings/js/JSTextCustom.cpp"
+#include "bindings/js/JSTextTrackCueCustom.cpp"
+#include "bindings/js/JSTextTrackCustom.cpp"
+#include "bindings/js/JSTextTrackListCustom.cpp"
+#include "bindings/js/JSTrackCustom.cpp"

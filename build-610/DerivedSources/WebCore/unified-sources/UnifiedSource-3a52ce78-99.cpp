@@ -1,0 +1,8 @@
+#include "JSSecurityPolicyViolationEvent.cpp"
+#include "JSServiceWorker.cpp"
+#include "JSServiceWorkerClient.cpp"
+#include "JSServiceWorkerClientType.cpp"
+#include "JSServiceWorkerClients.cpp"
+#include "JSServiceWorkerContainer.cpp"
+#include "JSServiceWorkerGlobalScope.cpp"
+#include "JSServiceWorkerRegistration.cpp"

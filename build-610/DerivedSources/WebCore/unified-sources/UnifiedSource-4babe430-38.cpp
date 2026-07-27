@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WHLSL/WHLSLIntrinsics.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLLexer.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLLiteralTypeChecker.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLNameContext.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLNameResolver.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLParser.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLPrepare.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLPreserveVariableLifetimes.cpp"

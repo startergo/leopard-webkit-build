@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMHTMLTableElement.mm"
+#include "mac/DOM/DOMHTMLTableRowElement.mm"
+#include "mac/DOM/DOMHTMLTableSectionElement.mm"
+#include "mac/DOM/DOMHTMLTextAreaElement.mm"
+#include "mac/DOM/DOMHTMLTitleElement.mm"
+#include "mac/DOM/DOMHTMLUListElement.mm"
+#include "mac/DOM/DOMHTMLVideoElement.mm"
+#include "mac/DOM/DOMImplementation.mm"

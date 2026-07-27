@@ -1,0 +1,8 @@
+#include "accessibility/AXLogger.cpp"
+#include "accessibility/AXObjectCache.cpp"
+#include "accessibility/AccessibilityARIAGrid.cpp"
+#include "accessibility/AccessibilityARIAGridCell.cpp"
+#include "accessibility/AccessibilityARIAGridRow.cpp"
+#include "accessibility/AccessibilityAttachment.cpp"
+#include "accessibility/AccessibilityImageMapLink.cpp"
+#include "accessibility/AccessibilityLabel.cpp"

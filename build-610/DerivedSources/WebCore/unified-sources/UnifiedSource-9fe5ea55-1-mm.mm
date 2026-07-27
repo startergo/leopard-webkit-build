@@ -1,0 +1,5 @@
+#include "loader/cocoa/DiskCacheMonitorCocoa.mm"
+#include "loader/cocoa/SubresourceLoaderCocoa.mm"
+#include "loader/ios/LegacyPreviewLoader.mm"
+#include "loader/mac/LoaderNSURLExtras.mm"
+#include "loader/mac/ResourceLoaderMac.mm"

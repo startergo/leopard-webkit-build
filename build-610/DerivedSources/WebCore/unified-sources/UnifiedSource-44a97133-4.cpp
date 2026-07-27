@@ -1,0 +1,8 @@
+#include "crypto/keys/CryptoKeyAES.cpp"
+#include "crypto/keys/CryptoKeyEC.cpp"
+#include "crypto/keys/CryptoKeyHMAC.cpp"
+#include "crypto/keys/CryptoKeyRSA.cpp"
+#include "crypto/keys/CryptoKeyRSAComponents.cpp"
+#include "crypto/keys/CryptoKeyRaw.cpp"
+#include "crypto/mac/CommonCryptoDERUtilities.cpp"
+#include "crypto/mac/CryptoAlgorithmAES_CBCMac.cpp"

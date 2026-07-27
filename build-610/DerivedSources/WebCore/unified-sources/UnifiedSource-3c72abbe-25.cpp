@@ -1,0 +1,8 @@
+#include "platform/graphics/PathTraversalState.cpp"
+#include "platform/graphics/PathUtilities.cpp"
+#include "platform/graphics/Pattern.cpp"
+#include "platform/graphics/PlatformTimeRanges.cpp"
+#include "platform/graphics/Region.cpp"
+#include "platform/graphics/RemoteVideoSample.cpp"
+#include "platform/graphics/RoundedRect.cpp"
+#include "platform/graphics/ShadowBlur.cpp"

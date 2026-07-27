@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WHLSL/WHLSLCheckReferenceTypes.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLCheckTextureReferences.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLChecker.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLComputeDimensions.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLFunctionStageChecker.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLGatherEntryPointItems.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLHighZombieFinder.cpp"
+#include "Modules/webgpu/WHLSL/WHLSLInferTypes.cpp"

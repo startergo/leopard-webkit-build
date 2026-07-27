@@ -1,0 +1,8 @@
+#include "html/canvas/WebGLCompressedTextureETC1.cpp"
+#include "html/canvas/WebGLCompressedTexturePVRTC.cpp"
+#include "html/canvas/WebGLCompressedTextureS3TC.cpp"
+#include "html/canvas/WebGLContextEvent.cpp"
+#include "html/canvas/WebGLContextGroup.cpp"
+#include "html/canvas/WebGLContextObject.cpp"
+#include "html/canvas/WebGLDebugRendererInfo.cpp"
+#include "html/canvas/WebGLDebugShaders.cpp"

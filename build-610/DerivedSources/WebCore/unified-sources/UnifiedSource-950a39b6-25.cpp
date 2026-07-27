@@ -1,0 +1,8 @@
+#include "html/canvas/Path2D.cpp"
+#include "html/canvas/PlaceholderRenderingContext.cpp"
+#include "html/canvas/WebGL2RenderingContext.cpp"
+#include "html/canvas/WebGLBuffer.cpp"
+#include "html/canvas/WebGLColorBufferFloat.cpp"
+#include "html/canvas/WebGLCompressedTextureASTC.cpp"
+#include "html/canvas/WebGLCompressedTextureATC.cpp"
+#include "html/canvas/WebGLCompressedTextureETC.cpp"

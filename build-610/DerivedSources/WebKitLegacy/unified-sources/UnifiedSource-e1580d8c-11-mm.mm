@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMHTMLPreElement.mm"
+#include "mac/DOM/DOMHTMLQuoteElement.mm"
+#include "mac/DOM/DOMHTMLScriptElement.mm"
+#include "mac/DOM/DOMHTMLSelectElement.mm"
+#include "mac/DOM/DOMHTMLStyleElement.mm"
+#include "mac/DOM/DOMHTMLTableCaptionElement.mm"
+#include "mac/DOM/DOMHTMLTableCellElement.mm"
+#include "mac/DOM/DOMHTMLTableColElement.mm"

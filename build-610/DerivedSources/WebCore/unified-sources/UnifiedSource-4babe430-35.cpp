@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WebGPUProgrammablePassEncoder.cpp"
+#include "Modules/webgpu/WebGPUProgrammableStageDescriptor.cpp"
+#include "Modules/webgpu/WebGPUQueue.cpp"
+#include "Modules/webgpu/WebGPURenderPassDescriptor.cpp"
+#include "Modules/webgpu/WebGPURenderPassEncoder.cpp"
+#include "Modules/webgpu/WebGPURenderPipeline.cpp"
+#include "Modules/webgpu/WebGPURenderPipelineDescriptor.cpp"
+#include "Modules/webgpu/WebGPUSampler.cpp"

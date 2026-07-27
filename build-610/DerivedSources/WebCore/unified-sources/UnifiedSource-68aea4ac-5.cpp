@@ -1,0 +1,8 @@
+#include "bindings/js/JSDOMConvertNumbers.cpp"
+#include "bindings/js/JSDOMConvertStrings.cpp"
+#include "bindings/js/JSDOMConvertWebGL.cpp"
+#include "bindings/js/JSDOMExceptionHandling.cpp"
+#include "bindings/js/JSDOMGlobalObject.cpp"
+#include "bindings/js/JSDOMGlobalObjectTask.cpp"
+#include "bindings/js/JSDOMGuardedObject.cpp"
+#include "bindings/js/JSDOMIterator.cpp"

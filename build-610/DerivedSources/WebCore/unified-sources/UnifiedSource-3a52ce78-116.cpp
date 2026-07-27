@@ -1,0 +1,8 @@
+#include "JSWebKitCSSMatrix.cpp"
+#include "JSWebKitPlaybackTargetAvailabilityEvent.cpp"
+#include "JSWebKitPoint.cpp"
+#include "JSWebKitTransitionEvent.cpp"
+#include "JSWebSocket.cpp"
+#include "JSWheelEvent.cpp"
+#include "JSWindowEventHandlers.cpp"
+#include "JSWindowOrWorkerGlobalScope.cpp"

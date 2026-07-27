@@ -1,0 +1,8 @@
+#include "rendering/RenderMultiColumnSet.cpp"
+#include "rendering/RenderMultiColumnSpannerPlaceholder.cpp"
+#include "rendering/RenderObject.cpp"
+#include "rendering/RenderProgress.cpp"
+#include "rendering/RenderQuote.cpp"
+#include "rendering/RenderReplaced.cpp"
+#include "rendering/RenderReplica.cpp"
+#include "rendering/RenderRuby.cpp"

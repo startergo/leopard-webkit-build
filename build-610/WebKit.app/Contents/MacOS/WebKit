@@ -1,0 +1,18 @@
+#!/bin/bash
+cd "$(dirname "$0")"
+OS_X_VERSION=$(sw_vers -productVersion | cut -d. -f1,2)
+FW_DIR="$PWD/../Frameworks/$OS_X_VERSION"
+export DYLD_FRAMEWORK_PATH="$FW_DIR"
+export DYLD_LIBRARY_PATH="$FW_DIR"
+export DYLD_FALLBACK_FRAMEWORK_PATH="/System/Library/Frameworks:/Library/Frameworks"
+export DYLD_FALLBACK_LIBRARY_PATH="/usr/lib:/usr/local/lib"
+# [leopard] Inject the TLS 1.2 shim so HTTPS sites requiring modern ciphers
+# (AES-GCM / TLS 1.2) work -- 10.6's stock Security stack only negotiates
+# TLS 1.0. The shim's load-time constructor patches the SSL functions. It is
+# x86_64-only, so Safari (a universal binary defaulting to i386 on 10.6) must
+# be pinned to x86_64 to match both our frameworks and the shim.
+TLS12_DYLIB="/usr/local/lib/libsecurity_ssl_tls12.dylib"
+if [ -f "$TLS12_DYLIB" ]; then
+    export DYLD_INSERT_LIBRARIES="$TLS12_DYLIB"
+fi
+exec arch -x86_64 "/Applications/Safari.app/Contents/MacOS/Safari"

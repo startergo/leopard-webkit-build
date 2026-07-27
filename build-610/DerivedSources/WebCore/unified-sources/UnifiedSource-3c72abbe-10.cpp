@@ -1,0 +1,8 @@
+#include "platform/audio/AudioBus.cpp"
+#include "platform/audio/AudioChannel.cpp"
+#include "platform/audio/AudioDSPKernelProcessor.cpp"
+#include "platform/audio/AudioFIFO.cpp"
+#include "platform/audio/AudioHardwareListener.cpp"
+#include "platform/audio/AudioPullFIFO.cpp"
+#include "platform/audio/AudioResampler.cpp"
+#include "platform/audio/AudioResamplerKernel.cpp"

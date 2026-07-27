@@ -1,0 +1,8 @@
+#include "platform/mediastream/MediaEndpointConfiguration.cpp"
+#include "platform/mediastream/MediaStreamPrivate.cpp"
+#include "platform/mediastream/MediaStreamTrackPrivate.cpp"
+#include "platform/mediastream/RTCIceCandidateDescriptor.cpp"
+#include "platform/mediastream/RTCSessionDescriptionDescriptor.cpp"
+#include "platform/mediastream/RealtimeIncomingAudioSource.cpp"
+#include "platform/mediastream/RealtimeIncomingVideoSource.cpp"
+#include "platform/mediastream/RealtimeMediaSource.cpp"

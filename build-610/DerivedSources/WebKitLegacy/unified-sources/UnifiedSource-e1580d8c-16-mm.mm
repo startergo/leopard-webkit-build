@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMUIEvent.mm"
+#include "mac/DOM/DOMUIKitExtensions.mm"
+#include "mac/DOM/DOMUtility.mm"
+#include "mac/DOM/DOMWheelEvent.mm"
+#include "mac/DOM/DOMXPath.mm"
+#include "mac/DOM/DOMXPathExpression.mm"
+#include "mac/DOM/DOMXPathResult.mm"
+#include "mac/DOM/ExceptionHandlers.mm"

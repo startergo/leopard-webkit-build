@@ -1,0 +1,8 @@
+#include "page/PerformanceLoggingClient.cpp"
+#include "page/PerformanceMonitor.cpp"
+#include "page/PerformanceNavigation.cpp"
+#include "page/PerformanceObserver.cpp"
+#include "page/PerformanceObserverEntryList.cpp"
+#include "page/PerformanceResourceTiming.cpp"
+#include "page/PerformanceServerTiming.cpp"
+#include "page/PerformanceTiming.cpp"

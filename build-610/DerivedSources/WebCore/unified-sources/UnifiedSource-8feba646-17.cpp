@@ -1,0 +1,6 @@
+#include "svg/graphics/filters/SVGFEImage.cpp"
+#include "svg/graphics/filters/SVGFilter.cpp"
+#include "svg/graphics/filters/SVGFilterBuilder.cpp"
+#include "svg/properties/SVGAnimatedProperty.cpp"
+#include "svg/properties/SVGAnimationAdditiveValueFunctionImpl.cpp"
+#include "svg/properties/SVGAttributeAnimator.cpp"

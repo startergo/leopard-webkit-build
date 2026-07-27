@@ -1,0 +1,8 @@
+#include "bindings/js/JSIDBRequestCustom.cpp"
+#include "bindings/js/JSIDBTransactionCustom.cpp"
+#include "bindings/js/JSImageDataCustom.cpp"
+#include "bindings/js/JSIntersectionObserverEntryCustom.cpp"
+#include "bindings/js/JSLazyEventListener.cpp"
+#include "bindings/js/JSLocationCustom.cpp"
+#include "bindings/js/JSMediaStreamTrackCustom.cpp"
+#include "bindings/js/JSMessageChannelCustom.cpp"

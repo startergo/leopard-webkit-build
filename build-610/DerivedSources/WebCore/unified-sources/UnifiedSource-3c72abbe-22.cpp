@@ -1,0 +1,8 @@
+#include "platform/graphics/GraphicsContextImpl.cpp"
+#include "platform/graphics/GraphicsLayer.cpp"
+#include "platform/graphics/GraphicsLayerTransform.cpp"
+#include "platform/graphics/GraphicsLayerUpdater.cpp"
+#include "platform/graphics/GraphicsTypes.cpp"
+#include "platform/graphics/HEVCUtilities.cpp"
+#include "platform/graphics/Icon.cpp"
+#include "platform/graphics/Image.cpp"

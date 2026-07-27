@@ -1,0 +1,8 @@
+#include "page/FrameViewLayoutContext.cpp"
+#include "page/History.cpp"
+#include "page/IntersectionObserver.cpp"
+#include "page/IntersectionObserverEntry.cpp"
+#include "page/Location.cpp"
+#include "page/LoggedInStatus.cpp"
+#include "page/MemoryRelease.cpp"
+#include "page/MouseEventWithHitTestResults.cpp"

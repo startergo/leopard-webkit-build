@@ -1,0 +1,8 @@
+#include "JSWebGPUCommandEncoder.cpp"
+#include "JSWebGPUComputePassEncoder.cpp"
+#include "JSWebGPUComputePipeline.cpp"
+#include "JSWebGPUComputePipelineDescriptor.cpp"
+#include "JSWebGPUDevice.cpp"
+#include "JSWebGPUDeviceErrorScopes.cpp"
+#include "JSWebGPUDeviceEventHandler.cpp"
+#include "JSWebGPUPipelineDescriptorBase.cpp"

@@ -1,0 +1,1 @@
+#import "mac/Plugins/Hosted/NetscapePluginHostProxy.h"

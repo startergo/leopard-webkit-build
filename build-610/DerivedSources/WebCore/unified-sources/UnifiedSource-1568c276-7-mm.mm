@@ -1,0 +1,8 @@
+#include "platform/graphics/mac/FloatPointMac.mm"
+#include "platform/graphics/mac/FloatSizeMac.mm"
+#include "platform/graphics/mac/FontCacheMac.mm"
+#include "platform/graphics/mac/IconMac.mm"
+#include "platform/graphics/mac/ImageMac.mm"
+#include "platform/graphics/mac/IntPointMac.mm"
+#include "platform/graphics/mac/IntSizeMac.mm"
+#include "platform/graphics/mac/PDFDocumentImageMac.mm"

@@ -1,0 +1,8 @@
+#include "platform/graphics/transforms/TransformOperation.cpp"
+#include "platform/graphics/transforms/TransformOperations.cpp"
+#include "platform/graphics/transforms/TransformState.cpp"
+#include "platform/graphics/transforms/TransformationMatrix.cpp"
+#include "platform/graphics/transforms/TranslateTransformOperation.cpp"
+#include "platform/mac/MediaRemoteSoftLink.cpp"
+#include "platform/mac/PowerObserverMac.cpp"
+#include "platform/mediacapabilities/MediaCapabilitiesLogging.cpp"

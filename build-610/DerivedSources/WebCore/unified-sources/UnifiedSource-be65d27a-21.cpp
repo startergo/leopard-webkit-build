@@ -1,0 +1,8 @@
+#include "dom/UserTypingGestureIndicator.cpp"
+#include "dom/ViewportArguments.cpp"
+#include "dom/VisitedLinkState.cpp"
+#include "dom/WebKitAnimationEvent.cpp"
+#include "dom/WebKitTransitionEvent.cpp"
+#include "dom/WheelEvent.cpp"
+#include "dom/WindowEventLoop.cpp"
+#include "dom/XMLDocument.cpp"

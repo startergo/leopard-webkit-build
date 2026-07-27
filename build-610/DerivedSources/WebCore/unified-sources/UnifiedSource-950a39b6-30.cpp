@@ -1,0 +1,8 @@
+#include "html/parser/HTMLConstructionSite.cpp"
+#include "html/parser/HTMLDocumentParser.cpp"
+#include "html/parser/HTMLElementStack.cpp"
+#include "html/parser/HTMLEntityParser.cpp"
+#include "html/parser/HTMLEntitySearch.cpp"
+#include "html/parser/HTMLFormattingElementList.cpp"
+#include "html/parser/HTMLMetaCharsetParser.cpp"
+#include "html/parser/HTMLParserIdioms.cpp"

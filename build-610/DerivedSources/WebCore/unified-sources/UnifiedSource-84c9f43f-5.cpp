@@ -1,0 +1,8 @@
+#include "inspector/agents/InspectorCanvasAgent.cpp"
+#include "inspector/agents/InspectorDOMAgent.cpp"
+#include "inspector/agents/InspectorDOMDebuggerAgent.cpp"
+#include "inspector/agents/InspectorDOMStorageAgent.cpp"
+#include "inspector/agents/InspectorDatabaseAgent.cpp"
+#include "inspector/agents/InspectorIndexedDBAgent.cpp"
+#include "inspector/agents/InspectorLayerTreeAgent.cpp"
+#include "inspector/agents/InspectorMemoryAgent.cpp"

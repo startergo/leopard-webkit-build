@@ -1,0 +1,211 @@
+diff --git a/Source/WebCore/platform/GStreamer.cmake b/Source/WebCore/platform/GStreamer.cmake
+--- a/Source/WebCore/platform/GStreamer.cmake
++++ b/Source/WebCore/platform/GStreamer.cmake
+@@ -187,3 +187,13 @@ if (USE_CAIRO)
+         platform/graphics/gstreamer/ImageGStreamerCairo.cpp
+     )
+ endif ()
++
++# [leopard] On the macOS Cocoa port (no Cairo), we need a CG-based
++# counterpart to ImageGStreamerCairo.cpp; without it the ImageGStreamer
++# ctor/dtor are unresolved, breaking video paint(). USE_CG isn't a
++# CMake variable on Mac (only a C++ macro), so guard on !USE_CAIRO.
++if (NOT USE_CAIRO)
++    list(APPEND WebCore_SOURCES
++        platform/graphics/gstreamer/ImageGStreamerCG.cpp
++    )
++endif ()
+diff --git a/Source/WebCore/platform/graphics/gstreamer/ImageGStreamer.h b/Source/WebCore/platform/graphics/gstreamer/ImageGStreamer.h
+--- a/Source/WebCore/platform/graphics/gstreamer/ImageGStreamer.h
++++ b/Source/WebCore/platform/graphics/gstreamer/ImageGStreamer.h
+@@ -68,7 +68,7 @@ private:
+     ImageGStreamer(GstSample*);
+     RefPtr<BitmapImage> m_image;
+     FloatRect m_cropRect;
+-#if USE(CAIRO)
++#if USE(CAIRO) || USE(CG)
+     GstVideoFrame m_videoFrame;
+     bool m_frameMapped { false };
+ #endif
+diff --git a/Source/WebCore/platform/graphics/gstreamer/ImageGStreamerCG.cpp b/Source/WebCore/platform/graphics/gstreamer/ImageGStreamerCG.cpp
+new file mode 100644
+--- /dev/null
++++ b/Source/WebCore/platform/graphics/gstreamer/ImageGStreamerCG.cpp
+@@ -0,0 +1,177 @@
++/*
++ * Copyright (C) 2010, 2011, 2012 Igalia S.L
++ * Copyright (C) 2026 Leopard WebKit contributors
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Library General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Library General Public License for more details.
++ *
++ * You should have received a copy of the GNU Library General Public License
++ * along with this library; see the file COPYING.LIB.  If not, write to
++ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
++ * Boston, MA 02110-1301, USA.
++ */
++
++// [leopard] CG-based counterpart to ImageGStreamerCairo.cpp. WebKit's
++// CMake only compiles ImageGStreamerCairo.cpp under USE(CAIRO), so on the
++// macOS Cocoa port the ImageGStreamer ctor/dtor were undefined symbols,
++// causing the runtime dyld crash:
++//   Symbol not found: __ZN7WebCore14ImageGStreamerC1EP10_GstSample
++// whenever MediaPlayerPrivateGStreamer::paint() (software frame path) or
++// ImageDecoderGStreamer hit a video frame. This file provides the CG
++// implementation under USE(CG).
++
++#include "config.h"
++#include "ImageGStreamer.h"
++
++#if ENABLE(VIDEO) && USE(GSTREAMER) && USE(CG)
++
++#include "GStreamerCommon.h"
++
++#include <ApplicationServices/ApplicationServices.h>
++#include <gst/gst.h>
++#include <gst/video/gstvideometa.h>
++#include <wtf/RetainPtr.h>
++
++namespace WebCore {
++
++// Map a GStreamer packed-RGB memory format to CoreGraphics bitmapInfo.
++// GStreamer format names describe byte order in memory (BGRA = bytes
++// B, G, R, A in that order). CG always interprets 32-bit pixels as a
++// native-endian uint32; on little-endian (the only target we ship) the
++// high byte of that uint32 is memory offset 3. So:
++//   BGRA memory  -> uint32 = 0xARRGGBB -> AlphaFirst, R/G/B follow
++//   RGBA memory  -> uint32 = 0xAABBGGRR -> AlphaFirst but R/B swapped,
++//                    so we route RGBA through AlphaLast which CG reads
++//                    as 0xRRGGBBAA -> alpha in LSB and R/G/B in MSB
++//                    (correct channel order). Same logic for xRGB/RGBx.
++// We pin kCGBitmapByteOrder32Little so CG does not byte-swap on top of
++// our interpretation.
++static bool gstFormatToCGBitmapInfo(GstVideoFormat format, CGBitmapInfo& outInfo)
++{
++    switch (format) {
++    case GST_VIDEO_FORMAT_BGRA:
++        outInfo = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little;
++        return true;
++    case GST_VIDEO_FORMAT_BGRx:
++        outInfo = kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Little;
++        return true;
++    case GST_VIDEO_FORMAT_RGBA:
++    case GST_VIDEO_FORMAT_RGBx:
++        // GStreamer videoconvert on macOS commonly emits RGBA when caps
++        // negotiation asks for it; treat RGBx as the no-alpha variant.
++        outInfo = (format == GST_VIDEO_FORMAT_RGBA ? kCGImageAlphaPremultipliedLast
++                                                    : kCGImageAlphaNoneSkipLast)
++            | kCGBitmapByteOrder32Little;
++        return true;
++    case GST_VIDEO_FORMAT_ARGB:
++        outInfo = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Big;
++        return true;
++    case GST_VIDEO_FORMAT_xRGB:
++        outInfo = kCGImageAlphaNoneSkipFirst | kCGBitmapByteOrder32Big;
++        return true;
++    case GST_VIDEO_FORMAT_ABGR:
++        outInfo = kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big;
++        return true;
++    case GST_VIDEO_FORMAT_xBGR:
++        outInfo = kCGImageAlphaNoneSkipLast | kCGBitmapByteOrder32Big;
++        return true;
++    default:
++        return false;
++    }
++}
++
++ImageGStreamer::ImageGStreamer(GstSample* sample)
++{
++    GstCaps* caps = gst_sample_get_caps(sample);
++    GstVideoInfo videoInfo;
++    gst_video_info_init(&videoInfo);
++    if (!gst_video_info_from_caps(&videoInfo, caps))
++        return;
++
++    // TextureMapper / CG image path only handles single-plane packed RGB.
++    ASSERT(GST_VIDEO_INFO_N_PLANES(&videoInfo) == 1);
++
++    m_hasAlpha = GST_VIDEO_INFO_HAS_ALPHA(&videoInfo);
++
++    GstBuffer* buffer = gst_sample_get_buffer(sample);
++    if (UNLIKELY(!GST_IS_BUFFER(buffer)))
++        return;
++
++    m_frameMapped = gst_video_frame_map(&m_videoFrame, &videoInfo, buffer, GST_MAP_READ);
++    if (!m_frameMapped)
++        return;
++
++    GstVideoFormat format = GST_VIDEO_FRAME_FORMAT(&m_videoFrame);
++    int width = GST_VIDEO_FRAME_WIDTH(&m_videoFrame);
++    int height = GST_VIDEO_FRAME_HEIGHT(&m_videoFrame);
++    int stride = GST_VIDEO_FRAME_PLANE_STRIDE(&m_videoFrame, 0);
++    guint8* planeData = reinterpret_cast<guint8*>(GST_VIDEO_FRAME_PLANE_DATA(&m_videoFrame, 0));
++
++    CGBitmapInfo bitmapInfo;
++    if (!gstFormatToCGBitmapInfo(format, bitmapInfo)) {
++        GST_WARNING("ImageGStreamerCG: unsupported GStreamer video format %d (%s) - falling back to null image",
++            static_cast<int>(format), gst_video_format_to_string(format));
++        return;
++    }
++
++    // GStreamer's video frames are not premultiplied by default, but for
++    // typical opaque video (alpha=255) premultiplied == straight, so the
++    // Premultiplied{First,Last} flags are a no-op. If a real alpha surface
++    // ever shows up we'd need to walk the pixels like the Cairo backend
++    // does; that is not on the YouTube playback path.
++    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
++    if (!colorSpace)
++        return;
++
++    gsize dataSize = static_cast<gsize>(stride) * static_cast<gsize>(height);
++    CGDataProviderRef provider = CGDataProviderCreateWithData(nullptr, planeData, dataSize, nullptr);
++    if (!provider) {
++        CGColorSpaceRelease(colorSpace);
++        return;
++    }
++
++    RetainPtr<CGImageRef> cgImage = adoptCF(CGImageCreate(
++        width, height,
++        8,                // bitsPerComponent
++        32,               // bitsPerPixel
++        stride,
++        colorSpace,
++        bitmapInfo,
++        provider,
++        nullptr,          // decode
++        false,            // shouldInterpolate
++        kCGRenderingIntentDefault));
++
++    CGDataProviderRelease(provider);
++    CGColorSpaceRelease(colorSpace);
++
++    if (!cgImage)
++        return;
++
++    m_image = BitmapImage::create(WTFMove(cgImage));
++
++    if (GstVideoCropMeta* cropMeta = gst_buffer_get_video_crop_meta(buffer))
++        setCropRect(FloatRect(cropMeta->x, cropMeta->y, cropMeta->width, cropMeta->height));
++}
++
++ImageGStreamer::~ImageGStreamer()
++{
++    if (m_image)
++        m_image = nullptr;
++
++    // Keep the buffer mapped for the lifetime of the image - the
++    // CGDataProvider references memory inside the mapped GstVideoFrame.
++    if (m_frameMapped)
++        gst_video_frame_unmap(&m_videoFrame);
++}
++
++} // namespace WebCore
++
++#endif // ENABLE(VIDEO) && USE(GSTREAMER) && USE(CG)

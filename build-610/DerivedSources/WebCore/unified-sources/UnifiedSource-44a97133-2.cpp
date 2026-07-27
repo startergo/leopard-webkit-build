@@ -1,0 +1,8 @@
+#include "crypto/algorithms/CryptoAlgorithmAES_GCM.cpp"
+#include "crypto/algorithms/CryptoAlgorithmAES_KW.cpp"
+#include "crypto/algorithms/CryptoAlgorithmECDH.cpp"
+#include "crypto/algorithms/CryptoAlgorithmECDSA.cpp"
+#include "crypto/algorithms/CryptoAlgorithmHKDF.cpp"
+#include "crypto/algorithms/CryptoAlgorithmHMAC.cpp"
+#include "crypto/algorithms/CryptoAlgorithmPBKDF2.cpp"
+#include "crypto/algorithms/CryptoAlgorithmRSAES_PKCS1_v1_5.cpp"

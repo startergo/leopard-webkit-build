@@ -1,0 +1,8 @@
+#include "JSPositionErrorCallback.cpp"
+#include "JSPositionOptions.cpp"
+#include "JSPostMessageOptions.cpp"
+#include "JSProcessingInstruction.cpp"
+#include "JSProgressEvent.cpp"
+#include "JSPromiseRejectionEvent.cpp"
+#include "JSPublicKeyCredential.cpp"
+#include "JSPublicKeyCredentialCreationOptions.cpp"

@@ -1,0 +1,8 @@
+#include "layout/Verification.cpp"
+#include "layout/blockformatting/BlockFormattingContext.cpp"
+#include "layout/blockformatting/BlockFormattingContextGeometry.cpp"
+#include "layout/blockformatting/BlockFormattingContextQuirks.cpp"
+#include "layout/blockformatting/BlockFormattingState.cpp"
+#include "layout/blockformatting/BlockMarginCollapse.cpp"
+#include "layout/blockformatting/PrecomputedBlockMarginCollapse.cpp"
+#include "layout/blockformatting/tablewrapper/TableWrapperBlockFormattingContext.cpp"

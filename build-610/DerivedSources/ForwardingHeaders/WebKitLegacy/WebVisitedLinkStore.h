@@ -1,0 +1,1 @@
+#import "mac/WebCoreSupport/WebVisitedLinkStore.h"

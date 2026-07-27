@@ -1,0 +1,8 @@
+#include "rendering/style/RenderStyle.cpp"
+#include "rendering/style/RenderStyleConstants.cpp"
+#include "rendering/style/SVGRenderStyle.cpp"
+#include "rendering/style/SVGRenderStyleDefs.cpp"
+#include "rendering/style/ShadowData.cpp"
+#include "rendering/style/ShapeValue.cpp"
+#include "rendering/style/StyleBackgroundData.cpp"
+#include "rendering/style/StyleBoxData.cpp"

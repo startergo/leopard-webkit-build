@@ -1,0 +1,8 @@
+#include "workers/WorkerInspectorProxy.cpp"
+#include "workers/WorkerLocation.cpp"
+#include "workers/WorkerMessagingProxy.cpp"
+#include "workers/WorkerRunLoop.cpp"
+#include "workers/WorkerScriptLoader.cpp"
+#include "workers/WorkerThread.cpp"
+#include "workers/service/ExtendableEvent.cpp"
+#include "workers/service/ExtendableMessageEvent.cpp"

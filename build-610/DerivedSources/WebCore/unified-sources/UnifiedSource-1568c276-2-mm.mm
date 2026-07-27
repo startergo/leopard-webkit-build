@@ -1,0 +1,8 @@
+#include "platform/cocoa/NetworkExtensionContentFilter.mm"
+#include "platform/cocoa/ParentalControlsContentFilter.mm"
+#include "platform/cocoa/PasteboardCocoa.mm"
+#include "platform/cocoa/PasteboardCustomDataCocoa.mm"
+#include "platform/cocoa/PlatformPasteboardCocoa.mm"
+#include "platform/cocoa/RuntimeApplicationChecksCocoa.mm"
+#include "platform/cocoa/ScrollController.mm"
+#include "platform/cocoa/ScrollSnapAnimatorState.mm"

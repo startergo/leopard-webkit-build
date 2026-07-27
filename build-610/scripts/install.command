@@ -1,0 +1,13 @@
+#!/bin/bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+echo "Installing WebKit.app to /Applications..."
+rm -rf "/Applications/WebKit.app"
+cp -R "$DIR/WebKit.app" "/Applications/WebKit.app"
+echo "Done."
+echo ""
+echo "IMPORTANT: this build uses the WebKit1 (WK1) engine and only loads into"
+echo "Safari 5.0.5 (the last pure-WebKit1 Safari). If /Applications/Safari.app is"
+echo "Safari 5.1.x (WK2), WebKit.app will launch Safari but the new engine will"
+echo "NOT be used. Replace Safari 5.1.10 with Safari 5.0.5 in /Applications first."
+echo ""
+echo "Then launch /Applications/WebKit.app and run 'enable advanced features.command'."

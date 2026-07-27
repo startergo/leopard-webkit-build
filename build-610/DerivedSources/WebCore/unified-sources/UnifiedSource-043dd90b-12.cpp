@@ -1,0 +1,8 @@
+#include "rendering/RenderRubyBase.cpp"
+#include "rendering/RenderRubyRun.cpp"
+#include "rendering/RenderRubyText.cpp"
+#include "rendering/RenderScrollbar.cpp"
+#include "rendering/RenderScrollbarPart.cpp"
+#include "rendering/RenderScrollbarTheme.cpp"
+#include "rendering/RenderSearchField.cpp"
+#include "rendering/RenderSelectionInfo.cpp"

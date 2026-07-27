@@ -1,0 +1,13 @@
+diff --git a/Source/WebCore/platform/graphics/gstreamer/GStreamerRegistryScanner.h b/Source/WebCore/platform/graphics/gstreamer/GStreamerRegistryScanner.h
+index c2de1ff6140..c9adefbb179 100644
+--- a/Source/WebCore/platform/graphics/gstreamer/GStreamerRegistryScanner.h
++++ b/Source/WebCore/platform/graphics/gstreamer/GStreamerRegistryScanner.h
+@@ -24,6 +24,8 @@
+ #include "MediaConfiguration.h"
+ 
+ #include "MediaPlayerEnums.h"
++
++typedef struct _GList GList;
+ #include <wtf/Forward.h>
+ #include <wtf/HashMap.h>
+ #include <wtf/HashSet.h>

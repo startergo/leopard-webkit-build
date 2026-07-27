@@ -1,0 +1,8 @@
+#include "Modules/cache/CacheStorageConnection.cpp"
+#include "Modules/cache/DOMCache.cpp"
+#include "Modules/cache/DOMCacheEngine.cpp"
+#include "Modules/cache/DOMCacheStorage.cpp"
+#include "Modules/cache/DOMWindowCaches.cpp"
+#include "Modules/cache/WorkerCacheStorageConnection.cpp"
+#include "Modules/cache/WorkerGlobalScopeCaches.cpp"
+#include "Modules/credentialmanagement/BasicCredential.cpp"

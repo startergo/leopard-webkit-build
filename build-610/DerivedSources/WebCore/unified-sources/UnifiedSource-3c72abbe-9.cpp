@@ -1,0 +1,8 @@
+#include "platform/Timer.cpp"
+#include "platform/UserActivity.cpp"
+#include "platform/WebCoreCrossThreadCopier.cpp"
+#include "platform/WebGLStateTracker.cpp"
+#include "platform/Widget.cpp"
+#include "platform/animation/Animation.cpp"
+#include "platform/animation/AnimationList.cpp"
+#include "platform/animation/TimingFunction.cpp"

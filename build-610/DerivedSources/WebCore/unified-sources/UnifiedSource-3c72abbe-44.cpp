@@ -1,0 +1,8 @@
+#include "platform/mediastream/libwebrtc/LibWebRTCDTMFSenderBackend.cpp"
+#include "platform/mediastream/libwebrtc/LibWebRTCProvider.cpp"
+#include "platform/mock/DeviceOrientationClientMock.cpp"
+#include "platform/mock/GeolocationClientMock.cpp"
+#include "platform/mock/MediaEngineConfigurationFactoryMock.cpp"
+#include "platform/mock/MockRealtimeAudioSource.cpp"
+#include "platform/mock/MockRealtimeMediaSourceCenter.cpp"
+#include "platform/mock/MockRealtimeVideoSource.cpp"

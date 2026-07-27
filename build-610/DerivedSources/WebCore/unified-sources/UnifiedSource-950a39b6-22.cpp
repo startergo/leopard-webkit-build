@@ -1,0 +1,8 @@
+#include "html/canvas/CanvasPath.cpp"
+#include "html/canvas/CanvasPattern.cpp"
+#include "html/canvas/CanvasRenderingContext.cpp"
+#include "html/canvas/CanvasRenderingContext2D.cpp"
+#include "html/canvas/CanvasRenderingContext2DBase.cpp"
+#include "html/canvas/CanvasStyle.cpp"
+#include "html/canvas/EXTBlendMinMax.cpp"
+#include "html/canvas/EXTColorBufferFloat.cpp"

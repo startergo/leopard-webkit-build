@@ -1,0 +1,8 @@
+#include "JSDOMCSSRegisterCustomProperty.cpp"
+#include "JSDOMCache.cpp"
+#include "JSDOMCacheStorage.cpp"
+#include "JSDOMException.cpp"
+#include "JSDOMFileSystem.cpp"
+#include "JSDOMFormData.cpp"
+#include "JSDOMImplementation.cpp"
+#include "JSDOMMatrix.cpp"

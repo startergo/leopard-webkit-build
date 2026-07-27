@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMHTMLHRElement.mm"
+#include "mac/DOM/DOMHTMLHeadElement.mm"
+#include "mac/DOM/DOMHTMLHeadingElement.mm"
+#include "mac/DOM/DOMHTMLHtmlElement.mm"
+#include "mac/DOM/DOMHTMLIFrameElement.mm"
+#include "mac/DOM/DOMHTMLImageElement.mm"
+#include "mac/DOM/DOMHTMLInputElement.mm"
+#include "mac/DOM/DOMHTMLLIElement.mm"

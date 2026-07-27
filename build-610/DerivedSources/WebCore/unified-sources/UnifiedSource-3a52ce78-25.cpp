@@ -1,0 +1,8 @@
+#include "JSDocumentAndElementEventHandlers.cpp"
+#include "JSDocumentFragment.cpp"
+#include "JSDocumentOrShadowRoot.cpp"
+#include "JSDocumentPictureInPicture.cpp"
+#include "JSDocumentTimeline.cpp"
+#include "JSDocumentTimelineOptions.cpp"
+#include "JSDocumentType.cpp"
+#include "JSDoubleRange.cpp"

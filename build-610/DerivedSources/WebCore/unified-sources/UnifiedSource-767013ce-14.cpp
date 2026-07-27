@@ -1,0 +1,8 @@
+#include "page/animation/CSSPropertyAnimation.cpp"
+#include "page/animation/CompositeAnimation.cpp"
+#include "page/animation/ImplicitAnimation.cpp"
+#include "page/animation/KeyframeAnimation.cpp"
+#include "page/csp/ContentSecurityPolicy.cpp"
+#include "page/csp/ContentSecurityPolicyClient.cpp"
+#include "page/csp/ContentSecurityPolicyDirective.cpp"
+#include "page/csp/ContentSecurityPolicyDirectiveList.cpp"

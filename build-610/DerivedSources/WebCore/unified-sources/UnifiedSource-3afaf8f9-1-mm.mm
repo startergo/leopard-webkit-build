@@ -1,0 +1,7 @@
+#include "accessibility/ios/AXObjectCacheIOS.mm"
+#include "accessibility/ios/AccessibilityObjectIOS.mm"
+#include "accessibility/ios/WebAccessibilityObjectWrapperIOS.mm"
+#include "accessibility/isolatedtree/mac/AXIsolatedObjectMac.mm"
+#include "accessibility/mac/AXObjectCacheMac.mm"
+#include "accessibility/mac/AccessibilityObjectBase.mm"
+#include "accessibility/mac/AccessibilityObjectMac.mm"

@@ -1,0 +1,8 @@
+#include "html/InputType.cpp"
+#include "html/InputTypeNames.cpp"
+#include "html/LabelableElement.cpp"
+#include "html/LabelsNodeList.cpp"
+#include "html/LazyLoadImageObserver.cpp"
+#include "html/LinkIconCollector.cpp"
+#include "html/LinkRelAttribute.cpp"
+#include "html/MediaController.cpp"

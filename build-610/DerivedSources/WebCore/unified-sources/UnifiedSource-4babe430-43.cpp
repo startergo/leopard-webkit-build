@@ -1,0 +1,8 @@
+#include "Modules/webgpu/WHLSL/Metal/WHLSLTypeNamer.cpp"
+#include "Modules/webgpu/WHLSL/Metal/WHLSLVertexBufferIndexCalculator.cpp"
+#include "Modules/websockets/CloseEvent.cpp"
+#include "Modules/websockets/ThreadableWebSocketChannel.cpp"
+#include "Modules/websockets/ThreadableWebSocketChannelClientWrapper.cpp"
+#include "Modules/websockets/WebSocket.cpp"
+#include "Modules/websockets/WebSocketChannel.cpp"
+#include "Modules/websockets/WebSocketChannelInspector.cpp"

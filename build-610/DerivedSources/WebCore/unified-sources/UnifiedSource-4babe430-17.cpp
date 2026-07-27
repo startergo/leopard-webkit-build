@@ -1,0 +1,8 @@
+#include "Modules/mediastream/PeerConnectionBackend.cpp"
+#include "Modules/mediastream/RTCCertificate.cpp"
+#include "Modules/mediastream/RTCController.cpp"
+#include "Modules/mediastream/RTCDTMFSender.cpp"
+#include "Modules/mediastream/RTCDTMFToneChangeEvent.cpp"
+#include "Modules/mediastream/RTCDataChannel.cpp"
+#include "Modules/mediastream/RTCDataChannelEvent.cpp"
+#include "Modules/mediastream/RTCIceCandidate.cpp"

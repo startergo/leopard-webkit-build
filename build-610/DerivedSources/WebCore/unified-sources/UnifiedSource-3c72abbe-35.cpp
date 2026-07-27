@@ -1,0 +1,8 @@
+#include "platform/graphics/filters/SpotLightSource.cpp"
+#include "platform/graphics/gpu/GPUBuffer.cpp"
+#include "platform/graphics/gpu/GPUDevice.cpp"
+#include "platform/graphics/gpu/GPUError.cpp"
+#include "platform/graphics/gpu/GPUErrorScopes.cpp"
+#include "platform/graphics/gpu/GPUPipeline.cpp"
+#include "platform/graphics/gpu/GPUPipelineLayout.cpp"
+#include "platform/graphics/gpu/GPUProgrammablePassEncoder.cpp"

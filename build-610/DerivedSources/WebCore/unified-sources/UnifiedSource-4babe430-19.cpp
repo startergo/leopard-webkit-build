@@ -1,0 +1,8 @@
+#include "Modules/mediastream/UserMediaController.cpp"
+#include "Modules/mediastream/UserMediaRequest.cpp"
+#include "Modules/mediastream/libwebrtc/LibWebRTCCertificateGenerator.cpp"
+#include "Modules/notifications/Notification.cpp"
+#include "Modules/notifications/NotificationController.cpp"
+#include "Modules/paymentrequest/MerchantValidationEvent.cpp"
+#include "Modules/paymentrequest/PaymentAddress.cpp"
+#include "Modules/paymentrequest/PaymentHandler.cpp"

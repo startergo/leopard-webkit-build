@@ -1,0 +1,8 @@
+#include "JSWebGLActiveInfo.cpp"
+#include "JSWebGLBuffer.cpp"
+#include "JSWebGLColorBufferFloat.cpp"
+#include "JSWebGLCompressedTextureASTC.cpp"
+#include "JSWebGLCompressedTextureATC.cpp"
+#include "JSWebGLCompressedTextureETC.cpp"
+#include "JSWebGLCompressedTextureETC1.cpp"
+#include "JSWebGLCompressedTexturePVRTC.cpp"

@@ -1,0 +1,8 @@
+#include "platform/text/TextCodecLatin1.cpp"
+#include "platform/text/TextCodecReplacement.cpp"
+#include "platform/text/TextCodecUTF16.cpp"
+#include "platform/text/TextCodecUTF8.cpp"
+#include "platform/text/TextCodecUserDefined.cpp"
+#include "platform/text/TextEncoding.cpp"
+#include "platform/text/TextEncodingDetectorICU.cpp"
+#include "platform/text/TextEncodingRegistry.cpp"

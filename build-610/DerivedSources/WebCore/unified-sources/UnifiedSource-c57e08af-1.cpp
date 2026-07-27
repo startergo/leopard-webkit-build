@@ -1,0 +1,8 @@
+#include "loader/AdClickAttribution.cpp"
+#include "loader/ApplicationManifestLoader.cpp"
+#include "loader/CanvasActivityRecord.cpp"
+#include "loader/ContentFilter.cpp"
+#include "loader/CookieJar.cpp"
+#include "loader/CrossOriginAccessControl.cpp"
+#include "loader/CrossOriginPreflightChecker.cpp"
+#include "loader/CrossOriginPreflightResultCache.cpp"

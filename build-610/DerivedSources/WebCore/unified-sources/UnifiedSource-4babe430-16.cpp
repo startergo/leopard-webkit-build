@@ -1,0 +1,8 @@
+#include "Modules/mediastream/MediaDeviceInfo.cpp"
+#include "Modules/mediastream/MediaDevices.cpp"
+#include "Modules/mediastream/MediaStream.cpp"
+#include "Modules/mediastream/MediaStreamTrack.cpp"
+#include "Modules/mediastream/MediaStreamTrackEvent.cpp"
+#include "Modules/mediastream/MediaTrackConstraints.cpp"
+#include "Modules/mediastream/NavigatorMediaDevices.cpp"
+#include "Modules/mediastream/OverconstrainedErrorEvent.cpp"

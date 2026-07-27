@@ -1,0 +1,8 @@
+#include "platform/cf/MediaAccessibilitySoftLink.cpp"
+#include "platform/cf/RunLoopObserver.cpp"
+#include "platform/cf/SharedBufferCF.cpp"
+#include "platform/cocoa/CoreVideoSoftLink.cpp"
+#include "platform/cocoa/TelephoneNumberDetectorCocoa.cpp"
+#include "platform/encryptedmedia/CDMFactory.cpp"
+#include "platform/encryptedmedia/CDMLogging.cpp"
+#include "platform/encryptedmedia/CDMPrivate.cpp"

@@ -1,0 +1,8 @@
+#include "Modules/mediarecorder/BlobEvent.cpp"
+#include "Modules/mediarecorder/MediaRecorder.cpp"
+#include "Modules/mediarecorder/MediaRecorderErrorEvent.cpp"
+#include "Modules/mediarecorder/MediaRecorderProvider.cpp"
+#include "Modules/mediasession/HTMLMediaElementMediaSession.cpp"
+#include "Modules/mediasession/MediaRemoteControls.cpp"
+#include "Modules/mediasession/MediaSession.cpp"
+#include "Modules/mediasession/WebMediaSessionManager.cpp"

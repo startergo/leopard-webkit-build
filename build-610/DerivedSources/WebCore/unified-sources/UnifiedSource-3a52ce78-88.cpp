@@ -1,0 +1,8 @@
+#include "JSSVGFontFaceSrcElement.cpp"
+#include "JSSVGFontFaceUriElement.cpp"
+#include "JSSVGForeignObjectElement.cpp"
+#include "JSSVGGElement.cpp"
+#include "JSSVGGeometryElement.cpp"
+#include "JSSVGGlyphElement.cpp"
+#include "JSSVGGlyphRefElement.cpp"
+#include "JSSVGGradientElement.cpp"

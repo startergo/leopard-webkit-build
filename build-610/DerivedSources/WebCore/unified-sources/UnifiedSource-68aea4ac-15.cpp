@@ -1,0 +1,8 @@
+#include "bindings/js/JSTreeWalkerCustom.cpp"
+#include "bindings/js/JSTypedOMCSSStyleValueCustom.cpp"
+#include "bindings/js/JSUndoItemCustom.cpp"
+#include "bindings/js/JSVideoTrackCustom.cpp"
+#include "bindings/js/JSVideoTrackListCustom.cpp"
+#include "bindings/js/JSWebAnimationCustom.cpp"
+#include "bindings/js/JSWebGL2RenderingContextCustom.cpp"
+#include "bindings/js/JSWebGLRenderingContextCustom.cpp"

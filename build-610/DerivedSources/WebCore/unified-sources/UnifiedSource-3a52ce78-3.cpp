@@ -1,0 +1,8 @@
+#include "JSAnimationEffect.cpp"
+#include "JSAnimationEvent.cpp"
+#include "JSAnimationPlaybackEvent.cpp"
+#include "JSAnimationPlaybackEventInit.cpp"
+#include "JSAnimationTimeline.cpp"
+#include "JSAttestationConveyancePreference.cpp"
+#include "JSAttr.cpp"
+#include "JSAudioBuffer.cpp"

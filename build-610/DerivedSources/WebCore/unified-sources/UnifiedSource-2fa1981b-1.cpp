@@ -1,0 +1,8 @@
+#include "bridge/IdentifierRep.cpp"
+#include "bridge/NP_jsobject.cpp"
+#include "bridge/npruntime.cpp"
+#include "bridge/runtime_array.cpp"
+#include "bridge/runtime_method.cpp"
+#include "bridge/runtime_object.cpp"
+#include "bridge/runtime_root.cpp"
+#include "bridge/c/CRuntimeObject.cpp"

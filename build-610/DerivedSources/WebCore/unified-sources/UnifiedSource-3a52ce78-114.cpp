@@ -1,0 +1,8 @@
+#include "JSWebGPUPipelineLayout.cpp"
+#include "JSWebGPUPipelineLayoutDescriptor.cpp"
+#include "JSWebGPUProgrammablePassEncoder.cpp"
+#include "JSWebGPUProgrammableStageDescriptor.cpp"
+#include "JSWebGPUQueue.cpp"
+#include "JSWebGPURenderPassDescriptor.cpp"
+#include "JSWebGPURenderPassEncoder.cpp"
+#include "JSWebGPURenderPipeline.cpp"

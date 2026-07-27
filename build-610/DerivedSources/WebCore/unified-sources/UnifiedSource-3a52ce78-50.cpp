@@ -1,0 +1,8 @@
+#include "JSIDBKeyRange.cpp"
+#include "JSIDBObjectStore.cpp"
+#include "JSIDBOpenDBRequest.cpp"
+#include "JSIDBRequest.cpp"
+#include "JSIDBTransaction.cpp"
+#include "JSIDBTransactionMode.cpp"
+#include "JSIDBVersionChangeEvent.cpp"
+#include "JSIdleDeadline.cpp"

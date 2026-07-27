@@ -1,0 +1,8 @@
+#include "Modules/fetch/FetchLoader.cpp"
+#include "Modules/fetch/FetchRequest.cpp"
+#include "Modules/fetch/FetchResponse.cpp"
+#include "Modules/fetch/WorkerGlobalScopeFetch.cpp"
+#include "Modules/geolocation/GeoNotifier.cpp"
+#include "Modules/geolocation/Geolocation.cpp"
+#include "Modules/geolocation/GeolocationController.cpp"
+#include "Modules/geolocation/GeolocationCoordinates.cpp"

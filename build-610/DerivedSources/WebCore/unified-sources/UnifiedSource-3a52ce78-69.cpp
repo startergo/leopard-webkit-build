@@ -1,0 +1,8 @@
+#include "JSPerformanceServerTiming.cpp"
+#include "JSPerformanceTiming.cpp"
+#include "JSPeriodicWave.cpp"
+#include "JSPictureInPictureWindow.cpp"
+#include "JSPlaybackDirection.cpp"
+#include "JSPointerEvent.cpp"
+#include "JSPopStateEvent.cpp"
+#include "JSPositionCallback.cpp"

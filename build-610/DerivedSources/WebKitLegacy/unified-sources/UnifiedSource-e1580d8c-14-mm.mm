@@ -1,0 +1,8 @@
+#include "mac/DOM/DOMNodeIterator.mm"
+#include "mac/DOM/DOMNodeList.mm"
+#include "mac/DOM/DOMObject.mm"
+#include "mac/DOM/DOMOverflowEvent.mm"
+#include "mac/DOM/DOMProcessingInstruction.mm"
+#include "mac/DOM/DOMProgressEvent.mm"
+#include "mac/DOM/DOMRGBColor.mm"
+#include "mac/DOM/DOMRange.mm"
