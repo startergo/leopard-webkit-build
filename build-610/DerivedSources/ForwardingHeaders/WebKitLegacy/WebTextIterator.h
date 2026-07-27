@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebView/WebTextIterator.h"
+#import "mac/WebView/WebTextIterator.h"

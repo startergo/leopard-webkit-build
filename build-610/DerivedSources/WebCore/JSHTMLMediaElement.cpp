@@ -48,6 +48,7 @@
 #include "JSDOMWrapperCache.h"
 #include "JSMediaController.h"
 #include "JSMediaError.h"
+#include "JSMediaSource.h"
 #include "JSTimeRanges.h"
 #include "JSVideoPlaybackQuality.h"
 #include "Quirks.h"
@@ -589,7 +590,7 @@ static inline JSValue jsHTMLMediaElementSrcObjectGetter(JSGlobalObject& lexicalG
     UNUSED_PARAM(throwScope);
     UNUSED_PARAM(lexicalGlobalObject);
     auto& impl = thisObject.wrapped();
-    JSValue result = toJS<IDLNullable<IDLUnion<IDLInterface<Blob>>>>(lexicalGlobalObject, *thisObject.globalObject(), throwScope, impl.srcObject());
+    JSValue result = toJS<IDLNullable<IDLUnion<IDLInterface<MediaSource>, IDLInterface<Blob>>>>(lexicalGlobalObject, *thisObject.globalObject(), throwScope, impl.srcObject());
     return result;
 }
 
@@ -603,7 +604,7 @@ static inline bool setJSHTMLMediaElementSrcObjectSetter(JSGlobalObject& lexicalG
     UNUSED_PARAM(lexicalGlobalObject);
     UNUSED_PARAM(throwScope);
     auto& impl = thisObject.wrapped();
-    auto nativeValue = convert<IDLNullable<IDLUnion<IDLInterface<Blob>>>>(lexicalGlobalObject, value);
+    auto nativeValue = convert<IDLNullable<IDLUnion<IDLInterface<MediaSource>, IDLInterface<Blob>>>>(lexicalGlobalObject, value);
     RETURN_IF_EXCEPTION(throwScope, false);
     AttributeSetter::call(lexicalGlobalObject, throwScope, [&] {
         return impl.setSrcObject(WTFMove(nativeValue));

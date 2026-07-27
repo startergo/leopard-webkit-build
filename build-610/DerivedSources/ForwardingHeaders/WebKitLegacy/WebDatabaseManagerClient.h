@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Storage/WebDatabaseManagerClient.h"
+#import "mac/Storage/WebDatabaseManagerClient.h"

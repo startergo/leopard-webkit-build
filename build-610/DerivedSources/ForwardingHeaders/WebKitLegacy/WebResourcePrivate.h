@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebView/WebResourcePrivate.h"
+#import "mac/WebView/WebResourcePrivate.h"

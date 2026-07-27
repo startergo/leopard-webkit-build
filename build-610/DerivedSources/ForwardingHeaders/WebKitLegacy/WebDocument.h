@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebView/WebDocument.h"
+#import "mac/WebView/WebDocument.h"

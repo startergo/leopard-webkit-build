@@ -1,3 +1,4 @@
+#include "JSSVGPathSegLinetoVerticalAbs.cpp"
 #include "JSSVGPathSegLinetoVerticalRel.cpp"
 #include "JSSVGPathSegList.cpp"
 #include "JSSVGPathSegMovetoAbs.cpp"
@@ -5,4 +6,3 @@
 #include "JSSVGPatternElement.cpp"
 #include "JSSVGPoint.cpp"
 #include "JSSVGPointList.cpp"
-#include "JSSVGPolygonElement.cpp"

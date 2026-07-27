@@ -1,3 +1,4 @@
+#include "JSNavigatorServiceWorker.cpp"
 #include "JSNavigatorShare.cpp"
 #include "JSNavigatorWebDriver.cpp"
 #include "JSNode.cpp"
@@ -5,4 +6,3 @@
 #include "JSNodeIterator.cpp"
 #include "JSNodeList.cpp"
 #include "JSNonDocumentTypeChildNode.cpp"
-#include "JSNonElementParentNode.cpp"

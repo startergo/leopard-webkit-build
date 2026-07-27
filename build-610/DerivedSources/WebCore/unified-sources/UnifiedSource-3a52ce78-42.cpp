@@ -1,3 +1,4 @@
+#include "JSHTMLImageElement.cpp"
 #include "JSHTMLInputElement.cpp"
 #include "JSHTMLInputElementEntriesAPI.cpp"
 #include "JSHTMLKeygenElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSHTMLLabelElement.cpp"
 #include "JSHTMLLegendElement.cpp"
 #include "JSHTMLLinkElement.cpp"
-#include "JSHTMLMapElement.cpp"

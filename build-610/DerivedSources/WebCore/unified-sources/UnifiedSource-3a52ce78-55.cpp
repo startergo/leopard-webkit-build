@@ -1,3 +1,4 @@
+#include "JSMediaControlsHost.cpp"
 #include "JSMediaDecodingConfiguration.cpp"
 #include "JSMediaDecodingType.cpp"
 #include "JSMediaDeviceInfo.cpp"
@@ -5,4 +6,3 @@
 #include "JSMediaElementAudioSourceNode.cpp"
 #include "JSMediaEncodingConfiguration.cpp"
 #include "JSMediaEncodingType.cpp"
-#include "JSMediaError.cpp"

@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMText.h"
+#import "mac/DOM/DOMText.h"

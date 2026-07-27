@@ -34,7 +34,7 @@ endif()
 
 # Set path to fallback-tool for dependency-resolution.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/objdump")
+  set(CMAKE_OBJDUMP "/usr/bin/objdump")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
@@ -53,7 +53,7 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
       -delete_rpath "/Users/macbookpro/leopard-webkit-build/build-610/lib"
       "$ENV{DESTDIR}/usr/local/lib/WebCore.framework/Versions/SOVERSION/WebCore")
     if(CMAKE_INSTALL_DO_STRIP)
-      execute_process(COMMAND "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip" -x "$ENV{DESTDIR}/usr/local/lib/WebCore.framework/Versions/SOVERSION/WebCore")
+      execute_process(COMMAND "/usr/bin/strip" -x "$ENV{DESTDIR}/usr/local/lib/WebCore.framework/Versions/SOVERSION/WebCore")
     endif()
   endif()
 endif()
@@ -74,7 +74,7 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
       -delete_rpath "/Users/macbookpro/leopard-webkit-build/build-610/lib"
       "$ENV{DESTDIR}/usr/local/lib/WebCoreTestSupport.framework/Versions/A/WebCoreTestSupport")
     if(CMAKE_INSTALL_DO_STRIP)
-      execute_process(COMMAND "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip" -x "$ENV{DESTDIR}/usr/local/lib/WebCoreTestSupport.framework/Versions/A/WebCoreTestSupport")
+      execute_process(COMMAND "/usr/bin/strip" -x "$ENV{DESTDIR}/usr/local/lib/WebCoreTestSupport.framework/Versions/A/WebCoreTestSupport")
     endif()
   endif()
 endif()
@@ -95,7 +95,7 @@ if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT
       -delete_rpath "/Users/macbookpro/leopard-webkit-build/build-610/lib"
       "$ENV{DESTDIR}/usr/local/lib/WebCore.framework/Versions/SOVERSION/WebCore")
     if(CMAKE_INSTALL_DO_STRIP)
-      execute_process(COMMAND "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip" -x "$ENV{DESTDIR}/usr/local/lib/WebCore.framework/Versions/SOVERSION/WebCore")
+      execute_process(COMMAND "/usr/bin/strip" -x "$ENV{DESTDIR}/usr/local/lib/WebCore.framework/Versions/SOVERSION/WebCore")
     endif()
   endif()
 endif()

@@ -1,3 +1,4 @@
+#include "JSSVGScriptElement.cpp"
 #include "JSSVGSetElement.cpp"
 #include "JSSVGStopElement.cpp"
 #include "JSSVGStringList.cpp"
@@ -5,4 +6,3 @@
 #include "JSSVGSwitchElement.cpp"
 #include "JSSVGSymbolElement.cpp"
 #include "JSSVGTRefElement.cpp"
-#include "JSSVGTSpanElement.cpp"

@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMCDATASection.h"
+#import "mac/DOM/DOMCDATASection.h"

@@ -1,3 +1,4 @@
+#include "JSMerchantValidationEvent.cpp"
 #include "JSMessageChannel.cpp"
 #include "JSMessageEvent.cpp"
 #include "JSMessagePort.cpp"
@@ -5,4 +6,3 @@
 #include "JSMouseEventInit.cpp"
 #include "JSMutationCallback.cpp"
 #include "JSMutationEvent.cpp"
-#include "JSMutationObserver.cpp"

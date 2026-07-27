@@ -1,3 +1,4 @@
+#include "JSResizeObserverCallback.cpp"
 #include "JSResizeObserverEntry.cpp"
 #include "JSRsaHashedImportParams.cpp"
 #include "JSRsaHashedKeyGenParams.cpp"
@@ -5,4 +6,3 @@
 #include "JSRsaOaepParams.cpp"
 #include "JSRsaOtherPrimesInfo.cpp"
 #include "JSRsaPssParams.cpp"
-#include "JSSQLError.cpp"

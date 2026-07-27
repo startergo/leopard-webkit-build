@@ -1,3 +1,4 @@
+#include "JSCryptoAesKeyAlgorithm.cpp"
 #include "JSCryptoAlgorithmParameters.cpp"
 #include "JSCryptoEcKeyAlgorithm.cpp"
 #include "JSCryptoHmacKeyAlgorithm.cpp"
@@ -5,4 +6,3 @@
 #include "JSCryptoKeyAlgorithm.cpp"
 #include "JSCryptoKeyPair.cpp"
 #include "JSCryptoKeyUsage.cpp"
-#include "JSCryptoRsaHashedKeyAlgorithm.cpp"

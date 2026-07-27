@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Misc/WebNSDictionaryExtras.h"
+#import "mac/Misc/WebNSDictionaryExtras.h"

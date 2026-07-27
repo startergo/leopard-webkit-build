@@ -1,3 +1,4 @@
+#include "JSSQLError.cpp"
 #include "JSSQLResultSet.cpp"
 #include "JSSQLResultSetRowList.cpp"
 #include "JSSQLStatementCallback.cpp"
@@ -5,4 +6,3 @@
 #include "JSSQLTransaction.cpp"
 #include "JSSQLTransactionCallback.cpp"
 #include "JSSQLTransactionErrorCallback.cpp"
-#include "JSSVGAElement.cpp"

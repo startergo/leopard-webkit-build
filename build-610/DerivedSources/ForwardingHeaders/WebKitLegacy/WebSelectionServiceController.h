@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebCoreSupport/WebSelectionServiceController.h"
+#import "mac/WebCoreSupport/WebSelectionServiceController.h"

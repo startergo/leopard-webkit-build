@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMHTMLTableColElement.h"
+#import "mac/DOM/DOMHTMLTableColElement.h"

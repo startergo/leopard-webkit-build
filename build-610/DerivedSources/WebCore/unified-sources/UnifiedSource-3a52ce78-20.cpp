@@ -1,3 +1,4 @@
+#include "JSDOMPoint.cpp"
 #include "JSDOMPointInit.cpp"
 #include "JSDOMPointReadOnly.cpp"
 #include "JSDOMQuad.cpp"
@@ -5,4 +6,3 @@
 #include "JSDOMRect.cpp"
 #include "JSDOMRectInit.cpp"
 #include "JSDOMRectList.cpp"
-#include "JSDOMRectReadOnly.cpp"

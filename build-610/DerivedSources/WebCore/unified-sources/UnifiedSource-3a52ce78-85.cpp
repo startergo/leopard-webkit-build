@@ -1,3 +1,4 @@
+#include "JSSVGFEDropShadowElement.cpp"
 #include "JSSVGFEFloodElement.cpp"
 #include "JSSVGFEFuncAElement.cpp"
 #include "JSSVGFEFuncBElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSSVGFEFuncRElement.cpp"
 #include "JSSVGFEGaussianBlurElement.cpp"
 #include "JSSVGFEImageElement.cpp"
-#include "JSSVGFEMergeElement.cpp"

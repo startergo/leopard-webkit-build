@@ -2489,43 +2489,43 @@ bool isInternalCSSProperty(const CSSPropertyID id)
 bool isEnabledCSSProperty(const CSSPropertyID id)
 {
     switch (id) {
-    case CSSPropertyID::CSSPropertyInsetInlineStart:
-        return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyBorderInlineWidth:
+    case CSSPropertyID::CSSPropertyBorderInlineColor:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
     case CSSPropertyID::CSSPropertyInset:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyBorderInlineColor:
-        return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyMarginInline:
+    case CSSPropertyID::CSSPropertyInsetInlineEnd:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
     case CSSPropertyID::CSSPropertyPaddingBlock:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyMarginBlock:
+    case CSSPropertyID::CSSPropertyInsetBlockEnd:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
     case CSSPropertyID::CSSPropertyInsetBlock:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyInsetBlockEnd:
+    case CSSPropertyID::CSSPropertyBorderBlock:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyInsetInline:
-        return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyBorderBlockColor:
+    case CSSPropertyID::CSSPropertyInsetInlineStart:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
     case CSSPropertyID::CSSPropertyBorderBlockWidth:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyBorderBlock:
+    case CSSPropertyID::CSSPropertyPaddingInline:
+        return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
+    case CSSPropertyID::CSSPropertyBorderBlockStyle:
+        return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
+    case CSSPropertyID::CSSPropertyBorderInline:
+        return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
+    case CSSPropertyID::CSSPropertyInsetInline:
+        return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
+    case CSSPropertyID::CSSPropertyBorderInlineWidth:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
     case CSSPropertyID::CSSPropertyInsetBlockStart:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
     case CSSPropertyID::CSSPropertyBorderInlineStyle:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyPaddingInline:
+    case CSSPropertyID::CSSPropertyMarginBlock:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyInsetInlineEnd:
+    case CSSPropertyID::CSSPropertyMarginInline:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyBorderInline:
-        return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
-    case CSSPropertyID::CSSPropertyBorderBlockStyle:
+    case CSSPropertyID::CSSPropertyBorderBlockColor:
         return RuntimeEnabledFeatures::sharedFeatures().cssLogicalEnabled();
     default:
         return true;

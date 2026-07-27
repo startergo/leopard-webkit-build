@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMAbstractViewInternal.h"
+#import "mac/DOM/DOMAbstractViewInternal.h"

@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebView/WebHTMLRepresentation.h"
+#import "mac/WebView/WebHTMLRepresentation.h"

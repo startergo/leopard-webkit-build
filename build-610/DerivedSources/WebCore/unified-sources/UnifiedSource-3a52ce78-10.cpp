@@ -1,3 +1,4 @@
+#include "JSCacheQueryOptions.cpp"
 #include "JSCanvasCaptureMediaStreamTrack.cpp"
 #include "JSCanvasCompositing.cpp"
 #include "JSCanvasDirection.cpp"
@@ -5,4 +6,3 @@
 #include "JSCanvasDrawPath.cpp"
 #include "JSCanvasFillRule.cpp"
 #include "JSCanvasFillStrokeStyles.cpp"
-#include "JSCanvasFilters.cpp"

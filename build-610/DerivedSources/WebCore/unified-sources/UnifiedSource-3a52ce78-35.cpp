@@ -1,3 +1,4 @@
+#include "JSGPUStoreOp.cpp"
 #include "JSGPUTextureDescriptor.cpp"
 #include "JSGPUTextureFormat.cpp"
 #include "JSGPUTextureUsage.cpp"
@@ -5,4 +6,3 @@
 #include "JSGPUValidationError.cpp"
 #include "JSGPUVertexAttributeDescriptor.cpp"
 #include "JSGPUVertexBufferDescriptor.cpp"
-#include "JSGPUVertexInputDescriptor.cpp"

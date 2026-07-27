@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Plugins/Hosted/NetscapePluginHostProxy.h"
+#import "mac/Plugins/Hosted/NetscapePluginHostProxy.h"

@@ -1,3 +1,4 @@
+#include "JSSVGTSpanElement.cpp"
 #include "JSSVGTests.cpp"
 #include "JSSVGTextContentElement.cpp"
 #include "JSSVGTextElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSSVGTextPositioningElement.cpp"
 #include "JSSVGTitleElement.cpp"
 #include "JSSVGTransform.cpp"
-#include "JSSVGTransformList.cpp"

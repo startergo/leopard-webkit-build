@@ -1,3 +1,4 @@
+#include "JSPaymentRequestUpdateEventInit.cpp"
 #include "JSPaymentResponse.cpp"
 #include "JSPaymentShippingOption.cpp"
 #include "JSPaymentShippingType.cpp"
@@ -5,4 +6,3 @@
 #include "JSPbkdf2Params.cpp"
 #include "JSPerformance.cpp"
 #include "JSPerformanceEntry.cpp"
-#include "JSPerformanceMark.cpp"

@@ -1,3 +1,4 @@
+#include "JSHTMLTableRowElement.cpp"
 #include "JSHTMLTableSectionElement.cpp"
 #include "JSHTMLTemplateElement.cpp"
 #include "JSHTMLTextAreaElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSHTMLTitleElement.cpp"
 #include "JSHTMLTrackElement.cpp"
 #include "JSHTMLUListElement.cpp"
-#include "JSHTMLUnknownElement.cpp"

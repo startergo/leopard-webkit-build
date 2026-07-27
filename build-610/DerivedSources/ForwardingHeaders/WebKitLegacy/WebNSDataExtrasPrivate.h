@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Misc/WebNSDataExtrasPrivate.h"
+#import "mac/Misc/WebNSDataExtrasPrivate.h"

@@ -1,3 +1,4 @@
+#include "JSCSSRule.cpp"
 #include "JSCSSRuleList.cpp"
 #include "JSCSSStyleDeclaration.cpp"
 #include "JSCSSStyleRule.cpp"
@@ -5,4 +6,3 @@
 #include "JSCSSSupportsRule.cpp"
 #include "JSCSSTransition.cpp"
 #include "JSCSSUnknownRule.cpp"
-#include "JSCacheQueryOptions.cpp"

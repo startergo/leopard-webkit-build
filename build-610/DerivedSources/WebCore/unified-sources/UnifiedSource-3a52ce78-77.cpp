@@ -1,3 +1,4 @@
+#include "JSReadableStreamBYOBRequest.cpp"
 #include "JSReadableStreamDefaultController.cpp"
 #include "JSReadableStreamDefaultReader.cpp"
 #include "JSReadableStreamSink.cpp"
@@ -5,4 +6,3 @@
 #include "JSRemoteDOMWindow.cpp"
 #include "JSRequestAnimationFrameCallback.cpp"
 #include "JSResizeObserver.cpp"
-#include "JSResizeObserverCallback.cpp"

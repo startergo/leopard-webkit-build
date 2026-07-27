@@ -1,3 +1,4 @@
+#include "JSSVGComponentTransferFunctionElement.cpp"
 #include "JSSVGCursorElement.cpp"
 #include "JSSVGDefsElement.cpp"
 #include "JSSVGDescElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSSVGElement.cpp"
 #include "JSSVGElementWrapperFactory.cpp"
 #include "JSSVGEllipseElement.cpp"
-#include "JSSVGFEBlendElement.cpp"

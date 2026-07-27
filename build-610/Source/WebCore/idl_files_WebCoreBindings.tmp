@@ -946,6 +946,9 @@
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/VTTRegionList.idl
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/VideoTrack.idl
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/VideoTrackList.idl
+/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/Modules/mediasource/AudioTrackMediaSource.idl
+/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/Modules/mediasource/TextTrackMediaSource.idl
+/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/Modules/mediasource/VideoTrackMediaSource.idl
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/Modules/applepay/ApplePayCancelEvent.idl
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/Modules/applepay/ApplePayContactField.idl
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/Modules/applepay/ApplePayError.idl

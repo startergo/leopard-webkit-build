@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMProgressEvent.h"
+#import "mac/DOM/DOMProgressEvent.h"

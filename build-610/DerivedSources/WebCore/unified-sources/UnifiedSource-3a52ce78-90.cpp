@@ -1,3 +1,4 @@
+#include "JSSVGMarkerElement.cpp"
 #include "JSSVGMaskElement.cpp"
 #include "JSSVGMatrix.cpp"
 #include "JSSVGMetadataElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSSVGNumber.cpp"
 #include "JSSVGNumberList.cpp"
 #include "JSSVGPathElement.cpp"
-#include "JSSVGPathSeg.cpp"

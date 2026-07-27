@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMMediaError.h"
+#import "mac/DOM/DOMMediaError.h"

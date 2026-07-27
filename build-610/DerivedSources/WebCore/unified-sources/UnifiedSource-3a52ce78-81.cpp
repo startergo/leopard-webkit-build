@@ -1,3 +1,4 @@
+#include "JSSVGAnimateTransformElement.cpp"
 #include "JSSVGAnimatedAngle.cpp"
 #include "JSSVGAnimatedBoolean.cpp"
 #include "JSSVGAnimatedEnumeration.cpp"
@@ -5,4 +6,3 @@
 #include "JSSVGAnimatedLength.cpp"
 #include "JSSVGAnimatedLengthList.cpp"
 #include "JSSVGAnimatedNumber.cpp"
-#include "JSSVGAnimatedNumberList.cpp"

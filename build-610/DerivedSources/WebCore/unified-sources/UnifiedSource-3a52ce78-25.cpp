@@ -1,3 +1,4 @@
+#include "JSDocumentAndElementEventHandlers.cpp"
 #include "JSDocumentFragment.cpp"
 #include "JSDocumentOrShadowRoot.cpp"
 #include "JSDocumentPictureInPicture.cpp"
@@ -5,4 +6,3 @@
 #include "JSDocumentTimelineOptions.cpp"
 #include "JSDocumentType.cpp"
 #include "JSDoubleRange.cpp"
-#include "JSDragEvent.cpp"

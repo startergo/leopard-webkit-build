@@ -1,3 +1,4 @@
+#include "JSPublicKeyCredentialDescriptor.cpp"
 #include "JSPublicKeyCredentialRequestOptions.cpp"
 #include "JSPublicKeyCredentialType.cpp"
 #include "JSRTCAnswerOptions.cpp"
@@ -5,4 +6,3 @@
 #include "JSRTCConfiguration.cpp"
 #include "JSRTCDTMFSender.cpp"
 #include "JSRTCDTMFToneChangeEvent.cpp"
-#include "JSRTCDataChannel.cpp"

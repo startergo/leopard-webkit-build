@@ -1,3 +1,4 @@
+#include "JSClipboardEvent.cpp"
 #include "JSClipboardItem.cpp"
 #include "JSCloseEvent.cpp"
 #include "JSColorGamut.cpp"
@@ -5,4 +6,3 @@
 #include "JSComment.cpp"
 #include "JSCompositeOperation.cpp"
 #include "JSCompositeOperationOrAuto.cpp"
-#include "JSCompositionEvent.cpp"

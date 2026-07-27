@@ -1,3 +1,4 @@
+#include "JSCanvasFilters.cpp"
 #include "JSCanvasGradient.cpp"
 #include "JSCanvasImageData.cpp"
 #include "JSCanvasImageSmoothing.cpp"
@@ -5,4 +6,3 @@
 #include "JSCanvasLineJoin.cpp"
 #include "JSCanvasPath.cpp"
 #include "JSCanvasPathDrawingStyles.cpp"
-#include "JSCanvasPattern.cpp"

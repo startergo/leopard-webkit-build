@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Misc/WebNSURLRequestExtras.h"
+#import "mac/Misc/WebNSURLRequestExtras.h"

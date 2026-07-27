@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMHTMLTextAreaElementInternal.h"
+#import "mac/DOM/DOMHTMLTextAreaElementInternal.h"

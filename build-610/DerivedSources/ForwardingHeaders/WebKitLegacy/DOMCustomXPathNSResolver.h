@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMCustomXPathNSResolver.h"
+#import "mac/DOM/DOMCustomXPathNSResolver.h"

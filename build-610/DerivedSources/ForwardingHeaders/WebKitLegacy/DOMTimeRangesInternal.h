@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMTimeRangesInternal.h"
+#import "mac/DOM/DOMTimeRangesInternal.h"

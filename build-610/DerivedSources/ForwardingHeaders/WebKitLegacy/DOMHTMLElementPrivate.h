@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMHTMLElementPrivate.h"
+#import "mac/DOM/DOMHTMLElementPrivate.h"

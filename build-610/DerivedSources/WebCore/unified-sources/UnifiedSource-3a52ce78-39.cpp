@@ -1,3 +1,4 @@
+#include "JSHTMLCollection.cpp"
 #include "JSHTMLDListElement.cpp"
 #include "JSHTMLDataElement.cpp"
 #include "JSHTMLDataListElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSHTMLDialogElement.cpp"
 #include "JSHTMLDirectoryElement.cpp"
 #include "JSHTMLDivElement.cpp"
-#include "JSHTMLDocument.cpp"

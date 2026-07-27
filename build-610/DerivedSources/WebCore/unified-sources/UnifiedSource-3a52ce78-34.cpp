@@ -1,3 +1,4 @@
+#include "JSGPUErrorFilter.cpp"
 #include "JSGPUExtent3D.cpp"
 #include "JSGPULoadOp.cpp"
 #include "JSGPUOrigin3D.cpp"
@@ -5,4 +6,3 @@
 #include "JSGPURequestAdapterOptions.cpp"
 #include "JSGPUSamplerDescriptor.cpp"
 #include "JSGPUShaderStage.cpp"
-#include "JSGPUStoreOp.cpp"

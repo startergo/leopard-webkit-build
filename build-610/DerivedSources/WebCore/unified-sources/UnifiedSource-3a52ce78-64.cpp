@@ -1,3 +1,4 @@
+#include "JSOscillatorNode.cpp"
 #include "JSOverconstrainedError.cpp"
 #include "JSOverconstrainedErrorEvent.cpp"
 #include "JSOverflowEvent.cpp"
@@ -5,4 +6,3 @@
 #include "JSPaintRenderingContext2D.cpp"
 #include "JSPaintWorkletGlobalScope.cpp"
 #include "JSPannerNode.cpp"
-#include "JSParentNode.cpp"

@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMCSSValueList.h"
+#import "mac/DOM/DOMCSSValueList.h"

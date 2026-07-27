@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/plugins/npapi.h"
+#import "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/plugins/npapi.h"

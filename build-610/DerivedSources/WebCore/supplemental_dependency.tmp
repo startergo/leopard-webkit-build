@@ -660,10 +660,10 @@
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/canvas/WebGLUniformLocation.idl 
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/canvas/WebGLVertexArrayObject.idl 
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/canvas/WebGLVertexArrayObjectOES.idl 
-/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/AudioTrack.idl 
+/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/AudioTrack.idl /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/Modules/mediasource/AudioTrackMediaSource.idl
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/AudioTrackList.idl 
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/DataCue.idl 
-/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/TextTrack.idl 
+/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/TextTrack.idl /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/Modules/mediasource/TextTrackMediaSource.idl
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/TextTrackCue.idl 
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/TextTrackCueGeneric.idl 
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/TextTrackCueList.idl 
@@ -672,7 +672,7 @@
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/VTTCue.idl 
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/VTTRegion.idl 
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/VTTRegionList.idl 
-/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/VideoTrack.idl 
+/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/VideoTrack.idl /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/Modules/mediasource/VideoTrackMediaSource.idl
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/html/track/VideoTrackList.idl 
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/inspector/CommandLineAPIHost.idl 
 /Users/macbookpro/leopard-webkit-build/sources_610/Source/WebCore/inspector/InspectorAuditAccessibilityObject.idl 

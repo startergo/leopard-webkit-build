@@ -1,3 +1,4 @@
+#include "JSMathMLElement.cpp"
 #include "JSMathMLElementWrapperFactory.cpp"
 #include "JSMathMLMathElement.cpp"
 #include "JSMediaCapabilities.cpp"
@@ -5,4 +6,3 @@
 #include "JSMediaCapabilitiesEncodingInfo.cpp"
 #include "JSMediaCapabilitiesInfo.cpp"
 #include "JSMediaController.cpp"
-#include "JSMediaControlsHost.cpp"

@@ -46,6 +46,14 @@
 #include <wtf/PointerPreparations.h>
 #include <wtf/URL.h>
 
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+#include "JSDOMConvertInterface.h"
+#include "JSDOMConvertNullable.h"
+#include "JSDOMGlobalObject.h"
+#include "JSSourceBuffer.h"
+#include "VideoTrackMediaSource.h"
+#endif
+
 
 namespace WebCore {
 using namespace JSC;
@@ -66,6 +74,9 @@ bool setJSVideoTrackLanguage(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::Enc
 #endif
 JSC::EncodedJSValue jsVideoTrackSelected(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::PropertyName);
 bool setJSVideoTrackSelected(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::EncodedJSValue);
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+JSC::EncodedJSValue jsVideoTrackSourceBuffer(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::PropertyName);
+#endif
 
 class JSVideoTrackPrototype final : public JSC::JSNonFinalObject {
 public:
@@ -134,6 +145,11 @@ static const HashTableValue JSVideoTrackPrototypeTableValues[] =
     { "language", JSC::PropertyAttribute::ReadOnly | static_cast<unsigned>(JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsVideoTrackLanguage), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(0) } },
 #endif
     { "selected", static_cast<unsigned>(JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsVideoTrackSelected), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(setJSVideoTrackSelected) } },
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+    { "sourceBuffer", static_cast<unsigned>(JSC::PropertyAttribute::ReadOnly | JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsVideoTrackSourceBuffer), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(0) } },
+#else
+    { 0, 0, NoIntrinsic, { 0, 0 } },
+#endif
 };
 
 const ClassInfo JSVideoTrackPrototype::s_info = { "VideoTrack", &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(JSVideoTrackPrototype) };
@@ -339,6 +355,23 @@ bool setJSVideoTrackSelected(JSGlobalObject* lexicalGlobalObject, EncodedJSValue
 {
     return IDLAttribute<JSVideoTrack>::set<setJSVideoTrackSelectedSetter>(*lexicalGlobalObject, thisValue, encodedValue, "selected");
 }
+
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+static inline JSValue jsVideoTrackSourceBufferGetter(JSGlobalObject& lexicalGlobalObject, JSVideoTrack& thisObject, ThrowScope& throwScope)
+{
+    UNUSED_PARAM(throwScope);
+    UNUSED_PARAM(lexicalGlobalObject);
+    auto& impl = thisObject.wrapped();
+    JSValue result = toJS<IDLNullable<IDLInterface<SourceBuffer>>>(lexicalGlobalObject, *thisObject.globalObject(), throwScope, WebCore::VideoTrackMediaSource::sourceBuffer(impl));
+    return result;
+}
+
+EncodedJSValue jsVideoTrackSourceBuffer(JSGlobalObject* lexicalGlobalObject, EncodedJSValue thisValue, PropertyName)
+{
+    return IDLAttribute<JSVideoTrack>::get<jsVideoTrackSourceBufferGetter, CastedThisErrorBehavior::Assert>(*lexicalGlobalObject, thisValue, "sourceBuffer");
+}
+
+#endif
 
 JSC::IsoSubspace* JSVideoTrack::subspaceForImpl(JSC::VM& vm)
 {

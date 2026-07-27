@@ -1,3 +1,4 @@
+#include "JSSVGAElement.cpp"
 #include "JSSVGAltGlyphDefElement.cpp"
 #include "JSSVGAltGlyphElement.cpp"
 #include "JSSVGAltGlyphItemElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSSVGAnimateColorElement.cpp"
 #include "JSSVGAnimateElement.cpp"
 #include "JSSVGAnimateMotionElement.cpp"
-#include "JSSVGAnimateTransformElement.cpp"

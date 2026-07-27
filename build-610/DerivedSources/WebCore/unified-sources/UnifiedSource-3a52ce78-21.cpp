@@ -1,3 +1,4 @@
+#include "JSDOMRectReadOnly.cpp"
 #include "JSDOMSelection.cpp"
 #include "JSDOMStringList.cpp"
 #include "JSDOMStringMap.cpp"
@@ -5,4 +6,3 @@
 #include "JSDOMURL.cpp"
 #include "JSDOMURLMediaSource.cpp"
 #include "JSDOMWindow.cpp"
-#include "JSDOMWindowCaches.cpp"

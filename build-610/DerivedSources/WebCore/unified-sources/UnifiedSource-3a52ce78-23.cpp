@@ -1,3 +1,4 @@
+#include "JSDataTransferItemList.cpp"
 #include "JSDatabase.cpp"
 #include "JSDatabaseCallback.cpp"
 #include "JSDedicatedWorkerGlobalScope.cpp"
@@ -5,4 +6,3 @@
 #include "JSDeprecatedCSSOMCounter.cpp"
 #include "JSDeprecatedCSSOMPrimitiveValue.cpp"
 #include "JSDeprecatedCSSOMRGBColor.cpp"
-#include "JSDeprecatedCSSOMRect.cpp"

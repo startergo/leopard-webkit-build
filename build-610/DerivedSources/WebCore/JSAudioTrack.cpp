@@ -46,6 +46,14 @@
 #include <wtf/PointerPreparations.h>
 #include <wtf/URL.h>
 
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+#include "AudioTrackMediaSource.h"
+#include "JSDOMConvertInterface.h"
+#include "JSDOMConvertNullable.h"
+#include "JSDOMGlobalObject.h"
+#include "JSSourceBuffer.h"
+#endif
+
 
 namespace WebCore {
 using namespace JSC;
@@ -66,6 +74,9 @@ bool setJSAudioTrackLanguage(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::Enc
 #endif
 JSC::EncodedJSValue jsAudioTrackEnabled(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::PropertyName);
 bool setJSAudioTrackEnabled(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::EncodedJSValue);
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+JSC::EncodedJSValue jsAudioTrackSourceBuffer(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::PropertyName);
+#endif
 
 class JSAudioTrackPrototype final : public JSC::JSNonFinalObject {
 public:
@@ -134,6 +145,11 @@ static const HashTableValue JSAudioTrackPrototypeTableValues[] =
     { "language", JSC::PropertyAttribute::ReadOnly | static_cast<unsigned>(JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsAudioTrackLanguage), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(0) } },
 #endif
     { "enabled", static_cast<unsigned>(JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsAudioTrackEnabled), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(setJSAudioTrackEnabled) } },
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+    { "sourceBuffer", static_cast<unsigned>(JSC::PropertyAttribute::ReadOnly | JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsAudioTrackSourceBuffer), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(0) } },
+#else
+    { 0, 0, NoIntrinsic, { 0, 0 } },
+#endif
 };
 
 const ClassInfo JSAudioTrackPrototype::s_info = { "AudioTrack", &Base::s_info, nullptr, nullptr, CREATE_METHOD_TABLE(JSAudioTrackPrototype) };
@@ -339,6 +355,23 @@ bool setJSAudioTrackEnabled(JSGlobalObject* lexicalGlobalObject, EncodedJSValue 
 {
     return IDLAttribute<JSAudioTrack>::set<setJSAudioTrackEnabledSetter>(*lexicalGlobalObject, thisValue, encodedValue, "enabled");
 }
+
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+static inline JSValue jsAudioTrackSourceBufferGetter(JSGlobalObject& lexicalGlobalObject, JSAudioTrack& thisObject, ThrowScope& throwScope)
+{
+    UNUSED_PARAM(throwScope);
+    UNUSED_PARAM(lexicalGlobalObject);
+    auto& impl = thisObject.wrapped();
+    JSValue result = toJS<IDLNullable<IDLInterface<SourceBuffer>>>(lexicalGlobalObject, *thisObject.globalObject(), throwScope, WebCore::AudioTrackMediaSource::sourceBuffer(impl));
+    return result;
+}
+
+EncodedJSValue jsAudioTrackSourceBuffer(JSGlobalObject* lexicalGlobalObject, EncodedJSValue thisValue, PropertyName)
+{
+    return IDLAttribute<JSAudioTrack>::get<jsAudioTrackSourceBufferGetter, CastedThisErrorBehavior::Assert>(*lexicalGlobalObject, thisValue, "sourceBuffer");
+}
+
+#endif
 
 JSC::IsoSubspace* JSAudioTrack::subspaceForImpl(JSC::VM& vm)
 {

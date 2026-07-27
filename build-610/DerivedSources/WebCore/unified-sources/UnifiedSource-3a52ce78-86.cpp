@@ -1,3 +1,4 @@
+#include "JSSVGFEMergeElement.cpp"
 #include "JSSVGFEMergeNodeElement.cpp"
 #include "JSSVGFEMorphologyElement.cpp"
 #include "JSSVGFEOffsetElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSSVGFESpecularLightingElement.cpp"
 #include "JSSVGFESpotLightElement.cpp"
 #include "JSSVGFETileElement.cpp"
-#include "JSSVGFETurbulenceElement.cpp"

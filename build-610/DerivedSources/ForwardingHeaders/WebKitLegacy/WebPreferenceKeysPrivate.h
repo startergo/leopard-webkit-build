@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebView/WebPreferenceKeysPrivate.h"
+#import "mac/WebView/WebPreferenceKeysPrivate.h"

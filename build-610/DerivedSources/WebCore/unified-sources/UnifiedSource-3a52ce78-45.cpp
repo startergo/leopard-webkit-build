@@ -1,3 +1,4 @@
+#include "JSHTMLParagraphElement.cpp"
 #include "JSHTMLParamElement.cpp"
 #include "JSHTMLPictureElement.cpp"
 #include "JSHTMLPreElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSHTMLQuoteElement.cpp"
 #include "JSHTMLScriptElement.cpp"
 #include "JSHTMLSelectElement.cpp"
-#include "JSHTMLSlotElement.cpp"

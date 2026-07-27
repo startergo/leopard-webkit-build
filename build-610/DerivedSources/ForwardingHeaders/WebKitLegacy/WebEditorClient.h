@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebCoreSupport/WebEditorClient.h"
+#import "mac/WebCoreSupport/WebEditorClient.h"

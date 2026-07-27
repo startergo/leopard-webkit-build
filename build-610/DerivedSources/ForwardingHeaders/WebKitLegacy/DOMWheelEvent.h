@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMWheelEvent.h"
+#import "mac/DOM/DOMWheelEvent.h"

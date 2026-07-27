@@ -1,3 +1,4 @@
+#include "JSTextEncoder.cpp"
 #include "JSTextEvent.cpp"
 #include "JSTextMetrics.cpp"
 #include "JSTextTrack.cpp"
@@ -5,4 +6,3 @@
 #include "JSTextTrackCueGeneric.cpp"
 #include "JSTextTrackCueList.cpp"
 #include "JSTextTrackList.cpp"
-#include "JSTimeRanges.cpp"

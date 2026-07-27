@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebView/WebFrameViewInternal.h"
+#import "mac/WebView/WebFrameViewInternal.h"

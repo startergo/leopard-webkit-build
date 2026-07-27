@@ -1,3 +1,4 @@
+#include "JSDragEvent.cpp"
 #include "JSDynamicsCompressorNode.cpp"
 #include "JSEXTBlendMinMax.cpp"
 #include "JSEXTColorBufferFloat.cpp"
@@ -5,4 +6,3 @@
 #include "JSEXTFragDepth.cpp"
 #include "JSEXTShaderTextureLOD.cpp"
 #include "JSEXTTextureFilterAnisotropic.cpp"
-#include "JSEXTsRGB.cpp"

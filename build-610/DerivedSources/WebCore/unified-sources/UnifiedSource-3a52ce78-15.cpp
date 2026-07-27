@@ -1,3 +1,4 @@
+#include "JSCompositionEvent.cpp"
 #include "JSComputedEffectTiming.cpp"
 #include "JSConvolverNode.cpp"
 #include "JSCountQueuingStrategy.cpp"
@@ -5,4 +6,3 @@
 #include "JSCredentialRequestOptions.cpp"
 #include "JSCredentialsContainer.cpp"
 #include "JSCrypto.cpp"
-#include "JSCryptoAesKeyAlgorithm.cpp"

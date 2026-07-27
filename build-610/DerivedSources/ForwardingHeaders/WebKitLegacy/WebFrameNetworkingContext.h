@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebCoreSupport/WebFrameNetworkingContext.h"
+#import "mac/WebCoreSupport/WebFrameNetworkingContext.h"

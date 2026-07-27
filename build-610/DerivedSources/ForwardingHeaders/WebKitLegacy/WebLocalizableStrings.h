@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Misc/WebLocalizableStrings.h"
+#import "mac/Misc/WebLocalizableStrings.h"

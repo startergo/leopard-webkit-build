@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebCoreSupport/WebPluginInfoProvider.h"
+#import "mac/WebCoreSupport/WebPluginInfoProvider.h"

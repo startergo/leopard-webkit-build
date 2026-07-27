@@ -1,3 +1,4 @@
+#include "JSServiceWorkerUpdateViaCache.cpp"
 #include "JSServiceWorkerWindowClient.cpp"
 #include "JSShadowRoot.cpp"
 #include "JSShadowRootMode.cpp"
@@ -5,4 +6,3 @@
 #include "JSSlotable.cpp"
 #include "JSSourceBuffer.cpp"
 #include "JSSourceBufferList.cpp"
-#include "JSSpeechSynthesis.cpp"

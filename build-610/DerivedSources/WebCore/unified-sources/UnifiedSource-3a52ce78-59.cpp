@@ -1,3 +1,4 @@
+#include "JSMutationObserver.cpp"
 #include "JSMutationRecord.cpp"
 #include "JSNamedNodeMap.cpp"
 #include "JSNavigator.cpp"
@@ -5,4 +6,3 @@
 #include "JSNavigatorClipboard.cpp"
 #include "JSNavigatorCredentials.cpp"
 #include "JSNavigatorGPU.cpp"
-#include "JSNavigatorGamepad.cpp"

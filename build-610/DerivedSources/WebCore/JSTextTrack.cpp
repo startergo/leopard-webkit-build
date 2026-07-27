@@ -55,6 +55,11 @@
 #include <wtf/PointerPreparations.h>
 #include <wtf/URL.h>
 
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+#include "JSSourceBuffer.h"
+#include "TextTrackMediaSource.h"
+#endif
+
 
 namespace WebCore {
 using namespace JSC;
@@ -170,6 +175,9 @@ JSC::EncodedJSValue jsTextTrackActiveCues(JSC::JSGlobalObject*, JSC::EncodedJSVa
 JSC::EncodedJSValue jsTextTrackOncuechange(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::PropertyName);
 bool setJSTextTrackOncuechange(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::EncodedJSValue);
 JSC::EncodedJSValue jsTextTrackRegions(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::PropertyName);
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+JSC::EncodedJSValue jsTextTrackSourceBuffer(JSC::JSGlobalObject*, JSC::EncodedJSValue, JSC::PropertyName);
+#endif
 
 class JSTextTrackPrototype final : public JSC::JSNonFinalObject {
 public:
@@ -238,6 +246,11 @@ static const HashTableValue JSTextTrackPrototypeTableValues[] =
     { "activeCues", static_cast<unsigned>(JSC::PropertyAttribute::ReadOnly | JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsTextTrackActiveCues), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(0) } },
     { "oncuechange", static_cast<unsigned>(JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsTextTrackOncuechange), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(setJSTextTrackOncuechange) } },
     { "regions", static_cast<unsigned>(JSC::PropertyAttribute::ReadOnly | JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsTextTrackRegions), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(0) } },
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+    { "sourceBuffer", static_cast<unsigned>(JSC::PropertyAttribute::ReadOnly | JSC::PropertyAttribute::CustomAccessor | JSC::PropertyAttribute::DOMAttribute), NoIntrinsic, { (intptr_t)static_cast<PropertySlot::GetValueFunc>(jsTextTrackSourceBuffer), (intptr_t) static_cast<PutPropertySlot::PutValueFunc>(0) } },
+#else
+    { 0, 0, NoIntrinsic, { 0, 0 } },
+#endif
     { "addCue", static_cast<unsigned>(JSC::PropertyAttribute::Function), NoIntrinsic, { (intptr_t)static_cast<RawNativeFunction>(jsTextTrackPrototypeFunctionAddCue), (intptr_t) (1) } },
     { "removeCue", static_cast<unsigned>(JSC::PropertyAttribute::Function), NoIntrinsic, { (intptr_t)static_cast<RawNativeFunction>(jsTextTrackPrototypeFunctionRemoveCue), (intptr_t) (1) } },
     { "addRegion", static_cast<unsigned>(JSC::PropertyAttribute::Function), NoIntrinsic, { (intptr_t)static_cast<RawNativeFunction>(jsTextTrackPrototypeFunctionAddRegion), (intptr_t) (1) } },
@@ -535,6 +548,23 @@ EncodedJSValue jsTextTrackRegions(JSGlobalObject* lexicalGlobalObject, EncodedJS
 {
     return IDLAttribute<JSTextTrack>::get<jsTextTrackRegionsGetter, CastedThisErrorBehavior::Assert>(*lexicalGlobalObject, thisValue, "regions");
 }
+
+#if ENABLE(MEDIA_SOURCE) && ENABLE(VIDEO_TRACK)
+static inline JSValue jsTextTrackSourceBufferGetter(JSGlobalObject& lexicalGlobalObject, JSTextTrack& thisObject, ThrowScope& throwScope)
+{
+    UNUSED_PARAM(throwScope);
+    UNUSED_PARAM(lexicalGlobalObject);
+    auto& impl = thisObject.wrapped();
+    JSValue result = toJS<IDLNullable<IDLInterface<SourceBuffer>>>(lexicalGlobalObject, *thisObject.globalObject(), throwScope, WebCore::TextTrackMediaSource::sourceBuffer(impl));
+    return result;
+}
+
+EncodedJSValue jsTextTrackSourceBuffer(JSGlobalObject* lexicalGlobalObject, EncodedJSValue thisValue, PropertyName)
+{
+    return IDLAttribute<JSTextTrack>::get<jsTextTrackSourceBufferGetter, CastedThisErrorBehavior::Assert>(*lexicalGlobalObject, thisValue, "sourceBuffer");
+}
+
+#endif
 
 static inline JSC::EncodedJSValue jsTextTrackPrototypeFunctionAddCueBody(JSC::JSGlobalObject* lexicalGlobalObject, JSC::CallFrame* callFrame, typename IDLOperation<JSTextTrack>::ClassParameter castedThis, JSC::ThrowScope& throwScope)
 {

@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/DOM/DOMUIKitExtensions.h"
+#import "mac/DOM/DOMUIKitExtensions.h"

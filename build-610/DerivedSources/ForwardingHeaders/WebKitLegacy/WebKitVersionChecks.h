@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Misc/WebKitVersionChecks.h"
+#import "mac/Misc/WebKitVersionChecks.h"

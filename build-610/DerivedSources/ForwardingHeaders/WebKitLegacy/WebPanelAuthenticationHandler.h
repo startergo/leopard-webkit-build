@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Panels/WebPanelAuthenticationHandler.h"
+#import "mac/Panels/WebPanelAuthenticationHandler.h"

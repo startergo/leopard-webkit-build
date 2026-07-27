@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/History/WebHistoryItem.h"
+#import "mac/History/WebHistoryItem.h"

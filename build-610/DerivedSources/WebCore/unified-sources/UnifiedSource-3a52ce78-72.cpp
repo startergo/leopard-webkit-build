@@ -1,3 +1,4 @@
+#include "JSRTCDataChannel.cpp"
 #include "JSRTCDataChannelEvent.cpp"
 #include "JSRTCDegradationPreference.cpp"
 #include "JSRTCDtxStatus.cpp"
@@ -5,4 +6,3 @@
 #include "JSRTCIceConnectionState.cpp"
 #include "JSRTCIceGatheringState.cpp"
 #include "JSRTCIceServer.cpp"
-#include "JSRTCIceTransport.cpp"

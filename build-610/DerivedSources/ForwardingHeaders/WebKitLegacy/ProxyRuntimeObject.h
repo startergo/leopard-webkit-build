@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Plugins/Hosted/ProxyRuntimeObject.h"
+#import "mac/Plugins/Hosted/ProxyRuntimeObject.h"

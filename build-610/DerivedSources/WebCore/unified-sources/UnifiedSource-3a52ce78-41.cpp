@@ -1,3 +1,4 @@
+#include "JSHTMLFrameElement.cpp"
 #include "JSHTMLFrameSetElement.cpp"
 #include "JSHTMLHRElement.cpp"
 #include "JSHTMLHeadElement.cpp"
@@ -5,4 +6,3 @@
 #include "JSHTMLHtmlElement.cpp"
 #include "JSHTMLHyperlinkElementUtils.cpp"
 #include "JSHTMLIFrameElement.cpp"
-#include "JSHTMLImageElement.cpp"

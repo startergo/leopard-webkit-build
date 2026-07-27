@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebCoreSupport/WebInspectorClient.h"
+#import "mac/WebCoreSupport/WebInspectorClient.h"

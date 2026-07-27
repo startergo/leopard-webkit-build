@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebView/WebDeviceOrientationProviderMockInternal.h"
+#import "mac/WebView/WebDeviceOrientationProviderMockInternal.h"

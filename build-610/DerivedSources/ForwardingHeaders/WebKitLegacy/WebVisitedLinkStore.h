@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/WebCoreSupport/WebVisitedLinkStore.h"
+#import "mac/WebCoreSupport/WebVisitedLinkStore.h"

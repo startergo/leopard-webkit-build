@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Plugins/WebPluginContainer.h"
+#import "mac/Plugins/WebPluginContainer.h"

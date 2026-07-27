@@ -1,3 +1,4 @@
+#include "JSRTCRtpCapabilities.cpp"
 #include "JSRTCRtpCodecCapability.cpp"
 #include "JSRTCRtpCodecParameters.cpp"
 #include "JSRTCRtpContributingSource.cpp"
@@ -5,4 +6,3 @@
 #include "JSRTCRtpFecParameters.cpp"
 #include "JSRTCRtpHeaderExtensionParameters.cpp"
 #include "JSRTCRtpParameters.cpp"
-#include "JSRTCRtpReceiver.cpp"

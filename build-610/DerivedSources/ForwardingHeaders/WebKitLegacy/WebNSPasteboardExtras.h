@@ -1,1 +1,1 @@
-#include "/Users/macbookpro/leopard-webkit-build/sources_610/Source/WebKitLegacy/mac/Misc/WebNSPasteboardExtras.h"
+#import "mac/Misc/WebNSPasteboardExtras.h"
